@@ -56,6 +56,16 @@ function renderSidebar() {
       ${wh.map(l => navItem(`#loc/${enc(l.name)}`, iconDot(), l.name + '<span class="tag-warehouse">창고</span>')).join('')}
     </div>` : ''}
   `;
+
+  // 모바일 탭 바 렌더링
+  const bar = document.getElementById('mobile-tab-bar');
+  if (bar) {
+    bar.innerHTML = [
+      `<a class="mob-tab" href="#home">전체</a>`,
+      ...stores.map(l => `<a class="mob-tab" href="#loc/${enc(l.name)}">${l.name}</a>`),
+      ...wh.map(l => `<a class="mob-tab" href="#loc/${enc(l.name)}">${l.name} 창고</a>`),
+    ].join('');
+  }
 }
 
 function navItem(href, icon, label) {
@@ -66,6 +76,11 @@ function highlightNav() {
   const cur = location.hash || '#home';
   document.querySelectorAll('.nav-item').forEach(el => {
     el.classList.toggle('active', el.getAttribute('href') === cur);
+  });
+  document.querySelectorAll('.mob-tab').forEach(el => {
+    const active = el.getAttribute('href') === cur;
+    el.classList.toggle('active', active);
+    if (active) el.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
   });
 }
 
@@ -150,7 +165,7 @@ function renderOldTable(counts, oldCounts) {
 
   if (!rows.length) return '<div class="empty">90일 이상 장기재고 없음</div>';
 
-  return `<table>
+  return `<div style="overflow-x:auto"><table>
     <thead><tr><th>위치</th><th>장기재고</th><th>전체 재고</th><th>비율</th><th>시각화</th></tr></thead>
     <tbody>${rows.map(r => `<tr>
       <td>${r.name}${WAREHOUSE.includes(r.name) ? '<span class="tag-warehouse">창고</span>' : ''}</td>
@@ -163,7 +178,7 @@ function renderOldTable(counts, oldCounts) {
         </div>
       </td>
     </tr>`).join('')}</tbody>
-  </table>`;
+  </table></div>`;
 }
 
 // ─── Location detail ──────────────────────────────────────────────────────────
