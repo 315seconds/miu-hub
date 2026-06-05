@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>입고 로그</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="page-header">
+      <div class="page-header-inner">
+        <div class="page-header-left">
+          <a href="index.html" class="back-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><polyline points="15 18 9 12 15 6"/></svg>
+          </a>
+        </div>
+        <div class="page-header-title">입고 로그</div>
+        <div class="page-header-right" style="width:38px"></div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div id="error-msg" class="error" style="display:none"></div>
+
+      <div class="log-filter-bar">
+        <button class="log-filter-btn active" data-filter="today">오늘</button>
+        <button class="log-filter-btn" data-filter="week">이번 주</button>
+        <button class="log-filter-btn" data-filter="month">이번 달</button>
+        <button class="log-filter-btn" data-filter="custom">직접 입력</button>
+      </div>
+
+      <div class="log-custom-range" id="custom-range">
+        <input type="date" id="date-from">
+        <span style="color:var(--fg-tertiary)">~</span>
+        <input type="date" id="date-to">
+        <button class="btn btn-primary btn-sm" id="custom-load-btn" style="width:56px; flex-shrink:0">조회</button>
+      </div>
+
+      <div id="log-list"><div class="log-loading">불러오는 중...</div></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/logs.js"></script>
+  <script src="js/shared.js"></script>
+</body>
+</html>

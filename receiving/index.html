@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>입고관리</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="home-header">
+      <div class="home-header-date" id="today-label"></div>
+      <div class="home-header-title">입고관리</div>
+    </div>
+
+    <!-- 통계 -->
+    <div class="stats-row" id="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">오늘 입고</div>
+        <div class="stat-value" id="stat-today" style="color:var(--brand-primary)">—</div>
+        <div class="stat-unit">벌</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">미승인 세션</div>
+        <div class="stat-value" id="stat-pending" style="color:var(--fg-primary)">—</div>
+        <div class="stat-unit">개</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">이번 주 입고</div>
+        <div class="stat-value" id="stat-week" style="color:var(--fg-secondary)">—</div>
+        <div class="stat-unit">벌</div>
+      </div>
+    </div>
+
+    <div style="padding: 0 16px 88px;">
+      <div class="section-label">입고</div>
+
+      <a href="session-list.html" class="menu-card">
+        <div class="menu-icon-wrap blue">📦</div>
+        <div>
+          <div class="menu-label">신규입고</div>
+          <div class="menu-desc">행거별 상품 등록 및 세션 참여</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
+          <span id="pending-badge" class="menu-badge" style="display:none"></span>
+          <span class="menu-arrow">›</span>
+        </div>
+      </a>
+
+      <a href="approve.html" class="menu-card">
+        <div class="menu-icon-wrap green">✅</div>
+        <div>
+          <div class="menu-label">입고 승인</div>
+          <div class="menu-desc">대기 중인 세션 확인 및 승인</div>
+        </div>
+        <span class="menu-arrow" style="margin-left:auto;">›</span>
+      </a>
+
+      <div class="section-label">조회</div>
+
+      <a href="items.html" class="menu-card">
+        <div class="menu-icon-wrap violet">🔍</div>
+        <div>
+          <div class="menu-label">물건 조회</div>
+          <div class="menu-desc">입고·이동·판매 이력 통합 조회</div>
+        </div>
+        <span class="menu-arrow" style="margin-left:auto;">›</span>
+      </a>
+
+      <a href="logs.html" class="menu-card">
+        <div class="menu-icon-wrap slate">📋</div>
+        <div>
+          <div class="menu-label">입고 로그</div>
+          <div class="menu-desc">날짜별 입고 기록 및 요약</div>
+        </div>
+        <span class="menu-arrow" style="margin-left:auto;">›</span>
+      </a>
+
+      <div class="section-label">작업</div>
+
+      <a href="price-change.html" class="menu-card">
+        <div class="menu-icon-wrap orange">💰</div>
+        <div>
+          <div class="menu-label">가격수정</div>
+          <div class="menu-desc">바코드 스캔 후 가격 일괄 변경</div>
+        </div>
+        <span class="menu-arrow" style="margin-left:auto;">›</span>
+      </a>
+
+      <a href="reprint.html" class="menu-card">
+        <div class="menu-icon-wrap slate">🔄</div>
+        <div>
+          <div class="menu-label">바코드 재출력</div>
+          <div class="menu-desc">기존 바코드 라벨 다시 인쇄</div>
+        </div>
+        <span class="menu-arrow" style="margin-left:auto;">›</span>
+      </a>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/shared.js"></script>
+  <script>
+    document.getElementById('today-label').textContent = getTodayLabel();
+
+    async function loadStats() {
+      const today = new Date().toISOString().slice(0, 10);
+      const dayOfWeek = new Date().getDay();
+      const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      const monday = new Date();
+      monday.setDate(monday.getDate() + daysToMonday);
+      const weekStart = monday.toISOString().slice(0, 10);
+
+      const [pendingRes, todayRes, weekRes] = await Promise.allSettled([
+        sb.from("inventory_sessions").select("status", { count: "exact", head: true }).eq("status", "pending"),
+        sb.from("inventory_sessions").select("inventory_hangers(inventory_items(id))").eq("session_date", today).in("status", ["approved", "processed"]),
+        sb.from("inventory_sessions").select("inventory_hangers(inventory_items(id))").gte("session_date", weekStart).in("status", ["approved", "processed"]),
+      ]);
+
+      if (pendingRes.status === "fulfilled" && !pendingRes.value.error) {
+        const count = pendingRes.value.count || 0;
+        document.getElementById('stat-pending').textContent = count;
+        if (count > 0) {
+          document.getElementById('stat-pending').style.color = 'var(--status-warning)';
+          const badge = document.getElementById('pending-badge');
+          badge.textContent = count;
+          badge.style.display = '';
+        }
+      }
+
+      if (todayRes.status === "fulfilled" && !todayRes.value.error) {
+        const total = (todayRes.value.data || []).flatMap(s =>
+          (s.inventory_hangers || []).flatMap(h => h.inventory_items || [])
+        ).length;
+        document.getElementById('stat-today').textContent = total;
+      } else {
+        document.getElementById('stat-today').textContent = '—';
+      }
+
+      if (weekRes.status === "fulfilled" && !weekRes.value.error) {
+        const total = (weekRes.value.data || []).flatMap(s =>
+          (s.inventory_hangers || []).flatMap(h => h.inventory_items || [])
+        ).length;
+        document.getElementById('stat-week').textContent = total;
+      } else {
+        document.getElementById('stat-week').textContent = '—';
+      }
+    }
+
+    loadStats();
+  </script>
+</body>
+</html>

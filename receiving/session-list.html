@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>신규입고</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="page-header">
+      <div class="page-header-inner">
+        <div class="page-header-left">
+          <a href="index.html" class="back-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><polyline points="15 18 9 12 15 6"/></svg>
+          </a>
+        </div>
+        <div class="page-header-title">신규입고</div>
+        <div class="page-header-right" style="width:38px"></div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div id="error-msg" class="error" style="display:none"></div>
+      <div id="pending-section"></div>
+
+      <div class="card">
+        <button id="toggle-create" class="btn btn-outline btn-block">＋ 새 세션 만들기</button>
+        <div id="create-form" style="display:none; margin-top:14px">
+          <hr class="divider">
+          <div class="flex mb8" style="gap:8px">
+            <div class="form-group flex-1" style="margin-bottom:0">
+              <label>날짜</label>
+              <input type="date" id="session-date">
+            </div>
+            <div class="form-group" style="margin-bottom:0; width:100px">
+              <label>접두사</label>
+              <input type="text" id="barcode-prefix" value="C" maxlength="6" style="text-transform:uppercase">
+            </div>
+          </div>
+          <div class="form-group mt8">
+            <label>위치</label>
+            <select id="location">
+              <option value="공동물류">공동물류</option>
+              <option value="온라인">온라인</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>이름 (선택)</label>
+            <input type="text" id="created-by" placeholder="이름">
+          </div>
+          <button id="create-btn" class="btn btn-success btn-block mt8">세션 만들기</button>
+        </div>
+      </div>
+
+      <div id="done-section"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/index.js"></script>
+  <script src="js/shared.js"></script>
+</body>
+</html>

@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>재고조사 — 마켓인유</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+    :root {
+        --bg: #0D1117;
+        --surface: #161B22;
+        --surface-hover: #1C2128;
+        --border: #30363D;
+        --border-subtle: #21262D;
+        --text-primary: #E6EDF3;
+        --text-secondary: #8B949E;
+        --text-muted: #484F58;
+        --accent: #E8973A;
+        --accent-dim: rgba(232, 151, 58, 0.12);
+        --accent-border: rgba(232, 151, 58, 0.3);
+        --success: #3FB950;
+        --success-dim: rgba(63, 185, 80, 0.12);
+        --danger: #F85149;
+        --danger-dim: rgba(248, 81, 73, 0.12);
+        --radius: 10px;
+        --radius-sm: 6px;
+        --mono: 'JetBrains Mono', monospace;
+        --sans: 'Noto Sans KR', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+        font-family: var(--sans);
+        background: var(--bg);
+        color: var(--text-primary);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+    }
+
+    /* ── 허브 뒤로가기 ── */
+    .hub-back {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 16px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border-subtle);
+        text-decoration: none;
+        color: var(--accent);
+        font-size: 13px;
+        font-weight: 500;
+        flex-shrink: 0;
+    }
+
+    .app {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        overflow: hidden;
+        padding: 16px;
+        gap: 10px;
+        max-width: 480px;
+        margin: 0 auto;
+        width: 100%;
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 2px;
+    }
+
+    .brand { display: flex; flex-direction: column; gap: 2px; }
+    .brand-name { font-size: 13px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.3px; }
+    .brand-sub { font-size: 9px; color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; font-family: var(--mono); }
+
+    .hanger-badge {
+        font-family: var(--mono);
+        font-size: 12px; font-weight: 600;
+        color: var(--accent);
+        background: var(--accent-dim);
+        border: 1px solid var(--accent-border);
+        padding: 5px 14px; border-radius: 20px; letter-spacing: 0.3px;
+    }
+
+    .counter-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 20px;
+        display: flex; align-items: center; justify-content: space-between;
+        position: relative; overflow: hidden;
+    }
+    .counter-card::before {
+        content: ''; position: absolute; top: 0; left: 0; right: 0;
+        height: 2px; background: var(--accent); opacity: 0.6;
+    }
+    .counter-left { display: flex; flex-direction: column; gap: 6px; }
+    .counter-label { font-size: 10px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; font-family: var(--mono); }
+    .counter-value { font-family: var(--mono); font-size: 56px; font-weight: 700; color: var(--text-primary); line-height: 1; letter-spacing: -3px; }
+    .counter-unit { font-size: 18px; font-weight: 400; color: var(--text-secondary); letter-spacing: 0; margin-left: 2px; }
+    .counter-right { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+    .total-label { font-size: 10px; color: var(--text-muted); font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; }
+    .total-value { font-family: var(--mono); font-size: 22px; font-weight: 600; color: var(--text-secondary); }
+    .last-code { font-family: var(--mono); font-size: 10px; color: var(--text-muted); text-align: right; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .last-code span { color: var(--accent); font-weight: 600; }
+
+    .input-wrap { position: relative; }
+    .input-field {
+        width: 100%; padding: 14px 18px;
+        font-size: 16px; font-family: var(--mono); font-weight: 600;
+        color: var(--text-primary); background: var(--surface);
+        border: 1.5px solid var(--border); border-radius: var(--radius);
+        text-align: center; letter-spacing: 1px;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        caret-color: var(--accent);
+    }
+    .input-field::placeholder { color: var(--text-muted); font-size: 12px; font-weight: 400; letter-spacing: 2px; text-transform: uppercase; }
+    .input-field:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+    .input-indicator {
+        position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+        width: 8px; height: 8px; border-radius: 50%; background: var(--success);
+        opacity: 0; transition: opacity 0.2s;
+    }
+    .input-field:focus ~ .input-indicator { opacity: 1; animation: pulse 1.5s ease infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    .btn-row { display: flex; gap: 8px; }
+    .btn {
+        flex: 1; padding: 13px 12px;
+        border: 1px solid transparent; border-radius: var(--radius);
+        font-family: var(--sans); font-size: 13px; font-weight: 600;
+        cursor: pointer; transition: all 0.12s; letter-spacing: -0.2px;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-undo { background: transparent; border-color: var(--border); color: var(--text-secondary); flex: 0 0 auto; padding: 13px 20px; }
+    .btn-undo:hover { background: var(--surface-hover); color: var(--text-primary); }
+    .btn-reset-hanger { background: transparent; border-color: rgba(248,81,73,0.3); color: var(--danger); flex: 0 0 auto; padding: 13px 14px; font-size: 12px; }
+    .btn-reset-hanger:hover { background: var(--danger-dim); border-color: rgba(248,81,73,0.5); }
+    .btn-save { background: var(--accent); color: #0D1117; font-weight: 700; }
+    .btn-save:hover { background: #f5a74e; }
+
+    .list-card {
+        flex: 1; overflow-y: auto;
+        background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+        -webkit-overflow-scrolling: touch;
+    }
+    .list-card::-webkit-scrollbar { width: 3px; }
+    .list-card::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .list-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 8px; color: var(--text-muted); }
+    .list-empty-icon { font-size: 28px; opacity: 0.3; }
+    .list-empty-text { font-size: 12px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; }
+
+    .list-item {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 11px 16px; border-bottom: 1px solid var(--border-subtle);
+        transition: background 0.1s; gap: 12px;
+    }
+    .list-item:last-child { border-bottom: none; }
+    .list-item:hover { background: var(--surface-hover); }
+    .list-item.is-dup { background: var(--danger-dim); }
+    .list-item.is-dup:hover { background: rgba(248,81,73,0.18); }
+
+    .item-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .item-num { font-family: var(--mono); font-size: 10px; color: var(--text-muted); min-width: 22px; text-align: right; }
+    .item-code { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .dup-tag { font-family: var(--mono); font-size: 9px; font-weight: 700; color: var(--danger); background: var(--danger-dim); border: 1px solid rgba(248,81,73,0.3); padding: 1px 6px; border-radius: 3px; letter-spacing: 0.5px; white-space: nowrap; }
+    .item-time { font-family: var(--mono); font-size: 10px; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
+
+    .footer { display: flex; gap: 8px; }
+    .btn-sm {
+        flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+        font-family: var(--sans); font-size: 11px; font-weight: 600;
+        cursor: pointer; transition: all 0.12s; background: transparent; color: var(--text-secondary);
+    }
+    .btn-sm:hover { background: var(--surface-hover); color: var(--text-primary); }
+    .btn-sm:active { transform: scale(0.97); }
+    .btn-sm.danger { color: var(--danger); border-color: rgba(248,81,73,0.3); }
+    .btn-sm.danger:hover { background: var(--danger-dim); border-color: rgba(248,81,73,0.5); }
+
+    .dup-overlay {
+        position: fixed; inset: 0; background: rgba(248,81,73,0.12);
+        backdrop-filter: blur(2px); display: flex; flex-direction: column;
+        align-items: center; justify-content: center; gap: 8px;
+        z-index: 9000; opacity: 0; pointer-events: none; transition: opacity 0.15s;
+    }
+    .dup-overlay.show { opacity: 1; }
+    .dup-icon { font-size: 36px; }
+    .dup-title { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--danger); letter-spacing: 1px; text-transform: uppercase; text-align: center; white-space: pre-line; }
+
+    .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); display: none; align-items: center; justify-content: center; z-index: 10000; padding: 24px; }
+    .modal-bg.show { display: flex; animation: fadeIn 0.15s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px 24px 20px; max-width: 300px; width: 100%; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+    .modal-msg { font-size: 14px; color: var(--text-primary); line-height: 1.6; margin-bottom: 20px; white-space: pre-line; }
+    .modal-btns { display: flex; gap: 8px; }
+    .modal-btn { flex: 1; padding: 11px 8px; border: 1px solid transparent; border-radius: var(--radius-sm); font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; transition: opacity 0.1s; }
+    .modal-btn:active { opacity: 0.75; }
+    .modal-btn-cancel { background: transparent; border-color: var(--border); color: var(--text-secondary); }
+    .modal-btn-confirm { background: var(--accent); color: #0D1117; }
+    .modal-btn-danger { background: var(--danger); color: #fff; }
+    .modal-btn-ok { background: var(--accent); color: #0D1117; }
+
+    .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(12px); background: var(--surface); border: 1px solid var(--border); color: var(--text-primary); padding: 9px 20px; border-radius: 20px; font-size: 12px; font-weight: 600; font-family: var(--mono); letter-spacing: 0.5px; opacity: 0; transition: all 0.25s cubic-bezier(0.16,1,0.3,1); z-index: 8000; pointer-events: none; box-shadow: 0 8px 24px rgba(0,0,0,0.4); white-space: nowrap; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+<a href="../" class="hub-back">← 허브로</a>
+
+<div id="dupOverlay" class="dup-overlay">
+    <div class="dup-icon">⚠</div>
+    <div class="dup-title" id="dupTitle">중복 바코드</div>
+</div>
+
+<div id="modalBg" class="modal-bg">
+    <div class="modal-card">
+        <div class="modal-msg" id="modalMsg"></div>
+        <div class="modal-btns" id="modalBtns"></div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="app">
+    <div class="header">
+        <div class="brand">
+            <div class="brand-name">마켓인유 재고조사</div>
+            <div class="brand-sub">Inventory Scanner</div>
+        </div>
+        <div class="hanger-badge" id="hangerInfo">1번 행거</div>
+    </div>
+
+    <div class="counter-card">
+        <div class="counter-left">
+            <div class="counter-label">현재 행거</div>
+            <div>
+                <span class="counter-value" id="currentCount">0</span>
+                <span class="counter-unit">벌</span>
+            </div>
+        </div>
+        <div class="counter-right">
+            <div class="total-label">누적</div>
+            <div class="total-value" id="totalCount">0벌</div>
+            <div class="last-code" id="lastCode">마지막: <span>—</span></div>
+        </div>
+    </div>
+
+    <div class="input-wrap">
+        <input class="input-field" type="text" id="barcodeInput" placeholder="스캔 대기중"
+            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="none" lang="en">
+        <div class="input-indicator"></div>
+    </div>
+
+    <div class="btn-row">
+        <button class="btn btn-undo" onclick="undoLast()">↩ 삭제</button>
+        <button class="btn btn-reset-hanger" onclick="resetCurrentHanger()">현재 행거 초기화</button>
+        <button class="btn btn-save" onclick="saveHanger()">행거 완료 →</button>
+    </div>
+
+    <div class="list-card" id="scanList">
+        <div class="list-empty">
+            <div class="list-empty-icon">▦</div>
+            <div class="list-empty-text">스캔 기록</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <button class="btn-sm" onclick="exportToCSV()">↓ 엑셀 다운로드</button>
+        <button class="btn-sm danger" onclick="clearAllData()">전체 초기화</button>
+    </div>
+</div>
+
+<script>
+    let allData = [], currentHangerData = [], hangerCount = 1, inputTimer = null;
+    const input = document.getElementById('barcodeInput');
+    const dupOverlay = document.getElementById('dupOverlay');
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playBeep() {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type = 'sine'; o.frequency.setValueAtTime(880, audioCtx.currentTime);
+        g.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        o.start(); o.stop(audioCtx.currentTime + 0.08);
+    }
+    function playError() {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+        o.connect(g); g.connect(audioCtx.destination);
+        o.type = 'square'; o.frequency.setValueAtTime(220, audioCtx.currentTime);
+        g.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+        o.start(); o.stop(audioCtx.currentTime + 0.3);
+    }
+
+    function normalizeBarcode(input) {
+        const JAMO_TO_ENG = {'ㄱ':'r','ㄲ':'R','ㄴ':'s','ㄷ':'e','ㄸ':'E','ㄹ':'f','ㅁ':'a','ㅂ':'q','ㅃ':'Q','ㅅ':'t','ㅆ':'T','ㅇ':'','ㅈ':'w','ㅉ':'W','ㅊ':'c','ㅋ':'z','ㅌ':'x','ㅍ':'v','ㅎ':'g','ㅏ':'k','ㅐ':'o','ㅑ':'i','ㅒ':'O','ㅓ':'j','ㅔ':'p','ㅕ':'u','ㅖ':'P','ㅗ':'h','ㅘ':'hk','ㅙ':'ho','ㅚ':'hl','ㅛ':'y','ㅜ':'n','ㅝ':'nj','ㅞ':'np','ㅟ':'nl','ㅠ':'b','ㅡ':'m','ㅢ':'ml','ㅣ':'l','ㄳ':'rt','ㄵ':'sw','ㄶ':'sg','ㄺ':'fr','ㄻ':'fa','ㄼ':'fq','ㄽ':'ft','ㄾ':'fx','ㄿ':'fv','ㅀ':'fg','ㅄ':'qt'};
+        const INITIALS = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+        const VOWELS   = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+        const FINALS   = ['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+        let result = '';
+        for (const ch of input) {
+            const code = ch.charCodeAt(0);
+            if (code >= 0xAC00 && code <= 0xD7A3) {
+                const offset = code - 0xAC00;
+                result += JAMO_TO_ENG[INITIALS[Math.floor(offset/(21*28))]] ?? '';
+                result += JAMO_TO_ENG[VOWELS[Math.floor((offset%(21*28))/28)]] ?? '';
+                const fIdx = offset%28; if (fIdx>0) result += JAMO_TO_ENG[FINALS[fIdx]] ?? '';
+            } else if (code >= 0x3130 && code <= 0x318F) {
+                result += JAMO_TO_ENG[ch] ?? ch;
+            } else { result += ch; }
+        }
+        return result.toUpperCase().trim();
+    }
+
+    function charFromKeyEvent(e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return null;
+        const letters = {'KeyA':'a','KeyB':'b','KeyC':'c','KeyD':'d','KeyE':'e','KeyF':'f','KeyG':'g','KeyH':'h','KeyI':'i','KeyJ':'j','KeyK':'k','KeyL':'l','KeyM':'m','KeyN':'n','KeyO':'o','KeyP':'p','KeyQ':'q','KeyR':'r','KeyS':'s','KeyT':'t','KeyU':'u','KeyV':'v','KeyW':'w','KeyX':'x','KeyY':'y','KeyZ':'z'};
+        if (letters[e.code]) return e.shiftKey ? letters[e.code].toUpperCase() : letters[e.code];
+        const digits = {'Digit0':'0','Digit1':'1','Digit2':'2','Digit3':'3','Digit4':'4','Digit5':'5','Digit6':'6','Digit7':'7','Digit8':'8','Digit9':'9'};
+        if (digits[e.code] && !e.shiftKey) return digits[e.code];
+        const specials = {'Minus': e.shiftKey ? '_' : '-', 'Period': '.', 'Slash': '/'};
+        if (specials[e.code] !== undefined) return specials[e.code];
+        return null;
+    }
+
+    let scanBuffer = '', androidMode = false;
+
+    input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+            e.preventDefault(); clearTimeout(inputTimer);
+            const raw = androidMode ? input.value.trim() : scanBuffer.trim();
+            scanBuffer = ''; input.value = '';
+            if (raw) processBarcode(raw); return;
+        }
+        if (!e.code || e.code === 'Unidentified') {
+            androidMode = true;
+            clearTimeout(inputTimer);
+            inputTimer = setTimeout(() => { const raw = input.value.trim(); input.value = ''; if (raw) processBarcode(raw); }, 500);
+            return;
+        }
+        androidMode = false;
+        if (e.key === 'Backspace') { e.preventDefault(); scanBuffer = scanBuffer.slice(0,-1); input.value = scanBuffer; return; }
+        const char = charFromKeyEvent(e);
+        if (char !== null) {
+            e.preventDefault(); scanBuffer += char; input.value = scanBuffer;
+            clearTimeout(inputTimer);
+            inputTimer = setTimeout(() => { const v = scanBuffer.trim(); scanBuffer = ''; input.value = ''; if (v) processBarcode(v); }, 500);
+        }
+    });
+    input.addEventListener('input', e => { if (!androidMode) input.value = scanBuffer; });
+    input.addEventListener('compositionend', () => {
+        if (androidMode) { clearTimeout(inputTimer); inputTimer = setTimeout(() => { const raw = input.value.trim(); input.value = ''; if (raw) processBarcode(raw); }, 500); }
+    });
+    input.addEventListener('paste', e => {
+        e.preventDefault();
+        const pasted = (e.clipboardData || window.clipboardData).getData('text').trim();
+        if (pasted) processBarcode(pasted);
+    });
+
+    function processBarcode(code) {
+        const c = normalizeBarcode(code);
+        if (!c) return;
+        scanBuffer = ''; input.value = '';
+        const isDup = allData.some(i => i.barcode === c) || currentHangerData.some(i => i.code === c);
+        if (isDup) { playError(); showDup(`중복\n${c}`); }
+        else { playBeep(); }
+        currentHangerData.push({ code: c, isDup, time: new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) });
+        updateUI(); saveToStorage();
+    }
+
+    function updateUI() {
+        const total = allData.length + currentHangerData.length;
+        document.getElementById('currentCount').textContent = currentHangerData.length;
+        document.getElementById('totalCount').textContent = `${total}벌`;
+        const last = currentHangerData[currentHangerData.length-1];
+        document.getElementById('lastCode').innerHTML = `마지막: <span>${last ? last.code : '—'}</span>`;
+        const list = document.getElementById('scanList');
+        if (!currentHangerData.length) {
+            list.innerHTML = `<div class="list-empty"><div class="list-empty-icon">▦</div><div class="list-empty-text">스캔 기록</div></div>`;
+        } else {
+            list.innerHTML = currentHangerData.slice().reverse().map((item, idx) => {
+                const n = currentHangerData.length - idx;
+                return `<div class="list-item${item.isDup?' is-dup':''}">
+                    <div class="item-left"><span class="item-num">${n}</span><span class="item-code">${item.code}</span>${item.isDup?'<span class="dup-tag">중복</span>':''}</div>
+                    <span class="item-time">${item.time}</span></div>`;
+            }).join('');
+        }
+        input.focus();
+    }
+
+    let dupTimer = null;
+    function showDup(msg) {
+        document.getElementById('dupTitle').textContent = msg;
+        dupOverlay.classList.add('show');
+        clearTimeout(dupTimer);
+        dupTimer = setTimeout(() => { dupOverlay.classList.remove('show'); input.focus(); }, 1800);
+    }
+
+    function showModal(msg, buttons) {
+        return new Promise(resolve => {
+            const bg = document.getElementById('modalBg');
+            document.getElementById('modalMsg').textContent = msg;
+            const btns = document.getElementById('modalBtns');
+            btns.innerHTML = '';
+            buttons.forEach(b => {
+                const el = document.createElement('button');
+                el.className = `modal-btn ${b.cls||'modal-btn-ok'}`; el.textContent = b.label;
+                el.onclick = () => { bg.classList.remove('show'); resolve(b.val); setTimeout(() => input.focus(), 50); };
+                btns.appendChild(el);
+            });
+            bg.classList.add('show');
+        });
+    }
+    const showConfirm = msg => showModal(msg, [{label:'취소',cls:'modal-btn-cancel',val:false},{label:'확인',cls:'modal-btn-confirm',val:true}]);
+    const showAlertModal = msg => showModal(msg, [{label:'확인',cls:'modal-btn-ok',val:true}]);
+
+    let toastTimer = null;
+    function showToast(msg) {
+        const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
+        clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    async function resetCurrentHanger() {
+        if (!currentHangerData.length) return showAlertModal('초기화할 데이터가 없습니다.');
+        if (await showConfirm(`${hangerCount}번 행거 (${currentHangerData.length}벌)\n현재 행거만 초기화할까요?`)) {
+            currentHangerData = []; updateUI(); saveToStorage(); showToast(`${hangerCount}번 행거 초기화 완료`);
+        }
+    }
+    async function undoLast() {
+        if (!currentHangerData.length) return input.focus();
+        const last = currentHangerData[currentHangerData.length-1];
+        if (await showConfirm(`마지막 항목을 삭제할까요?\n(${last.code})`)) {
+            currentHangerData.pop(); updateUI(); saveToStorage(); showToast('삭제 완료');
+        }
+    }
+    async function saveHanger() {
+        if (!currentHangerData.length) return showAlertModal('저장할 데이터가 없습니다.');
+        if (await showConfirm(`${hangerCount}번 행거 (${currentHangerData.length}벌)\n저장하고 다음으로 넘어갈까요?`)) {
+            currentHangerData.forEach(item => { allData.push({hanger:hangerCount,barcode:item.code,isDuplicate:item.isDup?'Y':'N',time:item.time}); });
+            currentHangerData = []; hangerCount++;
+            document.getElementById('hangerInfo').textContent = `${hangerCount}번 행거`;
+            updateUI(); saveToStorage(); showToast(`${hangerCount-1}번 행거 완료!`);
+            input.blur(); setTimeout(() => { scanBuffer=''; input.value=''; input.focus(); }, 300);
+        }
+    }
+    async function exportToCSV() {
+        if (currentHangerData.length && !(await showConfirm('현재 행거는 미저장 상태입니다.\n제외하고 다운로드할까요?'))) return;
+        if (!allData.length) return showAlertModal('다운로드할 데이터가 없습니다.');
+        let csv = '﻿행거번호,바코드,중복여부,스캔시간\n';
+        allData.forEach(r => { csv += `${r.hanger},${r.barcode},${r.isDuplicate},${r.time}\n`; });
+        const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+        const a = document.createElement('a');
+        const d = new Date();
+        a.href = URL.createObjectURL(blob);
+        a.download = `재고조사_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}.csv`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        showToast('다운로드 완료!');
+    }
+    async function clearAllData() {
+        const t = allData.length + currentHangerData.length;
+        if (!t) return showAlertModal('초기화할 데이터가 없습니다.');
+        if (await showModal(`모든 데이터 ${t}건을 삭제합니다.\n되돌릴 수 없습니다.`,[{label:'취소',cls:'modal-btn-cancel',val:false},{label:'전체 삭제',cls:'modal-btn-danger',val:true}])) {
+            allData=[]; currentHangerData=[]; hangerCount=1;
+            document.getElementById('hangerInfo').textContent='1번 행거';
+            updateUI(); clearStorage(); showToast('초기화 완료');
+        }
+    }
+
+    const STORAGE_KEY = 'marketInYou_inventory_v2';
+    function saveToStorage() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify({allData,currentHangerData,hangerCount})); } catch(e){} }
+    function loadFromStorage() {
+        try {
+            const s = localStorage.getItem(STORAGE_KEY); if (!s) return;
+            const st = JSON.parse(s);
+            if ((st.allData?.length||0)+(st.currentHangerData?.length||0)===0) return;
+            allData=st.allData||[]; currentHangerData=st.currentHangerData||[]; hangerCount=st.hangerCount||1;
+            document.getElementById('hangerInfo').textContent=`${hangerCount}번 행거`;
+            updateUI(); showToast(`이전 데이터 복원 (${allData.length+currentHangerData.length}건)`);
+        } catch(e){}
+    }
+    function clearStorage() { try { localStorage.removeItem(STORAGE_KEY); } catch(e){} }
+
+    window.addEventListener('beforeunload', e => { if (allData.length||currentHangerData.length){e.preventDefault();e.returnValue='';} });
+
+    loadFromStorage();
+    input.focus();
+</script>
+</body>
+</html>
