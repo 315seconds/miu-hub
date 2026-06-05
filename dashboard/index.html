@@ -6,6 +6,7 @@
   <title>매장 현황판 — 마켓인유</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
@@ -55,7 +56,7 @@
     }
 
     body {
-      font-family: 'Inter', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+      font-family: 'Pretendard Variable', 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
       background: var(--canvas);
       color: var(--ink);
       display: flex;
@@ -399,7 +400,7 @@
     <div class="sidebar-logo-mark"></div>
     매장 현황판
   </div>
-  <a href="../" style="display:flex;align-items:center;gap:6px;padding:10px 16px;color:#6a6a6a;font-size:12px;text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:8px;">← 허브로</a>
+  <a href="../" style="display:flex;align-items:center;gap:6px;padding:10px 16px;color:var(--peach);font-size:12px;font-weight:600;text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:8px;-webkit-tap-highlight-color:transparent;">← 허브로</a>
   <div id="nav"></div>
   <div class="sidebar-footer" id="footer-time">로딩 중...</div>
 </aside>
