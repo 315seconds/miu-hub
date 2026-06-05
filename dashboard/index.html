@@ -13,25 +13,28 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      /* Clay palette */
-      --canvas:       #fffaf0;
-      --surface-soft: #faf5e8;
-      --surface-card: #f5f0e0;
-      --surface-strong:#ebe6d6;
-      --tile:         #0a1a1a;
-      --tile-elevated:#1a2a2a;
+      /* WDS 기반 메인 팔레트 */
+      --canvas:       #F7F7F8;
+      --surface-soft: #FAFAFA;
+      --surface-card: #F4F4F5;
+      --surface-strong:#EBEBEC;
+
+      /* 사이드바 다크 (유지) */
+      --tile:         #0f1923;
+      --tile-elevated:#1a2633;
       --on-dark:      #ffffff;
       --muted-dk:     rgba(255,255,255,0.48);
 
-      --ink:          #0a0a0a;
-      --ink-strong:   #1a1a1a;
-      --body:         #3a3a3a;
-      --muted:        #6a6a6a;
-      --muted-soft:   #9a9a9a;
-      --hairline:     #e5e5e5;
-      --hairline-soft:#f0f0f0;
+      /* WDS 텍스트 */
+      --ink:          #171719;
+      --ink-strong:   #171719;
+      --body:         rgba(70,71,76,0.86);
+      --muted:        #989BA2;
+      --muted-soft:   #C2C4C8;
+      --hairline:     rgba(112,115,124,0.22);
+      --hairline-soft:rgba(112,115,124,0.12);
 
-      /* Brand */
+      /* 차트/통계 강조색 (유지) */
       --pink:         #ff4d8b;
       --teal:         #1a3a3a;
       --lavender:     #b8a4ed;
@@ -40,10 +43,10 @@
       --mint:         #a4d4c5;
       --coral:        #ff6b5a;
 
-      /* Semantic */
-      --success:      #22c55e;
-      --warning:      #f59e0b;
-      --error:        #ef4444;
+      /* WDS 시맨틱 */
+      --success:      #00BF40;
+      --warning:      #FF5E00;
+      --error:        #E52222;
 
       /* Radius */
       --r-xs:   6px;
@@ -187,10 +190,11 @@
     .cards-row-3 { grid-template-columns: repeat(3, 1fr); }
 
     .stat-card {
-      background: var(--canvas);
+      background: #FFFFFF;
       border: 1px solid var(--hairline);
       border-radius: var(--r-xl);
       padding: 22px 24px;
+      box-shadow: 0 1px 2px rgba(23,23,23,0.06);
     }
     /* Clay brand-color stat card variants */
     .stat-card-peach   { background: var(--peach);   border-color: transparent; }
@@ -231,11 +235,12 @@
 
     /* ── Section card ── */
     .section-card {
-      background: var(--surface-card);
+      background: #FFFFFF;
       border: 1px solid var(--hairline);
       border-radius: var(--r-xl);
       padding: 24px 26px;
       margin-bottom: 18px;
+      box-shadow: 0 1px 2px rgba(23,23,23,0.06);
     }
     .section-card h3 {
       font-size: 16px; font-weight: 600;
