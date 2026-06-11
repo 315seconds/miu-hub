@@ -507,18 +507,20 @@ async function fetchStoreSales(locationName) {
   return data || [];
 }
 
-// Returns barcode → scanned_at (latest arrival at this location via move sessions)
+// Returns barcode → session_date (latest arrival at this location via move sessions)
 async function fetchArrivalMap(locationName) {
   try {
-    // Step 1: get all move_sessions where to_location = this store
+    // Step 1: get all approved move_sessions where to_location = this store
     const { data: sessions } = await sb.from('move_sessions')
-      .select('id')
-      .eq('to_location', locationName);
+      .select('id,session_date')
+      .eq('to_location', locationName)
+      .eq('status', 'approved');
 
     if (!sessions?.length) return {};
 
+    const sessionDateMap = Object.fromEntries(sessions.map(s => [s.id, s.session_date]));
     const sessionIds = sessions.map(s => s.id);
-    const map = {}; // barcode → latest scanned_at
+    const map = {}; // barcode → latest session_date
 
     // Step 2: fetch session_items for those sessions in chunks
     const chunkSize = 50;
@@ -527,14 +529,14 @@ async function fetchArrivalMap(locationName) {
       let from = 0;
       while (true) {
         const { data, error } = await sb.from('session_items')
-          .select('barcode,scanned_at')
+          .select('barcode,session_id')
           .in('session_id', chunk)
-          .eq('is_submitted', true)
           .range(from, from + 999);
         if (error || !data?.length) break;
         data.forEach(row => {
-          if (!map[row.barcode] || row.scanned_at > map[row.barcode]) {
-            map[row.barcode] = row.scanned_at;
+          const date = sessionDateMap[row.session_id];
+          if (date && (!map[row.barcode] || date > map[row.barcode])) {
+            map[row.barcode] = date;
           }
         });
         if (data.length < 1000) break;
