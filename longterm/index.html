@@ -25,6 +25,7 @@
   --surface-card:   #FFFFFF;
   --surface-strong: #F4F4F5;
   --error:          #E52222;
+  --warn:           #d97706;
   --success:        #00BF40;
   /* timeline pastels — date pills */
   --peach:          #dfa88f;
@@ -167,7 +168,8 @@ body {
   font-size: 12px; color: var(--body);
 }
 .days-store { font-weight: 500; }
-.days-store.days-lt { color: var(--error); font-weight: 600; }
+.days-store.days-lt1 { color: var(--warn);  font-weight: 600; }
+.days-store.days-lt2 { color: var(--error); font-weight: 600; }
 .days-total { color: var(--muted); }
 .days-sep { color: var(--hairline-strong); font-size: 11px; }
 
@@ -199,7 +201,8 @@ body {
   margin-bottom: 8px;
   box-shadow: 0 1px 2px rgba(23,23,23,0.06), 0 1px 1px rgba(0,0,0,0.05);
 }
-.scan-card.card-lt { border-left-color: var(--error); background: #fff5f5; }
+.scan-card.card-lt1 { border-left-color: var(--warn);  background: #fffbf2; }
+.scan-card.card-lt2 { border-left-color: var(--error); background: #fff5f5; }
 .scan-card.card-err { opacity: .75; }
 
 /* card inner layout */
@@ -225,7 +228,8 @@ body {
   padding: 14px 14px 12px 13px; margin-bottom: 8px;
   cursor: pointer;
 }
-.proc-card.card-lt { border-left-color: var(--error); background: #fff8f8; }
+.proc-card.card-lt1 { border-left-color: var(--warn);  background: #fffbf2; }
+.proc-card.card-lt2 { border-left-color: var(--error); background: #fff8f8; }
 .proc-card input[type="checkbox"] {
   width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px;
   accent-color: var(--primary);
@@ -421,9 +425,13 @@ body {
     </div>
     <div class="form-group">
       <label class="form-label">장기재고 기준일</label>
-      <div class="row-gap">
+      <div class="row-gap" style="margin-bottom:8px">
         <input type="number" id="threshold-input" class="form-input" value="60" min="1" max="365" style="width:90px">
-        <span style="color:var(--muted);font-size:14px">일 이상 경고</span>
+        <span style="color:var(--error);font-size:14px;font-weight:600">🔴 가격변경</span>
+      </div>
+      <div class="row-gap">
+        <input type="number" id="threshold2-input" class="form-input" placeholder="선택" min="1" max="365" style="width:90px">
+        <span style="color:var(--warn);font-size:14px;font-weight:600">🟠 순환필요 <span style="font-weight:400;color:var(--muted)">(선택)</span></span>
       </div>
     </div>
     <button class="btn btn-primary btn-block" id="start-btn">스캔 시작</button>
