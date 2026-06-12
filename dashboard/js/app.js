@@ -322,21 +322,47 @@ function onCatClick(e) {
   panel.innerHTML = `
     <div class="cat-expand-title">${cat.name} — 매장 도착일 기준 연령 분포</div>
     <div class="age-breakdown">
-      ${ageBox('0–30일',  cat.d30,  '#22c55e', '#d1fae5')}
-      ${ageBox('31–60일', cat.d60,  '#f59e0b', '#fef3c7')}
-      ${ageBox('61–90일', cat.d90,  '#f97316', '#ffedd5')}
-      ${ageBox('90일+',   cat.old,  '#ef4444', '#fee2e2')}
+      ${ageBox('0–30일',  cat.d30,  '#22c55e', '#d1fae5', 'd30')}
+      ${ageBox('31–60일', cat.d60,  '#f59e0b', '#fef3c7', 'd60')}
+      ${ageBox('61–90일', cat.d90,  '#f97316', '#ffedd5', 'd90')}
+      ${ageBox('90일+',   cat.old,  '#ef4444', '#fee2e2', 'old')}
     </div>
+    <div class="barcode-list-wrap"></div>
   `;
+
+  panel.querySelector('.age-breakdown').addEventListener('click', e => {
+    const box = e.target.closest('[data-bucket]');
+    if (!box) return;
+    const bucket = box.dataset.bucket;
+    const wrap = panel.querySelector('.barcode-list-wrap');
+    const barcodes = (cat.barcodes || {})[bucket] || [];
+    const isActive = wrap.dataset.activeBucket === bucket;
+    panel.querySelectorAll('[data-bucket]').forEach(b => b.classList.remove('active'));
+    if (isActive) {
+      wrap.innerHTML = '';
+      wrap.dataset.activeBucket = '';
+    } else {
+      box.classList.add('active');
+      wrap.dataset.activeBucket = bucket;
+      wrap.innerHTML = renderBarcodeList(barcodes);
+    }
+  });
 
   card.after(panel);
 }
 
-function ageBox(label, val, color, bg) {
-  return `<div class="age-bucket" style="background:${bg}">
+function ageBox(label, val, color, bg, bucket) {
+  const clickable = val > 0 && bucket;
+  return `<div class="age-bucket${clickable ? ' age-bucket-clickable' : ''}" style="background:${bg}"${clickable ? ` data-bucket="${bucket}"` : ''}>
     <div class="bk-label">${label}</div>
     <div class="bk-val" style="color:${color}">${fmt(val)}</div>
+    ${clickable ? `<div class="bk-hint" style="color:${color}">목록 보기 ▼</div>` : ''}
   </div>`;
+}
+
+function renderBarcodeList(barcodes) {
+  if (!barcodes.length) return '<div class="empty" style="padding:10px 0">바코드 없음</div>';
+  return `<div class="barcode-list">${barcodes.map(b => `<span class="barcode-chip">${b}</span>`).join('')}</div>`;
 }
 
 // ─── Dead stock alert ─────────────────────────────────────────────────────────
@@ -630,12 +656,12 @@ function buildCategoryStats(items, arrivalMap = {}) {
   items.forEach(item => {
     const k   = normalizeCatName(item.category);
     const age = getArrivalAge(item, arrivalMap);
-    if (!map[k]) map[k] = { total: 0, d30: 0, d60: 0, d90: 0, old: 0 };
+    if (!map[k]) map[k] = { total: 0, d30: 0, d60: 0, d90: 0, old: 0, barcodes: { d30: [], d60: [], d90: [], old: [] } };
     map[k].total++;
-    if      (age <= 30) map[k].d30++;
-    else if (age <= 60) map[k].d60++;
-    else if (age <= 90) map[k].d90++;
-    else                map[k].old++;
+    if      (age <= 30) { map[k].d30++; map[k].barcodes.d30.push(item.barcode); }
+    else if (age <= 60) { map[k].d60++; map[k].barcodes.d60.push(item.barcode); }
+    else if (age <= 90) { map[k].d90++; map[k].barcodes.d90.push(item.barcode); }
+    else                { map[k].old++;  map[k].barcodes.old.push(item.barcode); }
   });
   const cats = Object.entries(map)
     .sort((a, b) => b[1].total - a[1].total)
