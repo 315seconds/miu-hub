@@ -976,10 +976,11 @@ async function renderStocktake() {
     const scans = await fetchSessionScansStatus(active.id);
     const locStats = {};
     scans.forEach(s => {
-      if (!locStats[s.scanned_location]) locStats[s.scanned_location] = { count: 0, scanners: new Set(), firstAt: s.scanned_at };
+      if (!locStats[s.scanned_location]) locStats[s.scanned_location] = { count: 0, scanners: new Set(), firstAt: s.scanned_at, lastAt: s.scanned_at };
       locStats[s.scanned_location].count++;
       locStats[s.scanned_location].scanners.add(s.scanner_name);
       if (s.scanned_at < locStats[s.scanned_location].firstAt) locStats[s.scanned_location].firstAt = s.scanned_at;
+      if (s.scanned_at > locStats[s.scanned_location].lastAt) locStats[s.scanned_location].lastAt = s.scanned_at;
     });
 
     const activeLocNames = [...allLocations.map(l=>l.name)].filter(n=>!EXCLUDED.includes(n));
@@ -996,7 +997,7 @@ async function renderStocktake() {
         <td>${fmt(locStats[loc].count)}건</td>
         <td>${[...locStats[loc].scanners].join(', ')}</td>
         <td style="display:flex;align-items:center;gap:8px">
-          ${new Date(locStats[loc].firstAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}
+          ${(() => { const f=new Date(locStats[loc].firstAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}); const l=new Date(locStats[loc].lastAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}); return f===l?f:`${f} ~ ${l}`; })()}
           <button class="btn-csv-dl" onclick="downloadLocationScans('${active.id}','${loc}')">↓ CSV</button>
         </td>
       </tr>`).join('');
