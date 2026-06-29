@@ -460,8 +460,13 @@
             document.getElementById('scanBrandName').textContent = sessionMeta.locationName;
             document.getElementById('scanBrandSub').textContent = sessionMeta.scannerName || 'Inventory Scanner';
         }
+        const btn = document.getElementById('btnSubmit');
         if (!sessionMeta?.sessionId) {
-            document.getElementById('btnSubmit').style.display = 'none';
+            btn.style.display = 'none';
+        } else {
+            btn.style.display = '';
+            btn.textContent = '↑ 제출';
+            btn.disabled = false;
         }
         loadFromStorage();
         input.focus();
