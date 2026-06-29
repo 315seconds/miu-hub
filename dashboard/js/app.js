@@ -1113,11 +1113,14 @@ async function completeStocktake(sessionId, dateStr, btn) {
     ]);
     const report = buildStocktakeReport(scans, dbItems);
     const xlsxBuffer = buildStocktakeExcel(report, dateStr);
-    const reportUrl = await uploadStocktakeReport(sessionId, xlsxBuffer);
+    const blob = new Blob([xlsxBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `재고조사_${dateStr}.xlsx`; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    const reportUrl = await uploadStocktakeReport(sessionId, xlsxBuffer, dateStr);
     const { error } = await sb.from('stocktake_sessions').update({ status: 'completed', report_url: reportUrl }).eq('id', sessionId);
     if (error) throw error;
-    const a = document.createElement('a');
-    a.href = reportUrl; a.download = `재고조사_${dateStr}.xlsx`; a.click();
     await route();
   } catch(e) {
     btn.disabled = false;
@@ -1191,11 +1194,12 @@ function buildStocktakeExcel(report, dateStr) {
   return XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
 }
 
-async function uploadStocktakeReport(sessionId, buffer) {
+async function uploadStocktakeReport(sessionId, buffer, dateStr) {
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const { error } = await sb.storage.from('stocktake-reports').upload(`${sessionId}.xlsx`, blob, { upsert: true });
+  const filename = `${dateStr}_재고조사보고서.xlsx`;
+  const { error } = await sb.storage.from('stocktake-reports').upload(filename, blob, { upsert: true });
   if (error) throw error;
-  const { data } = sb.storage.from('stocktake-reports').getPublicUrl(`${sessionId}.xlsx`);
+  const { data } = sb.storage.from('stocktake-reports').getPublicUrl(filename);
   return data.publicUrl;
 }
 
