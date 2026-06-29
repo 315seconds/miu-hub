@@ -995,7 +995,10 @@ async function renderStocktake() {
         <td><span class="st-badge st-badge-ok">✅ 제출완료</span></td>
         <td>${fmt(locStats[loc].count)}건</td>
         <td>${[...locStats[loc].scanners].join(', ')}</td>
-        <td>${new Date(locStats[loc].firstAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</td>
+        <td style="display:flex;align-items:center;gap:8px">
+          ${new Date(locStats[loc].firstAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}
+          <button class="btn-csv-dl" onclick="downloadLocationScans('${active.id}','${loc}')">↓ CSV</button>
+        </td>
       </tr>`).join('');
 
     const pendingRows = pendingNames.map(n => `
@@ -1051,6 +1054,20 @@ async function createStocktakeSession() {
   const { error } = await sb.from('stocktake_sessions').insert({ session_date: dateStr, status: 'in_progress' });
   if (error) { alert('오류: ' + error.message); return; }
   await route();
+}
+
+async function downloadLocationScans(sessionId, locationName) {
+  const { data, error } = await sb.from('stocktake_scans')
+    .select('barcode,scanner_name,scanned_at')
+    .eq('session_id', sessionId).eq('scanned_location', locationName);
+  if (error || !data?.length) { alert('데이터 없음'); return; }
+  const csv = '﻿바코드,담당자,스캔시각\n' + data.map(r =>
+    `"${r.barcode}","${r.scanner_name}","${new Date(r.scanned_at).toLocaleString('ko-KR')}"`
+  ).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = `${locationName}_스캔목록.csv`;
+  a.click();
 }
 
 async function submitByFile(locationName, sessionId) {
