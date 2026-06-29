@@ -334,7 +334,10 @@ function onCatClick(e) {
   const panel = document.createElement('div');
   panel.className = 'cat-expand show';
   panel.innerHTML = `
-    <div class="cat-expand-title">${cat.name} — 매장 도착일 기준 연령 분포</div>
+    <div class="cat-expand-title" style="display:flex;align-items:center;justify-content:space-between">
+      <span>${cat.name} — 매장 도착일 기준 연령 분포</span>
+      <button class="btn-csv-dl" onclick="downloadCatCSV(${idx})">CSV 다운로드</button>
+    </div>
     <div class="age-breakdown">
       ${ageBox('0–30일',  cat.d30,  '#22c55e', '#d1fae5', 'd30')}
       ${ageBox('31–60일', cat.d60,  '#f59e0b', '#fef3c7', 'd60')}
@@ -376,7 +379,30 @@ function ageBox(label, val, color, bg, bucket) {
 
 function renderBarcodeList(barcodes) {
   if (!barcodes.length) return '<div class="empty" style="padding:10px 0">바코드 없음</div>';
-  return `<div class="barcode-list">${barcodes.map(b => `<span class="barcode-chip">${b}</span>`).join('')}</div>`;
+  return `<div class="barcode-list">${barcodes.map(b => `<span class="barcode-chip">${b.barcode ?? b}</span>`).join('')}</div>`;
+}
+
+function downloadCatCSV(idx) {
+  const cat = (window.__cats || [])[idx];
+  const loc = window.__currentLocationName || '';
+  if (!cat) return;
+  const buckets = [
+    ['d30', '0-30일'], ['d60', '31-60일'], ['d90', '61-90일'], ['old', '90일+']
+  ];
+  const rows = [['바코드', '카테고리', '위치', '가격', '연령구간', '체류일수(일)']];
+  for (const [key, label] of buckets) {
+    for (const item of (cat.barcodes[key] || [])) {
+      rows.push([item.barcode, cat.name, loc, item.price, label, item.age]);
+    }
+  }
+  const csv = '﻿' + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${loc}_${cat.name}_재고현황.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ─── Dead stock alert ─────────────────────────────────────────────────────────
@@ -678,7 +704,7 @@ async function fetchItems(locationName) {
   const all = [];
   for (let from = 0; ; from += 1000) {
     const { data, error } = await sb.from('inventory_items')
-      .select('barcode,category,created_at').eq('location', locationName).neq('status', 'sold').range(from, from + 999);
+      .select('barcode,category,price,created_at').eq('location', locationName).neq('status', 'sold').range(from, from + 999);
     if (error || !data?.length) break;
     all.push(...data);
     if (data.length < 1000) break;
@@ -818,10 +844,11 @@ function buildCategoryStats(items, arrivalMap = {}) {
     const age = getArrivalAge(item, arrivalMap);
     if (!map[k]) map[k] = { total: 0, d30: 0, d60: 0, d90: 0, old: 0, barcodes: { d30: [], d60: [], d90: [], old: [] } };
     map[k].total++;
-    if      (age <= 30) { map[k].d30++; map[k].barcodes.d30.push(item.barcode); }
-    else if (age <= 60) { map[k].d60++; map[k].barcodes.d60.push(item.barcode); }
-    else if (age <= 90) { map[k].d90++; map[k].barcodes.d90.push(item.barcode); }
-    else                { map[k].old++;  map[k].barcodes.old.push(item.barcode); }
+    const entry = { barcode: item.barcode, price: item.price || 0, age };
+    if      (age <= 30) { map[k].d30++; map[k].barcodes.d30.push(entry); }
+    else if (age <= 60) { map[k].d60++; map[k].barcodes.d60.push(entry); }
+    else if (age <= 90) { map[k].d90++; map[k].barcodes.d90.push(entry); }
+    else                { map[k].old++;  map[k].barcodes.old.push(entry); }
   });
   const cats = Object.entries(map)
     .sort((a, b) => b[1].total - a[1].total)
