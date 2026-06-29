@@ -45,9 +45,6 @@
     .brand { display: flex; flex-direction: column; gap: 2px; }
     .brand-name { font-size: 13px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.3px; }
     .brand-sub { font-size: 9px; color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; font-family: var(--mono); }
-    .btn-change-setup { background: none; border: none; cursor: pointer; padding: 0; text-align: left; }
-    .btn-change-setup:hover .brand-name { color: var(--accent); }
-    .btn-change-setup:hover .brand-sub { color: var(--accent); opacity: 0.7; }
     .hanger-badge { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-dim); border: 1px solid var(--accent-border); padding: 5px 14px; border-radius: 20px; letter-spacing: 0.3px; }
 
     .counter-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; display: flex; align-items: center; justify-content: space-between; position: relative; overflow: hidden; }
@@ -176,12 +173,10 @@
 <!-- ── Scan Screen ── -->
 <div id="scanScreen" class="app" style="display:none">
     <div class="header">
-        <button class="btn-change-setup" onclick="goToSetup()">
             <div class="brand">
-                <div class="brand-name" id="scanBrandName">마켓인유 재고조사</div>
-                <div class="brand-sub" id="scanBrandSub">Inventory Scanner</div>
-            </div>
-        </button>
+            <div class="brand-name" id="scanBrandName">마켓인유 재고조사</div>
+            <div class="brand-sub" id="scanBrandSub">Inventory Scanner</div>
+        </div>
         <div class="hanger-badge" id="hangerInfo">1번 행거</div>
     </div>
     <div class="counter-card">
@@ -212,6 +207,7 @@
         </div>
     </div>
     <div class="footer">
+        <button class="btn-sm" onclick="goToSetup()">← 설정</button>
         <button class="btn-sm submit" id="btnSubmit" onclick="submitScans()">↑ 제출</button>
         <button class="btn-sm" onclick="exportToCSV()">↓ CSV</button>
         <button class="btn-sm danger" onclick="clearAllData()">초기화</button>
