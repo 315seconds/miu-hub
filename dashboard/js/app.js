@@ -34,6 +34,8 @@ async function route() {
       await renderHome();
     } else if (hash === '#closed') {
       await renderClosed();
+    } else if (hash === '#stocktake') {
+      await renderStocktake();
     } else if (hash.startsWith('#loc/')) {
       await renderLocation(decodeURIComponent(hash.slice(5)));
     }
@@ -65,6 +67,10 @@ function renderSidebar() {
       <div class="sidebar-section-label">철수</div>
       ${navItem('#closed', iconClosed(), '철수 후 남은 재고')}
     </div>` : ''}
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">재고조사</div>
+      ${navItem('#stocktake', iconStocktake(), '재고조사 관리')}
+    </div>
   `;
 
   // 모바일 탭 바 렌더링
@@ -939,7 +945,242 @@ function updateFooter()  {
 function iconHome()    { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`; }
 function iconDot()     { return `<span class="nav-dot"></span>`; }
 function iconRefresh() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`; }
-function iconClosed()  { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>`; }
+function iconClosed()     { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>`; }
+function iconStocktake() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><line x1="12" y1="11" x2="16" y2="11"/><line x1="12" y1="16" x2="16" y2="16"/><circle cx="8" cy="11" r="0.5" fill="currentColor"/><circle cx="8" cy="16" r="0.5" fill="currentColor"/></svg>`; }
+
+// ─── 재고조사 관리 ────────────────────────────────────────────────────────────
+async function renderStocktake() {
+  document.getElementById('content').innerHTML = `
+    <div class="page-header">
+      <div><div class="page-title">재고조사 관리</div><div class="page-sub">세션 관리 · 제출 현황 · 보고서 생성</div></div>
+      <button class="btn-refresh" onclick="route()">${iconRefresh()} 새로고침</button>
+    </div>
+    <div id="st-content"><div class="empty">불러오는 중...</div></div>
+  `;
+
+  const [{ data: activeSessions }, { data: pastSessions }] = await Promise.all([
+    sb.from('stocktake_sessions').select('id,session_date').eq('status','in_progress').order('created_at', {ascending:false}),
+    sb.from('stocktake_sessions').select('id,session_date,report_url').eq('status','completed').order('session_date',{ascending:false}).limit(24),
+  ]);
+
+  const active = activeSessions?.[0] || null;
+  let activeHtml = '';
+
+  if (!active) {
+    activeHtml = `
+      <div class="section-card" style="text-align:center;padding:32px 20px">
+        <div style="color:var(--muted);margin-bottom:16px;font-size:14px">진행 중인 재고조사가 없습니다</div>
+        <button class="btn-stocktake-start" onclick="createStocktakeSession()">+ 재고조사 시작</button>
+      </div>`;
+  } else {
+    const scans = await fetchSessionScansStatus(active.id);
+    const locStats = {};
+    scans.forEach(s => {
+      if (!locStats[s.scanned_location]) locStats[s.scanned_location] = { count: 0, scanners: new Set(), firstAt: s.scanned_at };
+      locStats[s.scanned_location].count++;
+      locStats[s.scanned_location].scanners.add(s.scanner_name);
+      if (s.scanned_at < locStats[s.scanned_location].firstAt) locStats[s.scanned_location].firstAt = s.scanned_at;
+    });
+
+    const activeLocNames = [...allLocations.map(l=>l.name)].filter(n=>!EXCLUDED.includes(n));
+    const submittedNames = Object.keys(locStats);
+    const pendingNames = activeLocNames.filter(n=>!locStats[n]);
+
+    const d = new Date(active.session_date + 'T00:00:00');
+    const dateStr = `${d.getMonth()+1}월 ${d.getDate()}일`;
+
+    const submittedRows = submittedNames.map(loc => `
+      <tr>
+        <td>${loc}</td>
+        <td><span class="st-badge st-badge-ok">✅ 제출완료</span></td>
+        <td>${fmt(locStats[loc].count)}건</td>
+        <td>${[...locStats[loc].scanners].join(', ')}</td>
+        <td>${new Date(locStats[loc].firstAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</td>
+      </tr>`).join('');
+
+    const pendingRows = pendingNames.map(n => `
+      <tr class="st-row-pending">
+        <td>${n}</td>
+        <td><span class="st-badge st-badge-pending">⏳ 미제출</span></td>
+        <td>—</td><td>—</td><td>—</td>
+      </tr>`).join('');
+
+    activeHtml = `
+      <div class="section-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--ink-strong)">🟡 ${dateStr} 재고조사 진행 중</div>
+            <div class="st-progress" style="margin-top:4px">제출 완료: <strong>${submittedNames.length}</strong> / 전체 ${activeLocNames.length}개</div>
+          </div>
+          <button class="btn-complete" id="btn-complete" onclick="completeStocktake('${active.id}','${dateStr}',this)">재고조사 완료 + 보고서 생성</button>
+        </div>
+        <table class="st-table">
+          <thead><tr><th>매장/창고</th><th>상태</th><th>스캔수</th><th>담당자</th><th>제출시각</th></tr></thead>
+          <tbody>${submittedRows}${pendingRows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  const pastRows = (pastSessions||[]).map(s => {
+    const d = new Date(s.session_date + 'T00:00:00');
+    const label = `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`;
+    return `<tr>
+      <td>${label}</td>
+      <td><span class="st-badge st-badge-ok">✅ 완료</span></td>
+      <td>${s.report_url ? `<a href="${s.report_url}" target="_blank" class="btn-refresh" style="display:inline-flex;text-decoration:none;font-size:11px;padding:5px 10px">↓ 보고서</a>` : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  const pastHtml = pastSessions?.length ? `
+    <div class="section-card">
+      <h3 style="margin-bottom:12px">지난 재고조사 기록</h3>
+      <table class="st-table">
+        <thead><tr><th>날짜</th><th>상태</th><th>보고서</th></tr></thead>
+        <tbody>${pastRows}</tbody>
+      </table>
+    </div>` : '';
+
+  document.getElementById('st-content').innerHTML = activeHtml + pastHtml;
+}
+
+async function createStocktakeSession() {
+  const today = new Date().toLocaleDateString('ko-KR');
+  if (!confirm(`${today} 재고조사를 시작할까요?`)) return;
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const { error } = await sb.from('stocktake_sessions').insert({ session_date: dateStr, status: 'in_progress' });
+  if (error) { alert('오류: ' + error.message); return; }
+  await route();
+}
+
+async function completeStocktake(sessionId, dateStr, btn) {
+  if (!confirm(`${dateStr} 재고조사를 완료 처리하고 보고서를 생성할까요?\n잠시 시간이 걸릴 수 있습니다.`)) return;
+  btn.disabled = true;
+  btn.textContent = '보고서 생성 중...';
+  try {
+    const [scans, dbItems] = await Promise.all([
+      fetchAllSessionScans(sessionId),
+      fetchAllInStockItems(),
+    ]);
+    const report = buildStocktakeReport(scans, dbItems);
+    const xlsxBuffer = buildStocktakeExcel(report, dateStr);
+    const reportUrl = await uploadStocktakeReport(sessionId, xlsxBuffer);
+    const { error } = await sb.from('stocktake_sessions').update({ status: 'completed', report_url: reportUrl }).eq('id', sessionId);
+    if (error) throw error;
+    const a = document.createElement('a');
+    a.href = reportUrl; a.download = `재고조사_${dateStr}.xlsx`; a.click();
+    await route();
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '재고조사 완료 + 보고서 생성';
+    alert('오류: ' + e.message);
+  }
+}
+
+function buildStocktakeReport(scans, dbItems) {
+  const scanMap = {};
+  scans.forEach(s => { if (!scanMap[s.barcode]) scanMap[s.barcode] = s; });
+  const dbMap = {};
+  dbItems.forEach(i => { dbMap[i.barcode] = i; });
+  const scannedLocs = new Set(scans.map(s => s.scanned_location));
+
+  const 정상=[], 위치불일치=[], 장부부재=[], 신규미스캔=[], 누적미스캔=[];
+
+  Object.values(scanMap).forEach(scan => {
+    const db = dbMap[scan.barcode];
+    if (!db) { 장부부재.push(scan); }
+    else if (db.location === scan.scanned_location) { 정상.push({...scan, category:db.category, price:db.price}); }
+    else { 위치불일치.push({...scan, db_location:db.location, category:db.category, price:db.price}); }
+  });
+
+  dbItems.forEach(item => {
+    if (!scannedLocs.has(item.location)) return;
+    if (scanMap[item.barcode]) return;
+    if (item.location.includes('재고조사')) { 누적미스캔.push(item); }
+    else { 신규미스캔.push(item); }
+  });
+
+  return { 정상, 위치불일치, 장부부재, 신규미스캔, 누적미스캔 };
+}
+
+function buildStocktakeExcel(report, dateStr) {
+  const XLSX = window.XLSX;
+  const wb = XLSX.utils.book_new();
+  const total = report.정상.length + report.위치불일치.length + report.장부부재.length;
+
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
+    ['마켓인유 재고조사 보고서', dateStr], [],
+    ['구분', '건수'],
+    ['✅ 정상', report.정상.length],
+    ['⚠️ 위치불일치', report.위치불일치.length],
+    ['❓ 장부부재', report.장부부재.length],
+    ['🔴 신규미스캔', report.신규미스캔.length],
+    ['📦 누적미스캔', report.누적미스캔.length],
+    [], ['총 스캔', total],
+  ]), '요약');
+
+  const s정상 = [['바코드','카테고리','위치','가격','담당자']];
+  report.정상.forEach(r => s정상.push([r.barcode, r.category||'', r.scanned_location, r.price||0, r.scanner_name]));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s정상), '정상');
+
+  const s위치 = [['바코드','카테고리','스캔위치','DB위치','가격','권장조치']];
+  report.위치불일치.forEach(r => s위치.push([r.barcode, r.category||'', r.scanned_location, r.db_location, r.price||0, '위치 수정 필요']));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s위치), '위치불일치');
+
+  const s장부 = [['바코드','스캔위치','담당자','권장조치']];
+  report.장부부재.forEach(r => s장부.push([r.barcode, r.scanned_location, r.scanner_name, '바코드 확인 필요']));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s장부), '장부부재');
+
+  const s신규 = [['바코드','카테고리','DB위치','가격','권장조치']];
+  report.신규미스캔.forEach(r => s신규.push([r.barcode, r.category||'', r.location, r.price||0, '현장 확인 필요']));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s신규), '신규미스캔');
+
+  const s누적 = [['바코드','카테고리','DB위치','가격','권장조치']];
+  report.누적미스캔.forEach(r => s누적.push([r.barcode, r.category||'', r.location, r.price||0, '분실 가능성 높음']));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s누적), '누적미스캔');
+
+  return XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+}
+
+async function uploadStocktakeReport(sessionId, buffer) {
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const { error } = await sb.storage.from('stocktake-reports').upload(`${sessionId}.xlsx`, blob, { upsert: true });
+  if (error) throw error;
+  const { data } = sb.storage.from('stocktake-reports').getPublicUrl(`${sessionId}.xlsx`);
+  return data.publicUrl;
+}
+
+async function fetchSessionScansStatus(sessionId) {
+  const all = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from('stocktake_scans').select('scanned_location,scanner_name,scanned_at').eq('session_id', sessionId).range(from, from+999);
+    if (error || !data?.length) break;
+    all.push(...data);
+    if (data.length < 1000) break;
+  }
+  return all;
+}
+
+async function fetchAllSessionScans(sessionId) {
+  const all = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from('stocktake_scans').select('barcode,scanned_location,scanner_name').eq('session_id', sessionId).range(from, from+999);
+    if (error || !data?.length) break;
+    all.push(...data);
+    if (data.length < 1000) break;
+  }
+  return all;
+}
+
+async function fetchAllInStockItems() {
+  const all = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from('inventory_items').select('barcode,category,price,location').eq('status','in_stock').range(from, from+999);
+    if (error || !data?.length) break;
+    all.push(...data);
+    if (data.length < 1000) break;
+  }
+  return all;
+}
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 init();

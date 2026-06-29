@@ -7,101 +7,48 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
     :root {
-        --bg: #0D1117;
-        --surface: #161B22;
-        --surface-hover: #1C2128;
-        --border: #30363D;
-        --border-subtle: #21262D;
-        --text-primary: #E6EDF3;
-        --text-secondary: #8B949E;
-        --text-muted: #484F58;
-        --accent: #E8973A;
-        --accent-dim: rgba(232, 151, 58, 0.12);
-        --accent-border: rgba(232, 151, 58, 0.3);
-        --success: #3FB950;
-        --success-dim: rgba(63, 185, 80, 0.12);
-        --danger: #F85149;
-        --danger-dim: rgba(248, 81, 73, 0.12);
-        --radius: 10px;
-        --radius-sm: 6px;
+        --bg: #0D1117; --surface: #161B22; --surface-hover: #1C2128;
+        --border: #30363D; --border-subtle: #21262D;
+        --text-primary: #E6EDF3; --text-secondary: #8B949E; --text-muted: #484F58;
+        --accent: #E8973A; --accent-dim: rgba(232,151,58,0.12); --accent-border: rgba(232,151,58,0.3);
+        --success: #3FB950; --success-dim: rgba(63,185,80,0.12);
+        --danger: #F85149; --danger-dim: rgba(248,81,73,0.12);
+        --radius: 10px; --radius-sm: 6px;
         --mono: 'JetBrains Mono', monospace;
         --sans: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--text-primary); display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
 
-    body {
-        font-family: var(--sans);
-        background: var(--bg);
-        color: var(--text-primary);
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-        height: 100dvh;
-        overflow: hidden;
-    }
+    .hub-back { display: flex; align-items: center; gap: 6px; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border-subtle); text-decoration: none; color: var(--accent); font-size: 13px; font-weight: 500; flex-shrink: 0; }
 
-    /* ── 허브 뒤로가기 ── */
-    .hub-back {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 10px 16px;
-        background: var(--surface);
-        border-bottom: 1px solid var(--border-subtle);
-        text-decoration: none;
-        color: var(--accent);
-        font-size: 13px;
-        font-weight: 500;
-        flex-shrink: 0;
-    }
+    .app { display: flex; flex-direction: column; flex: 1; overflow: hidden; padding: 16px; gap: 10px; max-width: 480px; margin: 0 auto; width: 100%; }
 
-    .app {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-        overflow: hidden;
-        padding: 16px;
-        gap: 10px;
-        max-width: 480px;
-        margin: 0 auto;
-        width: 100%;
-    }
+    /* ── Setup Screen ── */
+    .setup-screen { justify-content: flex-start; padding-top: 28px; gap: 14px; }
+    .session-banner { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; font-size: 14px; color: var(--text-secondary); text-align: center; line-height: 1.7; white-space: pre-line; }
+    .session-banner.active { border-color: var(--accent-border); background: var(--accent-dim); color: var(--accent); font-weight: 600; }
+    .session-banner.error { border-color: rgba(248,81,73,0.3); background: var(--danger-dim); color: var(--danger); }
+    .setup-form { display: flex; flex-direction: column; gap: 12px; }
+    .setup-field { display: flex; flex-direction: column; gap: 6px; }
+    .setup-label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; font-family: var(--mono); }
+    .setup-select, .setup-input { width: 100%; padding: 13px 16px; background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); color: var(--text-primary); font-family: var(--sans); font-size: 15px; transition: border-color 0.15s; appearance: none; -webkit-appearance: none; }
+    .setup-select:focus, .setup-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+    .setup-select option { background: var(--bg); }
+    .setup-select:disabled, .setup-input:disabled { opacity: 0.4; }
 
-    .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0 2px;
-    }
-
+    /* ── Scan Screen ── */
+    .header { display: flex; justify-content: space-between; align-items: center; padding: 0 2px; }
     .brand { display: flex; flex-direction: column; gap: 2px; }
     .brand-name { font-size: 13px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.3px; }
     .brand-sub { font-size: 9px; color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; font-family: var(--mono); }
+    .hanger-badge { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-dim); border: 1px solid var(--accent-border); padding: 5px 14px; border-radius: 20px; letter-spacing: 0.3px; }
 
-    .hanger-badge {
-        font-family: var(--mono);
-        font-size: 12px; font-weight: 600;
-        color: var(--accent);
-        background: var(--accent-dim);
-        border: 1px solid var(--accent-border);
-        padding: 5px 14px; border-radius: 20px; letter-spacing: 0.3px;
-    }
-
-    .counter-card {
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        padding: 20px;
-        display: flex; align-items: center; justify-content: space-between;
-        position: relative; overflow: hidden;
-    }
-    .counter-card::before {
-        content: ''; position: absolute; top: 0; left: 0; right: 0;
-        height: 2px; background: var(--accent); opacity: 0.6;
-    }
+    .counter-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; display: flex; align-items: center; justify-content: space-between; position: relative; overflow: hidden; }
+    .counter-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent); opacity: 0.6; }
     .counter-left { display: flex; flex-direction: column; gap: 6px; }
     .counter-label { font-size: 10px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; font-family: var(--mono); }
     .counter-value { font-family: var(--mono); font-size: 56px; font-weight: 700; color: var(--text-primary); line-height: 1; letter-spacing: -3px; }
@@ -113,62 +60,37 @@
     .last-code span { color: var(--accent); font-weight: 600; }
 
     .input-wrap { position: relative; }
-    .input-field {
-        width: 100%; padding: 14px 18px;
-        font-size: 16px; font-family: var(--mono); font-weight: 600;
-        color: var(--text-primary); background: var(--surface);
-        border: 1.5px solid var(--border); border-radius: var(--radius);
-        text-align: center; letter-spacing: 1px;
-        transition: border-color 0.15s, box-shadow 0.15s;
-        caret-color: var(--accent);
-    }
+    .input-field { width: 100%; padding: 14px 18px; font-size: 16px; font-family: var(--mono); font-weight: 600; color: var(--text-primary); background: var(--surface); border: 1.5px solid var(--border); border-radius: var(--radius); text-align: center; letter-spacing: 1px; transition: border-color 0.15s, box-shadow 0.15s; caret-color: var(--accent); }
     .input-field::placeholder { color: var(--text-muted); font-size: 12px; font-weight: 400; letter-spacing: 2px; text-transform: uppercase; }
     .input-field:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
-    .input-indicator {
-        position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-        width: 8px; height: 8px; border-radius: 50%; background: var(--success);
-        opacity: 0; transition: opacity 0.2s;
-    }
+    .input-indicator { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); width: 8px; height: 8px; border-radius: 50%; background: var(--success); opacity: 0; transition: opacity 0.2s; }
     .input-field:focus ~ .input-indicator { opacity: 1; animation: pulse 1.5s ease infinite; }
     @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
     .btn-row { display: flex; gap: 8px; }
-    .btn {
-        flex: 1; padding: 13px 12px;
-        border: 1px solid transparent; border-radius: var(--radius);
-        font-family: var(--sans); font-size: 13px; font-weight: 600;
-        cursor: pointer; transition: all 0.12s; letter-spacing: -0.2px;
-    }
+    .btn { flex: 1; padding: 13px 12px; border: 1px solid transparent; border-radius: var(--radius); font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.12s; letter-spacing: -0.2px; }
     .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
     .btn-undo { background: transparent; border-color: var(--border); color: var(--text-secondary); flex: 0 0 auto; padding: 13px 20px; }
     .btn-undo:hover { background: var(--surface-hover); color: var(--text-primary); }
     .btn-reset-hanger { background: transparent; border-color: rgba(248,81,73,0.3); color: var(--danger); flex: 0 0 auto; padding: 13px 14px; font-size: 12px; }
     .btn-reset-hanger:hover { background: var(--danger-dim); border-color: rgba(248,81,73,0.5); }
     .btn-save { background: var(--accent); color: #0D1117; font-weight: 700; }
     .btn-save:hover { background: #f5a74e; }
+    .btn-offline { background: transparent; border-color: var(--border); color: var(--text-muted); font-size: 12px; }
+    .btn-offline:hover { color: var(--text-secondary); background: var(--surface-hover); }
 
-    .list-card {
-        flex: 1; overflow-y: auto;
-        background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-        -webkit-overflow-scrolling: touch;
-    }
+    .list-card { flex: 1; overflow-y: auto; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); -webkit-overflow-scrolling: touch; }
     .list-card::-webkit-scrollbar { width: 3px; }
     .list-card::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
     .list-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 8px; color: var(--text-muted); }
     .list-empty-icon { font-size: 28px; opacity: 0.3; }
     .list-empty-text { font-size: 12px; font-family: var(--mono); letter-spacing: 1px; text-transform: uppercase; }
-
-    .list-item {
-        display: flex; align-items: center; justify-content: space-between;
-        padding: 11px 16px; border-bottom: 1px solid var(--border-subtle);
-        transition: background 0.1s; gap: 12px;
-    }
+    .list-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 16px; border-bottom: 1px solid var(--border-subtle); transition: background 0.1s; gap: 12px; }
     .list-item:last-child { border-bottom: none; }
     .list-item:hover { background: var(--surface-hover); }
     .list-item.is-dup { background: var(--danger-dim); }
     .list-item.is-dup:hover { background: rgba(248,81,73,0.18); }
-
     .item-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
     .item-num { font-family: var(--mono); font-size: 10px; color: var(--text-muted); min-width: 22px; text-align: right; }
     .item-code { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -176,22 +98,16 @@
     .item-time { font-family: var(--mono); font-size: 10px; color: var(--text-muted); white-space: nowrap; flex-shrink: 0; }
 
     .footer { display: flex; gap: 8px; }
-    .btn-sm {
-        flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);
-        font-family: var(--sans); font-size: 11px; font-weight: 600;
-        cursor: pointer; transition: all 0.12s; background: transparent; color: var(--text-secondary);
-    }
+    .btn-sm { flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: var(--sans); font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.12s; background: transparent; color: var(--text-secondary); }
     .btn-sm:hover { background: var(--surface-hover); color: var(--text-primary); }
     .btn-sm:active { transform: scale(0.97); }
+    .btn-sm:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
     .btn-sm.danger { color: var(--danger); border-color: rgba(248,81,73,0.3); }
-    .btn-sm.danger:hover { background: var(--danger-dim); border-color: rgba(248,81,73,0.5); }
+    .btn-sm.danger:hover { background: var(--danger-dim); }
+    .btn-sm.submit { color: var(--accent); border-color: var(--accent-border); background: var(--accent-dim); font-weight: 700; }
+    .btn-sm.submit:hover { background: rgba(232,151,58,0.22); }
 
-    .dup-overlay {
-        position: fixed; inset: 0; background: rgba(248,81,73,0.12);
-        backdrop-filter: blur(2px); display: flex; flex-direction: column;
-        align-items: center; justify-content: center; gap: 8px;
-        z-index: 9000; opacity: 0; pointer-events: none; transition: opacity 0.15s;
-    }
+    .dup-overlay { position: fixed; inset: 0; background: rgba(248,81,73,0.12); backdrop-filter: blur(2px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; z-index: 9000; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
     .dup-overlay.show { opacity: 1; }
     .dup-icon { font-size: 36px; }
     .dup-title { font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--danger); letter-spacing: 1px; text-transform: uppercase; text-align: center; white-space: pre-line; }
@@ -221,32 +137,52 @@
     <div class="dup-icon">⚠</div>
     <div class="dup-title" id="dupTitle">중복 바코드</div>
 </div>
-
 <div id="modalBg" class="modal-bg">
     <div class="modal-card">
         <div class="modal-msg" id="modalMsg"></div>
         <div class="modal-btns" id="modalBtns"></div>
     </div>
 </div>
-
 <div class="toast" id="toast"></div>
 
-<div class="app">
+<!-- ── Setup Screen ── -->
+<div id="setupScreen" class="app setup-screen">
     <div class="header">
         <div class="brand">
             <div class="brand-name">마켓인유 재고조사</div>
             <div class="brand-sub">Inventory Scanner</div>
         </div>
+    </div>
+    <div id="sessionBanner" class="session-banner">세션 확인 중...</div>
+    <div id="setupForm" class="setup-form" style="display:none">
+        <div class="setup-field">
+            <label class="setup-label">매장 선택</label>
+            <select id="locationSelect" class="setup-select">
+                <option value="">매장을 선택하세요</option>
+            </select>
+        </div>
+        <div class="setup-field">
+            <label class="setup-label">담당자 이름</label>
+            <input id="scannerNameInput" class="setup-input" type="text" placeholder="이름을 입력하세요">
+        </div>
+        <button class="btn btn-save" id="startBtn" onclick="startScanning()">재고조사 시작 →</button>
+        <button class="btn btn-offline" id="offlineModeBtn" onclick="startOffline()" style="display:none">오프라인 모드로 시작 (CSV만 저장)</button>
+    </div>
+</div>
+
+<!-- ── Scan Screen ── -->
+<div id="scanScreen" class="app" style="display:none">
+    <div class="header">
+        <div class="brand">
+            <div class="brand-name" id="scanBrandName">마켓인유 재고조사</div>
+            <div class="brand-sub" id="scanBrandSub">Inventory Scanner</div>
+        </div>
         <div class="hanger-badge" id="hangerInfo">1번 행거</div>
     </div>
-
     <div class="counter-card">
         <div class="counter-left">
             <div class="counter-label">현재 행거</div>
-            <div>
-                <span class="counter-value" id="currentCount">0</span>
-                <span class="counter-unit">벌</span>
-            </div>
+            <div><span class="counter-value" id="currentCount">0</span><span class="counter-unit">벌</span></div>
         </div>
         <div class="counter-right">
             <div class="total-label">누적</div>
@@ -254,45 +190,50 @@
             <div class="last-code" id="lastCode">마지막: <span>—</span></div>
         </div>
     </div>
-
     <div class="input-wrap">
         <input class="input-field" type="text" id="barcodeInput" placeholder="스캔 대기중"
             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="none" lang="en">
         <div class="input-indicator"></div>
     </div>
-
     <div class="btn-row">
         <button class="btn btn-undo" onclick="undoLast()">↩ 삭제</button>
         <button class="btn btn-reset-hanger" onclick="resetCurrentHanger()">현재 행거 초기화</button>
         <button class="btn btn-save" onclick="saveHanger()">행거 완료 →</button>
     </div>
-
     <div class="list-card" id="scanList">
         <div class="list-empty">
             <div class="list-empty-icon">▦</div>
             <div class="list-empty-text">스캔 기록</div>
         </div>
     </div>
-
     <div class="footer">
-        <button class="btn-sm" onclick="exportToCSV()">↓ 엑셀 다운로드</button>
-        <button class="btn-sm danger" onclick="clearAllData()">전체 초기화</button>
+        <button class="btn-sm submit" id="btnSubmit" onclick="submitScans()">↑ 제출</button>
+        <button class="btn-sm" onclick="exportToCSV()">↓ CSV</button>
+        <button class="btn-sm danger" onclick="clearAllData()">초기화</button>
     </div>
 </div>
 
 <script>
+    const SUPABASE_URL = "https://yqnocnzjrcsrwrvsvsyg.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlxbm9jbnpqcmNzcndydnN2c3lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNjExNzgsImV4cCI6MjA5MTgzNzE3OH0.u172XxuUcRF7WhT0UmLq-xQjoeDjBt95Qgbstln8mMs";
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const SESSION_META_KEY = 'miu_stocktake_meta_v1';
+    const STORAGE_KEY = 'marketInYou_inventory_v2';
+
+    let sessionMeta = null;
     let allData = [], currentHangerData = [], hangerCount = 1, inputTimer = null;
     const input = document.getElementById('barcodeInput');
     const dupOverlay = document.getElementById('dupOverlay');
 
+    // ── Audio ──
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playBeep() {
         if (audioCtx.state === 'suspended') audioCtx.resume();
         const o = audioCtx.createOscillator(), g = audioCtx.createGain();
         o.connect(g); g.connect(audioCtx.destination);
         o.type = 'sine'; o.frequency.setValueAtTime(880, audioCtx.currentTime);
-        g.gain.setValueAtTime(0.08, audioCtx.currentTime);
-        o.start(); o.stop(audioCtx.currentTime + 0.08);
+        g.gain.setValueAtTime(0.08, audioCtx.currentTime); o.start(); o.stop(audioCtx.currentTime + 0.08);
     }
     function playError() {
         if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -304,79 +245,53 @@
         o.start(); o.stop(audioCtx.currentTime + 0.3);
     }
 
-    function normalizeBarcode(input) {
-        const JAMO_TO_ENG = {'ㄱ':'r','ㄲ':'R','ㄴ':'s','ㄷ':'e','ㄸ':'E','ㄹ':'f','ㅁ':'a','ㅂ':'q','ㅃ':'Q','ㅅ':'t','ㅆ':'T','ㅇ':'','ㅈ':'w','ㅉ':'W','ㅊ':'c','ㅋ':'z','ㅌ':'x','ㅍ':'v','ㅎ':'g','ㅏ':'k','ㅐ':'o','ㅑ':'i','ㅒ':'O','ㅓ':'j','ㅔ':'p','ㅕ':'u','ㅖ':'P','ㅗ':'h','ㅘ':'hk','ㅙ':'ho','ㅚ':'hl','ㅛ':'y','ㅜ':'n','ㅝ':'nj','ㅞ':'np','ㅟ':'nl','ㅠ':'b','ㅡ':'m','ㅢ':'ml','ㅣ':'l','ㄳ':'rt','ㄵ':'sw','ㄶ':'sg','ㄺ':'fr','ㄻ':'fa','ㄼ':'fq','ㄽ':'ft','ㄾ':'fx','ㄿ':'fv','ㅀ':'fg','ㅄ':'qt'};
-        const INITIALS = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
-        const VOWELS   = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
-        const FINALS   = ['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
-        let result = '';
-        for (const ch of input) {
-            const code = ch.charCodeAt(0);
-            if (code >= 0xAC00 && code <= 0xD7A3) {
-                const offset = code - 0xAC00;
-                result += JAMO_TO_ENG[INITIALS[Math.floor(offset/(21*28))]] ?? '';
-                result += JAMO_TO_ENG[VOWELS[Math.floor((offset%(21*28))/28)]] ?? '';
-                const fIdx = offset%28; if (fIdx>0) result += JAMO_TO_ENG[FINALS[fIdx]] ?? '';
-            } else if (code >= 0x3130 && code <= 0x318F) {
-                result += JAMO_TO_ENG[ch] ?? ch;
-            } else { result += ch; }
+    // ── Barcode normalization ──
+    function normalizeBarcode(inp) {
+        const J={'ㄱ':'r','ㄲ':'R','ㄴ':'s','ㄷ':'e','ㄸ':'E','ㄹ':'f','ㅁ':'a','ㅂ':'q','ㅃ':'Q','ㅅ':'t','ㅆ':'T','ㅇ':'','ㅈ':'w','ㅉ':'W','ㅊ':'c','ㅋ':'z','ㅌ':'x','ㅍ':'v','ㅎ':'g','ㅏ':'k','ㅐ':'o','ㅑ':'i','ㅒ':'O','ㅓ':'j','ㅔ':'p','ㅕ':'u','ㅖ':'P','ㅗ':'h','ㅘ':'hk','ㅙ':'ho','ㅚ':'hl','ㅛ':'y','ㅜ':'n','ㅝ':'nj','ㅞ':'np','ㅟ':'nl','ㅠ':'b','ㅡ':'m','ㅢ':'ml','ㅣ':'l','ㄳ':'rt','ㄵ':'sw','ㄶ':'sg','ㄺ':'fr','ㄻ':'fa','ㄼ':'fq','ㄽ':'ft','ㄾ':'fx','ㄿ':'fv','ㅀ':'fg','ㅄ':'qt'};
+        const I=['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+        const V=['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+        const F=['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+        let r='';
+        for (const ch of inp) {
+            const c=ch.charCodeAt(0);
+            if(c>=0xAC00&&c<=0xD7A3){const o=c-0xAC00;r+=J[I[Math.floor(o/(21*28))]]??'';r+=J[V[Math.floor((o%(21*28))/28)]]??'';const fi=o%28;if(fi>0)r+=J[F[fi]]??'';}
+            else if(c>=0x3130&&c<=0x318F){r+=J[ch]??ch;}
+            else{r+=ch;}
         }
-        return result.toUpperCase().trim();
+        return r.toUpperCase().trim();
     }
 
     function charFromKeyEvent(e) {
         if (e.ctrlKey || e.metaKey || e.altKey) return null;
-        const letters = {'KeyA':'a','KeyB':'b','KeyC':'c','KeyD':'d','KeyE':'e','KeyF':'f','KeyG':'g','KeyH':'h','KeyI':'i','KeyJ':'j','KeyK':'k','KeyL':'l','KeyM':'m','KeyN':'n','KeyO':'o','KeyP':'p','KeyQ':'q','KeyR':'r','KeyS':'s','KeyT':'t','KeyU':'u','KeyV':'v','KeyW':'w','KeyX':'x','KeyY':'y','KeyZ':'z'};
-        if (letters[e.code]) return e.shiftKey ? letters[e.code].toUpperCase() : letters[e.code];
-        const digits = {'Digit0':'0','Digit1':'1','Digit2':'2','Digit3':'3','Digit4':'4','Digit5':'5','Digit6':'6','Digit7':'7','Digit8':'8','Digit9':'9'};
-        if (digits[e.code] && !e.shiftKey) return digits[e.code];
-        const specials = {'Minus': e.shiftKey ? '_' : '-', 'Period': '.', 'Slash': '/'};
-        if (specials[e.code] !== undefined) return specials[e.code];
+        const L={'KeyA':'a','KeyB':'b','KeyC':'c','KeyD':'d','KeyE':'e','KeyF':'f','KeyG':'g','KeyH':'h','KeyI':'i','KeyJ':'j','KeyK':'k','KeyL':'l','KeyM':'m','KeyN':'n','KeyO':'o','KeyP':'p','KeyQ':'q','KeyR':'r','KeyS':'s','KeyT':'t','KeyU':'u','KeyV':'v','KeyW':'w','KeyX':'x','KeyY':'y','KeyZ':'z'};
+        if (L[e.code]) return e.shiftKey ? L[e.code].toUpperCase() : L[e.code];
+        const D={'Digit0':'0','Digit1':'1','Digit2':'2','Digit3':'3','Digit4':'4','Digit5':'5','Digit6':'6','Digit7':'7','Digit8':'8','Digit9':'9'};
+        if (D[e.code] && !e.shiftKey) return D[e.code];
+        const S={'Minus':e.shiftKey?'_':'-','Period':'.','Slash':'/'};
+        if (S[e.code]!==undefined) return S[e.code];
         return null;
     }
 
     let scanBuffer = '', androidMode = false;
-
     input.addEventListener('keydown', e => {
-        if (e.key === 'Enter') {
-            e.preventDefault(); clearTimeout(inputTimer);
-            const raw = androidMode ? input.value.trim() : scanBuffer.trim();
-            scanBuffer = ''; input.value = '';
-            if (raw) processBarcode(raw); return;
-        }
-        if (!e.code || e.code === 'Unidentified') {
-            androidMode = true;
-            clearTimeout(inputTimer);
-            inputTimer = setTimeout(() => { const raw = input.value.trim(); input.value = ''; if (raw) processBarcode(raw); }, 500);
-            return;
-        }
-        androidMode = false;
-        if (e.key === 'Backspace') { e.preventDefault(); scanBuffer = scanBuffer.slice(0,-1); input.value = scanBuffer; return; }
-        const char = charFromKeyEvent(e);
-        if (char !== null) {
-            e.preventDefault(); scanBuffer += char; input.value = scanBuffer;
-            clearTimeout(inputTimer);
-            inputTimer = setTimeout(() => { const v = scanBuffer.trim(); scanBuffer = ''; input.value = ''; if (v) processBarcode(v); }, 500);
-        }
+        if (e.key === 'Enter') { e.preventDefault(); clearTimeout(inputTimer); const raw = androidMode ? input.value.trim() : scanBuffer.trim(); scanBuffer=''; input.value=''; if(raw) processBarcode(raw); return; }
+        if (!e.code || e.code === 'Unidentified') { androidMode=true; clearTimeout(inputTimer); inputTimer=setTimeout(()=>{const r=input.value.trim();input.value='';if(r)processBarcode(r);},500); return; }
+        androidMode=false;
+        if (e.key==='Backspace'){e.preventDefault();scanBuffer=scanBuffer.slice(0,-1);input.value=scanBuffer;return;}
+        const char=charFromKeyEvent(e);
+        if(char!==null){e.preventDefault();scanBuffer+=char;input.value=scanBuffer;clearTimeout(inputTimer);inputTimer=setTimeout(()=>{const v=scanBuffer.trim();scanBuffer='';input.value='';if(v)processBarcode(v);},500);}
     });
-    input.addEventListener('input', e => { if (!androidMode) input.value = scanBuffer; });
-    input.addEventListener('compositionend', () => {
-        if (androidMode) { clearTimeout(inputTimer); inputTimer = setTimeout(() => { const raw = input.value.trim(); input.value = ''; if (raw) processBarcode(raw); }, 500); }
-    });
-    input.addEventListener('paste', e => {
-        e.preventDefault();
-        const pasted = (e.clipboardData || window.clipboardData).getData('text').trim();
-        if (pasted) processBarcode(pasted);
-    });
+    input.addEventListener('input', e => { if(!androidMode) input.value=scanBuffer; });
+    input.addEventListener('compositionend', ()=>{ if(androidMode){clearTimeout(inputTimer);inputTimer=setTimeout(()=>{const r=input.value.trim();input.value='';if(r)processBarcode(r);},500);} });
+    input.addEventListener('paste', e => { e.preventDefault(); const p=(e.clipboardData||window.clipboardData).getData('text').trim(); if(p)processBarcode(p); });
 
     function processBarcode(code) {
         const c = normalizeBarcode(code);
         if (!c) return;
-        scanBuffer = ''; input.value = '';
-        const isDup = allData.some(i => i.barcode === c) || currentHangerData.some(i => i.code === c);
-        if (isDup) { playError(); showDup(`중복\n${c}`); }
-        else { playBeep(); }
-        currentHangerData.push({ code: c, isDup, time: new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}) });
+        scanBuffer=''; input.value='';
+        const isDup = allData.some(i=>i.barcode===c) || currentHangerData.some(i=>i.code===c);
+        if (isDup) { playError(); showDup(`중복\n${c}`); } else { playBeep(); }
+        currentHangerData.push({code:c, isDup, time:new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})});
         updateUI(); saveToStorage();
     }
 
@@ -385,117 +300,205 @@
         document.getElementById('currentCount').textContent = currentHangerData.length;
         document.getElementById('totalCount').textContent = `${total}벌`;
         const last = currentHangerData[currentHangerData.length-1];
-        document.getElementById('lastCode').innerHTML = `마지막: <span>${last ? last.code : '—'}</span>`;
+        document.getElementById('lastCode').innerHTML = `마지막: <span>${last?last.code:'—'}</span>`;
         const list = document.getElementById('scanList');
         if (!currentHangerData.length) {
-            list.innerHTML = `<div class="list-empty"><div class="list-empty-icon">▦</div><div class="list-empty-text">스캔 기록</div></div>`;
+            list.innerHTML=`<div class="list-empty"><div class="list-empty-icon">▦</div><div class="list-empty-text">스캔 기록</div></div>`;
         } else {
-            list.innerHTML = currentHangerData.slice().reverse().map((item, idx) => {
-                const n = currentHangerData.length - idx;
-                return `<div class="list-item${item.isDup?' is-dup':''}">
-                    <div class="item-left"><span class="item-num">${n}</span><span class="item-code">${item.code}</span>${item.isDup?'<span class="dup-tag">중복</span>':''}</div>
-                    <span class="item-time">${item.time}</span></div>`;
+            list.innerHTML=currentHangerData.slice().reverse().map((item,idx)=>{
+                const n=currentHangerData.length-idx;
+                return `<div class="list-item${item.isDup?' is-dup':''}"><div class="item-left"><span class="item-num">${n}</span><span class="item-code">${item.code}</span>${item.isDup?'<span class="dup-tag">중복</span>':''}</div><span class="item-time">${item.time}</span></div>`;
             }).join('');
         }
         input.focus();
     }
 
-    let dupTimer = null;
-    function showDup(msg) {
-        document.getElementById('dupTitle').textContent = msg;
-        dupOverlay.classList.add('show');
-        clearTimeout(dupTimer);
-        dupTimer = setTimeout(() => { dupOverlay.classList.remove('show'); input.focus(); }, 1800);
-    }
+    let dupTimer=null;
+    function showDup(msg) { document.getElementById('dupTitle').textContent=msg; dupOverlay.classList.add('show'); clearTimeout(dupTimer); dupTimer=setTimeout(()=>{dupOverlay.classList.remove('show');input.focus();},1800); }
 
     function showModal(msg, buttons) {
         return new Promise(resolve => {
-            const bg = document.getElementById('modalBg');
-            document.getElementById('modalMsg').textContent = msg;
-            const btns = document.getElementById('modalBtns');
-            btns.innerHTML = '';
-            buttons.forEach(b => {
-                const el = document.createElement('button');
-                el.className = `modal-btn ${b.cls||'modal-btn-ok'}`; el.textContent = b.label;
-                el.onclick = () => { bg.classList.remove('show'); resolve(b.val); setTimeout(() => input.focus(), 50); };
-                btns.appendChild(el);
-            });
+            const bg=document.getElementById('modalBg');
+            document.getElementById('modalMsg').textContent=msg;
+            const btns=document.getElementById('modalBtns'); btns.innerHTML='';
+            buttons.forEach(b=>{ const el=document.createElement('button'); el.className=`modal-btn ${b.cls||'modal-btn-ok'}`; el.textContent=b.label; el.onclick=()=>{bg.classList.remove('show');resolve(b.val);setTimeout(()=>input.focus(),50);}; btns.appendChild(el); });
             bg.classList.add('show');
         });
     }
-    const showConfirm = msg => showModal(msg, [{label:'취소',cls:'modal-btn-cancel',val:false},{label:'확인',cls:'modal-btn-confirm',val:true}]);
-    const showAlertModal = msg => showModal(msg, [{label:'확인',cls:'modal-btn-ok',val:true}]);
+    const showConfirm = msg => showModal(msg,[{label:'취소',cls:'modal-btn-cancel',val:false},{label:'확인',cls:'modal-btn-confirm',val:true}]);
+    const showAlertModal = msg => showModal(msg,[{label:'확인',cls:'modal-btn-ok',val:true}]);
 
-    let toastTimer = null;
-    function showToast(msg) {
-        const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show');
-        clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2000);
-    }
+    let toastTimer=null;
+    function showToast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2000); }
 
     async function resetCurrentHanger() {
-        if (!currentHangerData.length) return showAlertModal('초기화할 데이터가 없습니다.');
-        if (await showConfirm(`${hangerCount}번 행거 (${currentHangerData.length}벌)\n현재 행거만 초기화할까요?`)) {
-            currentHangerData = []; updateUI(); saveToStorage(); showToast(`${hangerCount}번 행거 초기화 완료`);
-        }
+        if(!currentHangerData.length) return showAlertModal('초기화할 데이터가 없습니다.');
+        if(await showConfirm(`${hangerCount}번 행거 (${currentHangerData.length}벌)\n현재 행거만 초기화할까요?`)) { currentHangerData=[]; updateUI(); saveToStorage(); showToast(`${hangerCount}번 행거 초기화 완료`); }
     }
     async function undoLast() {
-        if (!currentHangerData.length) return input.focus();
-        const last = currentHangerData[currentHangerData.length-1];
-        if (await showConfirm(`마지막 항목을 삭제할까요?\n(${last.code})`)) {
-            currentHangerData.pop(); updateUI(); saveToStorage(); showToast('삭제 완료');
-        }
+        if(!currentHangerData.length) return input.focus();
+        const last=currentHangerData[currentHangerData.length-1];
+        if(await showConfirm(`마지막 항목을 삭제할까요?\n(${last.code})`)) { currentHangerData.pop(); updateUI(); saveToStorage(); showToast('삭제 완료'); }
     }
     async function saveHanger() {
-        if (!currentHangerData.length) return showAlertModal('저장할 데이터가 없습니다.');
-        if (await showConfirm(`${hangerCount}번 행거 (${currentHangerData.length}벌)\n저장하고 다음으로 넘어갈까요?`)) {
-            currentHangerData.forEach(item => { allData.push({hanger:hangerCount,barcode:item.code,isDuplicate:item.isDup?'Y':'N',time:item.time}); });
-            currentHangerData = []; hangerCount++;
-            document.getElementById('hangerInfo').textContent = `${hangerCount}번 행거`;
+        if(!currentHangerData.length) return showAlertModal('저장할 데이터가 없습니다.');
+        if(await showConfirm(`${hangerCount}번 행거 (${currentHangerData.length}벌)\n저장하고 다음으로 넘어갈까요?`)) {
+            currentHangerData.forEach(item=>{ allData.push({hanger:hangerCount,barcode:item.code,isDuplicate:item.isDup?'Y':'N',time:item.time}); });
+            currentHangerData=[]; hangerCount++;
+            document.getElementById('hangerInfo').textContent=`${hangerCount}번 행거`;
             updateUI(); saveToStorage(); showToast(`${hangerCount-1}번 행거 완료!`);
-            input.blur(); setTimeout(() => { scanBuffer=''; input.value=''; input.focus(); }, 300);
+            input.blur(); setTimeout(()=>{scanBuffer='';input.value='';input.focus();},300);
         }
     }
     async function exportToCSV() {
-        if (currentHangerData.length && !(await showConfirm('현재 행거는 미저장 상태입니다.\n제외하고 다운로드할까요?'))) return;
-        if (!allData.length) return showAlertModal('다운로드할 데이터가 없습니다.');
-        let csv = '﻿행거번호,바코드,중복여부,스캔시간\n';
-        allData.forEach(r => { csv += `${r.hanger},${r.barcode},${r.isDuplicate},${r.time}\n`; });
-        const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-        const a = document.createElement('a');
-        const d = new Date();
-        a.href = URL.createObjectURL(blob);
-        a.download = `재고조사_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}.csv`;
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        showToast('다운로드 완료!');
+        if(currentHangerData.length&&!(await showConfirm('현재 행거는 미저장 상태입니다.\n제외하고 다운로드할까요?'))) return;
+        if(!allData.length) return showAlertModal('다운로드할 데이터가 없습니다.');
+        let csv='﻿행거번호,바코드,중복여부,스캔시간\n';
+        allData.forEach(r=>{csv+=`${r.hanger},${r.barcode},${r.isDuplicate},${r.time}\n`;});
+        const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+        const a=document.createElement('a'); const d=new Date();
+        a.href=URL.createObjectURL(blob);
+        a.download=`재고조사_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}.csv`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a); showToast('다운로드 완료!');
     }
     async function clearAllData() {
-        const t = allData.length + currentHangerData.length;
-        if (!t) return showAlertModal('초기화할 데이터가 없습니다.');
-        if (await showModal(`모든 데이터 ${t}건을 삭제합니다.\n되돌릴 수 없습니다.`,[{label:'취소',cls:'modal-btn-cancel',val:false},{label:'전체 삭제',cls:'modal-btn-danger',val:true}])) {
+        const t=allData.length+currentHangerData.length;
+        if(!t) return showAlertModal('초기화할 데이터가 없습니다.');
+        if(await showModal(`모든 데이터 ${t}건을 삭제합니다.\n되돌릴 수 없습니다.`,[{label:'취소',cls:'modal-btn-cancel',val:false},{label:'전체 삭제',cls:'modal-btn-danger',val:true}])) {
             allData=[]; currentHangerData=[]; hangerCount=1;
             document.getElementById('hangerInfo').textContent='1번 행거';
             updateUI(); clearStorage(); showToast('초기화 완료');
         }
     }
 
-    const STORAGE_KEY = 'marketInYou_inventory_v2';
-    function saveToStorage() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify({allData,currentHangerData,hangerCount})); } catch(e){} }
+    function saveToStorage() { try{localStorage.setItem(STORAGE_KEY,JSON.stringify({allData,currentHangerData,hangerCount}));}catch(e){} }
     function loadFromStorage() {
         try {
-            const s = localStorage.getItem(STORAGE_KEY); if (!s) return;
-            const st = JSON.parse(s);
-            if ((st.allData?.length||0)+(st.currentHangerData?.length||0)===0) return;
+            const s=localStorage.getItem(STORAGE_KEY); if(!s) return;
+            const st=JSON.parse(s);
+            if((st.allData?.length||0)+(st.currentHangerData?.length||0)===0) return;
             allData=st.allData||[]; currentHangerData=st.currentHangerData||[]; hangerCount=st.hangerCount||1;
             document.getElementById('hangerInfo').textContent=`${hangerCount}번 행거`;
             updateUI(); showToast(`이전 데이터 복원 (${allData.length+currentHangerData.length}건)`);
         } catch(e){}
     }
-    function clearStorage() { try { localStorage.removeItem(STORAGE_KEY); } catch(e){} }
+    function clearStorage() { try{localStorage.removeItem(STORAGE_KEY);}catch(e){} }
 
-    window.addEventListener('beforeunload', e => { if (allData.length||currentHangerData.length){e.preventDefault();e.returnValue='';} });
+    window.addEventListener('beforeunload', e=>{ if(allData.length||currentHangerData.length){e.preventDefault();e.returnValue='';} });
 
-    loadFromStorage();
-    input.focus();
+    // ── Setup Screen Logic ──
+    async function initApp() {
+        // Resume existing session
+        try {
+            const saved = localStorage.getItem(SESSION_META_KEY);
+            if (saved) { sessionMeta = JSON.parse(saved); showScanScreen(); return; }
+        } catch(e) {}
+        // Has scan data but no session (interrupted offline) → go to scan screen
+        try {
+            const sd = localStorage.getItem(STORAGE_KEY);
+            if (sd) { const st=JSON.parse(sd); if((st.allData?.length||0)+(st.currentHangerData?.length||0)>0){showScanScreen();return;} }
+        } catch(e) {}
+        await initSetupScreen();
+    }
+
+    async function initSetupScreen() {
+        document.getElementById('setupScreen').style.display = 'flex';
+        document.getElementById('scanScreen').style.display = 'none';
+        const banner = document.getElementById('sessionBanner');
+        const form = document.getElementById('setupForm');
+        try {
+            const { data: sessions } = await sb.from('stocktake_sessions').select('id,session_date').eq('status','in_progress').limit(1);
+            if (!sessions?.length) {
+                banner.textContent = '진행 중인 재고조사가 없습니다\n관리자에게 문의하세요';
+                banner.className = 'session-banner error';
+                form.style.display = 'flex';
+                document.getElementById('locationSelect').disabled = true;
+                document.getElementById('scannerNameInput').disabled = true;
+                document.getElementById('startBtn').style.display = 'none';
+                document.getElementById('offlineModeBtn').style.display = '';
+                return;
+            }
+            const session = sessions[0];
+            window._activeSessionId = session.id;
+            const d = new Date(session.session_date + 'T00:00:00');
+            banner.textContent = `📋 ${d.getMonth()+1}월 ${d.getDate()}일 재고조사 진행 중`;
+            banner.className = 'session-banner active';
+            const { data: locs } = await sb.from('locations').select('name').eq('is_active',true).order('created_at');
+            const sel = document.getElementById('locationSelect');
+            (locs||[]).forEach(l=>{ const o=document.createElement('option'); o.value=l.name; o.textContent=l.name; sel.appendChild(o); });
+            form.style.display = 'flex';
+        } catch(e) {
+            banner.textContent = '서버 연결 실패\n오프라인 모드로 시작하세요';
+            banner.className = 'session-banner error';
+            form.style.display = 'flex';
+            document.getElementById('locationSelect').disabled = true;
+            document.getElementById('scannerNameInput').disabled = true;
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('offlineModeBtn').style.display = '';
+        }
+    }
+
+    function startScanning() {
+        const loc = document.getElementById('locationSelect').value;
+        const name = document.getElementById('scannerNameInput').value.trim();
+        if (!loc) return showAlertModal('매장을 선택해주세요.');
+        if (!name) return showAlertModal('담당자 이름을 입력해주세요.');
+        sessionMeta = { sessionId: window._activeSessionId, locationName: loc, scannerName: name };
+        localStorage.setItem(SESSION_META_KEY, JSON.stringify(sessionMeta));
+        showScanScreen();
+    }
+
+    function startOffline() {
+        sessionMeta = null;
+        showScanScreen();
+    }
+
+    function showScanScreen() {
+        document.getElementById('setupScreen').style.display = 'none';
+        document.getElementById('scanScreen').style.display = 'flex';
+        if (sessionMeta?.locationName) {
+            document.getElementById('scanBrandName').textContent = sessionMeta.locationName;
+            document.getElementById('scanBrandSub').textContent = sessionMeta.scannerName || 'Inventory Scanner';
+        }
+        if (!sessionMeta?.sessionId) {
+            document.getElementById('btnSubmit').style.display = 'none';
+        }
+        loadFromStorage();
+        input.focus();
+    }
+
+    async function submitScans() {
+        if (!sessionMeta?.sessionId) return;
+        let barcodes = allData.map(i => i.barcode);
+        if (currentHangerData.length) {
+            if (await showConfirm(`현재 행거 ${currentHangerData.length}건도 포함할까요?`)) {
+                barcodes = [...barcodes, ...currentHangerData.map(i=>i.code)];
+            }
+        }
+        if (!barcodes.length) return showAlertModal('제출할 데이터가 없습니다.');
+        if (!await showConfirm(`${sessionMeta.locationName} · ${sessionMeta.scannerName}\n총 ${barcodes.length}건을 제출할까요?`)) return;
+
+        const btn = document.getElementById('btnSubmit');
+        btn.textContent = '제출 중...'; btn.disabled = true;
+        try {
+            const rows = barcodes.map(barcode => ({ session_id: sessionMeta.sessionId, barcode, scanned_location: sessionMeta.locationName, scanner_name: sessionMeta.scannerName }));
+            for (let i = 0; i < rows.length; i += 500) {
+                const { error } = await sb.from('stocktake_scans').insert(rows.slice(i, i+500));
+                if (error) throw error;
+            }
+            localStorage.removeItem(SESSION_META_KEY);
+            await showAlertModal(`✅ 제출 완료!\n${sessionMeta.locationName} ${barcodes.length}건\n담당자: ${sessionMeta.scannerName}`);
+            allData=[]; currentHangerData=[]; hangerCount=1;
+            document.getElementById('hangerInfo').textContent='1번 행거';
+            updateUI(); clearStorage(); sessionMeta=null;
+            await initSetupScreen();
+        } catch(e) {
+            btn.textContent='↑ 제출'; btn.disabled=false;
+            await showAlertModal(`제출 실패: ${e.message}\nCSV 다운로드를 이용해주세요.`);
+        }
+    }
+
+    initApp();
 </script>
 </body>
 </html>

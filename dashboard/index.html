@@ -9,6 +9,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -560,6 +561,23 @@
     .closed-store-title { font-size: 15px; font-weight: 600; color: var(--ink-strong); }
     .closed-store-count { font-size: 13px; color: var(--muted); }
     .barcode-chip-list  { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    /* ── 재고조사 관리 ── */
+    .st-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .st-table th { text-align: left; padding: 8px 12px; border-bottom: 2px solid var(--border); color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .st-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--ink); vertical-align: middle; }
+    .st-table tr:last-child td { border-bottom: none; }
+    .st-row-pending td { color: var(--muted); }
+    .st-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .st-badge-ok { background: #dcfce7; color: #16a34a; }
+    .st-badge-pending { background: #f3f4f6; color: #9ca3af; }
+    .btn-stocktake-start { padding: 9px 20px; border: 1px solid var(--accent); border-radius: var(--r-md); background: transparent; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background .12s; }
+    .btn-stocktake-start:hover { background: #fffbf0; }
+    .btn-complete { padding: 9px 20px; border: none; border-radius: var(--r-md); background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity .12s; }
+    .btn-complete:hover { opacity: 0.88; }
+    .btn-complete:disabled { opacity: 0.5; cursor: not-allowed; }
+    .st-progress { font-size: 13px; color: var(--muted); }
+    .st-progress strong { color: var(--ink); }
 
     /* ── 모바일 반응형 ── */
     @media (max-width: 767px) {
