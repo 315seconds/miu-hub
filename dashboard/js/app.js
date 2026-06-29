@@ -1002,7 +1002,8 @@ async function renderStocktake() {
       <tr class="st-row-pending">
         <td>${n}</td>
         <td><span class="st-badge st-badge-pending">⏳ 미제출</span></td>
-        <td>—</td><td>—</td><td>—</td>
+        <td>—</td><td>—</td>
+        <td><button class="btn-csv-dl" onclick="submitByFile('${n}','${active.id}')">📄 파일로 제출</button></td>
       </tr>`).join('');
 
     activeHtml = `
@@ -1050,6 +1051,37 @@ async function createStocktakeSession() {
   const { error } = await sb.from('stocktake_sessions').insert({ session_date: dateStr, status: 'in_progress' });
   if (error) { alert('오류: ' + error.message); return; }
   await route();
+}
+
+async function submitByFile(locationName, sessionId) {
+  const scannerName = prompt(`${locationName} 담당자 이름:`);
+  if (!scannerName?.trim()) return;
+
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.xlsx,.xls,.csv';
+  fileInput.onchange = async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const buffer = await file.arrayBuffer();
+      const wb = window.XLSX.read(buffer, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = window.XLSX.utils.sheet_to_json(ws, { header: 1 });
+      const barcodes = rows.map(r => String(r[0] ?? '').trim()).filter(b => b);
+      if (!barcodes.length) { alert('파일에서 바코드를 찾을 수 없습니다.'); return; }
+      if (!confirm(`${locationName} · ${scannerName.trim()}\n총 ${barcodes.length}건을 제출할까요?`)) return;
+
+      const toInsert = barcodes.map(barcode => ({ session_id: sessionId, barcode, scanned_location: locationName, scanner_name: scannerName.trim() }));
+      for (let i = 0; i < toInsert.length; i += 500) {
+        const { error } = await sb.from('stocktake_scans').insert(toInsert.slice(i, i + 500));
+        if (error) throw error;
+      }
+      alert(`✅ ${barcodes.length}건 제출 완료!`);
+      await route();
+    } catch(e) { alert('오류: ' + e.message); }
+  };
+  fileInput.click();
 }
 
 async function completeStocktake(sessionId, dateStr, btn) {
