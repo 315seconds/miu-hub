@@ -108,7 +108,7 @@ async function renderHome() {
   const [counts, oldCounts, sales] = await Promise.all([
     fetchCounts(names),
     fetchOldCounts(names, 90),
-    fetchMonthlySales(names),
+    fetchMonthlySales(null),
   ]);
 
   const totalStock   = counts.reduce((s, c) => s + c.count, 0);
@@ -719,10 +719,13 @@ async function fetchOldCounts(names, days) {
 }
 
 async function fetchMonthlySales(locationNames) {
-  const storeNames = locationNames.filter(n => !WAREHOUSE.includes(n)).map(n => SOLD_PFX + n);
-  if (!storeNames.length) return {};
-  const { data } = await sb.from('sold_items').select('store,price')
-    .in('store', storeNames).gte('sold_date', monthStart());
+  let query = sb.from('sold_items').select('store,price').gte('sold_date', monthStart());
+  if (locationNames) {
+    const storeNames = locationNames.filter(n => !WAREHOUSE.includes(n)).map(n => SOLD_PFX + n);
+    if (!storeNames.length) return {};
+    query = query.in('store', storeNames);
+  }
+  const { data } = await query;
   const r = {};
   (data || []).forEach(item => {
     const loc = item.store.replace(SOLD_PFX, '');
