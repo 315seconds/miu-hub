@@ -45,6 +45,9 @@
     .brand { display: flex; flex-direction: column; gap: 2px; }
     .brand-name { font-size: 13px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.3px; }
     .brand-sub { font-size: 9px; color: var(--text-muted); letter-spacing: 1.5px; text-transform: uppercase; font-family: var(--mono); }
+    .btn-change-setup { background: none; border: none; cursor: pointer; padding: 0; text-align: left; }
+    .btn-change-setup:hover .brand-name { color: var(--accent); }
+    .btn-change-setup:hover .brand-sub { color: var(--accent); opacity: 0.7; }
     .hanger-badge { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-dim); border: 1px solid var(--accent-border); padding: 5px 14px; border-radius: 20px; letter-spacing: 0.3px; }
 
     .counter-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; display: flex; align-items: center; justify-content: space-between; position: relative; overflow: hidden; }
@@ -173,10 +176,12 @@
 <!-- ── Scan Screen ── -->
 <div id="scanScreen" class="app" style="display:none">
     <div class="header">
-        <div class="brand">
-            <div class="brand-name" id="scanBrandName">마켓인유 재고조사</div>
-            <div class="brand-sub" id="scanBrandSub">Inventory Scanner</div>
-        </div>
+        <button class="btn-change-setup" onclick="goToSetup()">
+            <div class="brand">
+                <div class="brand-name" id="scanBrandName">마켓인유 재고조사</div>
+                <div class="brand-sub" id="scanBrandSub">Inventory Scanner</div>
+            </div>
+        </button>
         <div class="hanger-badge" id="hangerInfo">1번 행거</div>
     </div>
     <div class="counter-card">
@@ -446,6 +451,19 @@
         sessionMeta = { sessionId: window._activeSessionId, locationName: loc, scannerName: name };
         localStorage.setItem(SESSION_META_KEY, JSON.stringify(sessionMeta));
         showScanScreen();
+    }
+
+    async function goToSetup() {
+        const totalItems = allData.length + currentHangerData.length;
+        if (totalItems > 0) {
+            const ok = await showConfirm(`스캔 데이터 ${totalItems}벌이 있습니다.\n제출하지 않고 설정 화면으로 돌아갈까요?\n(데이터는 이 기기에 유지됩니다)`);
+            if (!ok) return;
+        }
+        localStorage.removeItem(SESSION_META_KEY);
+        sessionMeta = null;
+        const sel = document.getElementById('locationSelect');
+        while (sel.options.length > 1) sel.remove(1);
+        await initSetupScreen();
     }
 
     function startOffline() {
