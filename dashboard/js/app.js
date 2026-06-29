@@ -610,6 +610,7 @@ async function renderClosed() {
   );
   const withItems = results.filter(r => r.items.length > 0);
   closedItems = results.flatMap(r => r.items.map(i => ({ ...i, storeName: r.name })));
+  window.__closedStores = withItems;
 
   const totalCount = closedItems.length;
 
@@ -620,8 +621,9 @@ async function renderClosed() {
         <div class="page-sub">철수된 매장 전산 잔여 바코드 · 총 ${fmt(totalCount)}건</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
+        ${withItems.length ? `<label class="closed-select-all-label"><input type="checkbox" id="chk-all-stores" checked onchange="toggleAllClosedStores(this.checked)"> 전체 선택</label>` : ''}
         <button class="btn-refresh" onclick="copyClosedBarcodes()">바코드 복사</button>
-        <button class="btn-refresh" onclick="downloadClosedCSV()">CSV 다운로드</button>
+        <button class="btn-refresh" id="btn-closed-csv" onclick="downloadClosedCSV()">CSV 다운로드 (전체)</button>
       </div>
     </div>
     ${!withItems.length
@@ -629,7 +631,10 @@ async function renderClosed() {
       : withItems.map(loc => `
         <div class="section-card">
           <div class="closed-store-header">
-            <span class="closed-store-title">${loc.name}</span>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1">
+              <input type="checkbox" class="store-chk" data-store="${loc.name}" checked onchange="updateClosedCSVBtn()">
+              <span class="closed-store-title">${loc.name}</span>
+            </label>
             <span class="closed-store-count">${fmt(loc.items.length)}건 남음</span>
           </div>
           <div class="barcode-chip-list">
@@ -645,11 +650,33 @@ function copyClosedBarcodes() {
     .then(() => alert(`${closedItems.length}건 복사됐습니다.`));
 }
 
+function updateClosedCSVBtn() {
+  const all = document.querySelectorAll('.store-chk');
+  const checked = document.querySelectorAll('.store-chk:checked');
+  const btn = document.getElementById('btn-closed-csv');
+  if (btn) btn.textContent = checked.length === all.length
+    ? 'CSV 다운로드 (전체)'
+    : `CSV 다운로드 (${checked.length}개 매장)`;
+  const allChk = document.getElementById('chk-all-stores');
+  if (allChk) {
+    allChk.indeterminate = checked.length > 0 && checked.length < all.length;
+    allChk.checked = checked.length === all.length;
+  }
+}
+
+function toggleAllClosedStores(checked) {
+  document.querySelectorAll('.store-chk').forEach(c => c.checked = checked);
+  updateClosedCSVBtn();
+}
+
 function downloadClosedCSV() {
-  if (!closedItems.length) return;
-  const csv = '매장,바코드,카테고리\n'
-    + closedItems.map(i => `${i.storeName},${i.barcode},${i.category || ''}`).join('\n');
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const checkedNames = [...document.querySelectorAll('.store-chk:checked')].map(c => c.dataset.store);
+  if (!checkedNames.length) { alert('다운받을 매장을 선택해주세요.'); return; }
+  const stores = (window.__closedStores || []).filter(s => checkedNames.includes(s.name));
+  const rows = [['매장', '바코드', '카테고리', '가격']];
+  stores.forEach(s => s.items.forEach(i => rows.push([s.name, i.barcode, i.category || '', i.price || 0])));
+  const csv = '﻿' + rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
   const d = new Date();
   a.href = URL.createObjectURL(blob);
