@@ -2,18 +2,22 @@
 const WAREHOUSE = ['공동물류', '온라인', '재봉합성수', '재봉합부천'];
 const EXCLUDED  = ['폐기'];
 const SOLD_PFX  = '공동판매';
+const ADMIN_PIN = '1357';
 
 const AGE_COLORS = { '0-30일': '#22c55e', '31-60일': '#f59e0b', '61-90일': '#f97316', '90일+': '#ef4444' };
 
 
 // ─── State ────────────────────────────────────────────────────────────────────
-let allLocations = [];
-let activeCharts = {};
-let expandedCat  = null;
+let allLocations    = [];
+let closedLocations = [];
+let activeCharts    = {};
+let expandedCat     = null;
+let pinBuffer       = '';
+let closedItems     = [];
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 async function init() {
-  allLocations = await fetchLocations();
+  [allLocations, closedLocations] = await Promise.all([fetchLocations(), fetchClosedLocations()]);
   renderSidebar();
   window.addEventListener('hashchange', route);
   await route();
@@ -28,6 +32,8 @@ async function route() {
   try {
     if (hash === '#home') {
       await renderHome();
+    } else if (hash === '#closed') {
+      await renderClosed();
     } else if (hash.startsWith('#loc/')) {
       await renderLocation(decodeURIComponent(hash.slice(5)));
     }
@@ -54,6 +60,10 @@ function renderSidebar() {
     ${wh.length ? `<div class="sidebar-section">
       <div class="sidebar-section-label">창고</div>
       ${wh.map(l => navItem(`#loc/${enc(l.name)}`, iconDot(), l.name + '<span class="tag-warehouse">창고</span>')).join('')}
+    </div>` : ''}
+    ${closedLocations.length ? `<div class="sidebar-section">
+      <div class="sidebar-section-label">철수</div>
+      ${navItem('#closed', iconClosed(), '철수 후 남은 재고')}
     </div>` : ''}
   `;
 
@@ -205,13 +215,17 @@ async function renderLocation(name) {
   const oldCount  = items.filter(i => getArrivalAge(i, arrivalMap) > 90).length;
   const yestTotal = Object.values(yestSales).reduce((s, v) => s + v, 0);
 
+  window.__currentLocationName = name;
   document.getElementById('content').innerHTML = `
     <div class="page-header">
       <div>
         <div class="page-title">${name}${isWh ? '<span class="tag-warehouse" style="font-size:14px;padding:3px 10px">창고</span>' : ''}</div>
         <div class="page-sub">${isWh ? '보관 재고 현황' : '매장 재고 · 매출 현황'}</div>
       </div>
-      <button class="btn-refresh" onclick="route()">${iconRefresh()} 새로고침</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        ${!isWh ? `<button class="btn-closure" onclick="initiateClosure(window.__currentLocationName)">철수완료</button>` : ''}
+        <button class="btn-refresh" onclick="route()">${iconRefresh()} 새로고침</button>
+      </div>
     </div>
 
     <div class="cards-row ${isWh ? 'cards-row-2' : ''}">
@@ -476,9 +490,155 @@ function drawAgeChart(buckets) {
   });
 }
 
+// ─── Closure ──────────────────────────────────────────────────────────────────
+function initiateClosure(name) {
+  pinBuffer = '';
+  const overlay = document.createElement('div');
+  overlay.id = 'pin-overlay';
+  overlay.className = 'pin-overlay';
+  overlay.innerHTML = `
+    <div class="pin-modal">
+      <div class="pin-title">관리자 인증</div>
+      <div class="pin-subtitle"><strong>${name}</strong> 철수 처리</div>
+      <div class="pin-dots" id="pin-dots">
+        <span class="pin-dot"></span><span class="pin-dot"></span>
+        <span class="pin-dot"></span><span class="pin-dot"></span>
+      </div>
+      <div class="pin-error" id="pin-error"></div>
+      <div class="pin-pad">
+        ${[1,2,3,4,5,6,7,8,9].map(n => `<button class="pin-key" onclick="pinPress('${n}')">${n}</button>`).join('')}
+        <button class="pin-key pin-key-empty"></button>
+        <button class="pin-key" onclick="pinPress('0')">0</button>
+        <button class="pin-key pin-key-del" onclick="pinDel()">⌫</button>
+      </div>
+      <button class="pin-cancel" onclick="closePinModal()">취소</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+}
+
+function pinPress(digit) {
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += digit;
+  updatePinDots();
+  if (pinBuffer.length === 4) setTimeout(checkPin, 150);
+}
+
+function pinDel() {
+  pinBuffer = pinBuffer.slice(0, -1);
+  updatePinDots();
+  const el = document.getElementById('pin-error');
+  if (el) el.textContent = '';
+}
+
+function updatePinDots() {
+  document.querySelectorAll('.pin-dot').forEach((d, i) => d.classList.toggle('filled', i < pinBuffer.length));
+}
+
+function closePinModal() {
+  const overlay = document.getElementById('pin-overlay');
+  if (overlay) overlay.remove();
+  pinBuffer = '';
+}
+
+async function checkPin() {
+  if (pinBuffer !== ADMIN_PIN) {
+    const el = document.getElementById('pin-error');
+    if (el) el.textContent = '핀번호가 올바르지 않습니다';
+    pinBuffer = '';
+    updatePinDots();
+    return;
+  }
+  const name = window.__currentLocationName;
+  closePinModal();
+  showLoading(true);
+  try {
+    const { error } = await sb.from('locations').update({ is_active: false }).eq('name', name);
+    if (error) throw error;
+    closedLocations.push({ name });
+    allLocations = allLocations.filter(l => l.name !== name);
+    renderSidebar();
+    location.hash = '#closed';
+    await route();
+  } catch (e) {
+    alert('철수 처리 중 오류가 발생했습니다: ' + e.message);
+  } finally {
+    showLoading(false);
+  }
+}
+
+// ─── Closed locations page ────────────────────────────────────────────────────
+async function renderClosed() {
+  if (!closedLocations.length) {
+    document.getElementById('content').innerHTML = `
+      <div class="page-header">
+        <div><div class="page-title">철수 후 남은 재고</div>
+        <div class="page-sub">철수된 매장에 전산상 남아있는 바코드</div></div>
+      </div>
+      <div class="empty">철수된 매장이 없습니다.</div>`;
+    return;
+  }
+
+  const results = await Promise.all(
+    closedLocations.map(l => fetchItems(l.name).then(items => ({ name: l.name, items })))
+  );
+  const withItems = results.filter(r => r.items.length > 0);
+  closedItems = results.flatMap(r => r.items.map(i => ({ ...i, storeName: r.name })));
+
+  const totalCount = closedItems.length;
+
+  document.getElementById('content').innerHTML = `
+    <div class="page-header">
+      <div>
+        <div class="page-title">철수 후 남은 재고</div>
+        <div class="page-sub">철수된 매장 전산 잔여 바코드 · 총 ${fmt(totalCount)}건</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn-refresh" onclick="copyClosedBarcodes()">바코드 복사</button>
+        <button class="btn-refresh" onclick="downloadClosedCSV()">CSV 다운로드</button>
+      </div>
+    </div>
+    ${!withItems.length
+      ? '<div class="empty">모든 철수 매장의 재고가 정리됐습니다.</div>'
+      : withItems.map(loc => `
+        <div class="section-card">
+          <div class="closed-store-header">
+            <span class="closed-store-title">${loc.name}</span>
+            <span class="closed-store-count">${fmt(loc.items.length)}건 남음</span>
+          </div>
+          <div class="barcode-chip-list">
+            ${loc.items.map(i => `<span class="barcode-chip" title="${i.category || ''}">${i.barcode}</span>`).join('')}
+          </div>
+        </div>`).join('')}
+  `;
+}
+
+function copyClosedBarcodes() {
+  if (!closedItems.length) return;
+  navigator.clipboard.writeText(closedItems.map(i => i.barcode).join('\n'))
+    .then(() => alert(`${closedItems.length}건 복사됐습니다.`));
+}
+
+function downloadClosedCSV() {
+  if (!closedItems.length) return;
+  const csv = '매장,바코드,카테고리\n'
+    + closedItems.map(i => `${i.storeName},${i.barcode},${i.category || ''}`).join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  const d = new Date();
+  a.href = URL.createObjectURL(blob);
+  a.download = `철수후잔여재고_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.csv`;
+  a.click();
+}
+
 // ─── Data ─────────────────────────────────────────────────────────────────────
 async function fetchLocations() {
   const { data } = await sb.from('locations').select('id,name,is_active').eq('is_active', true).order('created_at');
+  return (data || []).filter(l => !EXCLUDED.includes(l.name));
+}
+
+async function fetchClosedLocations() {
+  const { data } = await sb.from('locations').select('id,name').eq('is_active', false).order('created_at');
   return (data || []).filter(l => !EXCLUDED.includes(l.name));
 }
 
@@ -725,6 +885,7 @@ function updateFooter()  {
 function iconHome()    { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`; }
 function iconDot()     { return `<span class="nav-dot"></span>`; }
 function iconRefresh() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`; }
+function iconClosed()  { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>`; }
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 init();
