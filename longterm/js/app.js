@@ -87,6 +87,7 @@ const S = {
   priceMode: 'individual',
   priceOriginal: [],
   lastChanges: [],
+  directMode: false,
 };
 
 // ── 화면 전환 ─────────────────────────────────────────────────────────────────
@@ -109,29 +110,40 @@ async function initSetup() {
   sel.innerHTML = '<option value="">매장을 선택하세요</option>' +
     locs.map(l => `<option value="${escapeHtml(l.name)}">${escapeHtml(l.name)}</option>`).join('');
 
-  document.getElementById('start-btn').onclick = () => {
+  function startScan({ direct = false } = {}) {
     const store = sel.value;
-    const threshold = parseInt(document.getElementById('threshold-input').value) || 60;
-    const t2raw = parseInt(document.getElementById('threshold2-input').value);
-    const threshold2 = t2raw > 0 ? t2raw : null;
     const operator = document.getElementById('operator-input').value.trim();
     if (!store) { appAlert('매장을 선택해주세요.'); return; }
-    if (threshold2 !== null && threshold2 >= threshold) {
-      appAlert('순환필요 기준일은 가격변경 기준일보다 작아야 합니다.'); return;
+    if (direct) {
+      S.store = store; S.threshold = 60; S.threshold2 = null;
+      S.operator = operator; S.directMode = true;
+    } else {
+      const threshold = parseInt(document.getElementById('threshold-input').value) || 60;
+      const t2raw = parseInt(document.getElementById('threshold2-input').value);
+      const threshold2 = t2raw > 0 ? t2raw : null;
+      if (threshold2 !== null && threshold2 >= threshold) {
+        appAlert('순환필요 기준일은 가격변경 기준일보다 작아야 합니다.'); return;
+      }
+      S.store = store; S.threshold = threshold; S.threshold2 = threshold2;
+      S.operator = operator; S.directMode = false;
     }
-    S.store = store; S.threshold = threshold; S.threshold2 = threshold2; S.operator = operator;
     S.items = new Map(); S.selected = new Set();
     showStep('scan');
     initScanStep();
-  };
+  }
+
+  document.getElementById('start-btn').onclick = () => startScan();
+  document.getElementById('direct-btn').onclick = () => startScan({ direct: true });
 }
 
 // ── STEP 2: 스캔 ─────────────────────────────────────────────────────────────
 
 function initScanStep() {
-  const labelSuffix = S.threshold2 !== null
-    ? `기준 🟠${S.threshold2}일 / 🔴${S.threshold}일`
-    : `기준 ${S.threshold}일`;
+  const labelSuffix = S.directMode
+    ? '직접 가격수정'
+    : S.threshold2 !== null
+      ? `기준 🟠${S.threshold2}일 / 🔴${S.threshold}일`
+      : `기준 ${S.threshold}일`;
   document.getElementById('scan-store-label').textContent = `${S.store} · ${labelSuffix}`;
   renderScanList();
 
@@ -269,11 +281,13 @@ async function addItemToScan(barcode) {
 function renderScanList() {
   const all = [...S.items.values()];
   const valid = all.filter(i => !i.loading && !i.notFound && !i.error);
-  const t2Count = valid.filter(i => i.tier === 2).length;
-  const t1Count = valid.filter(i => i.tier === 1).length;
   const alertParts = [];
-  if (t2Count) alertParts.push(`🔴 가격변경 ${t2Count}개`);
-  if (t1Count) alertParts.push(`🟠 순환필요 ${t1Count}개`);
+  if (!S.directMode) {
+    const t2Count = valid.filter(i => i.tier === 2).length;
+    const t1Count = valid.filter(i => i.tier === 1).length;
+    if (t2Count) alertParts.push(`🔴 가격변경 ${t2Count}개`);
+    if (t1Count) alertParts.push(`🟠 순환필요 ${t1Count}개`);
+  }
 
   document.getElementById('scan-count').textContent =
     `${valid.length}개 스캔됨${alertParts.length ? ' · ' + alertParts.join(' · ') : ''}`;
@@ -335,8 +349,10 @@ function initProcessStep() {
   const t1  = all.filter(i => i.tier === 1).sort((a,b) => b.daysInStore - a.daysInStore);
   const ok  = all.filter(i => i.tier === 0).sort((a,b) => b.daysInStore - a.daysInStore);
 
-  // 장기재고(tier2) 자동 선택
-  S.selected = new Set(t2.map(i => i.barcode));
+  // directMode: 전체 선택, 일반 모드: tier2(가격변경) 자동 선택
+  S.selected = S.directMode
+    ? new Set(all.map(i => i.barcode))
+    : new Set(t2.map(i => i.barcode));
 
   let html = `<div class="page-header">
     <button class="back-btn" id="proc-back">← 스캔으로</button>
@@ -649,6 +665,7 @@ function saveState() {
     store: S.store,
     threshold: S.threshold,
     threshold2: S.threshold2,
+    directMode: S.directMode,
     items,
   }));
 }
@@ -662,6 +679,7 @@ function loadSavedState() {
     S.store = data.store;
     S.threshold = data.threshold || 60;
     S.threshold2 = data.threshold2 ?? null;
+    S.directMode = data.directMode ?? false;
     S.items = new Map(data.items || []);
     return true;
   } catch(e) {
