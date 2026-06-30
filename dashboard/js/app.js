@@ -109,7 +109,7 @@ async function renderHome() {
 
   const [counts, oldCounts, sales] = await Promise.all([
     fetchCounts(names),
-    fetchOldCounts(names, 90),
+    fetchOldCounts(names, 365),
     fetchMonthlySales(null),
   ]);
 
@@ -139,9 +139,9 @@ async function renderHome() {
         <div class="stat-sub">${thisMonth()} · ${fmt(totalSold)}건</div>
       </div>
       <div class="stat-card stat-card-pink">
-        <div class="stat-label">장기재고 90일+</div>
+        <div class="stat-label">장기재고 365일+</div>
         <div class="stat-value">${fmt(totalOld)}</div>
-        <div class="stat-sub">전체 대비 ${totalStock ? pct(totalOld, totalStock) : '0%'}</div>
+        <div class="stat-sub">전체 대비 ${totalStock ? pct(totalOld, totalStock) : '0%'} · 최초 입고일 기준</div>
       </div>
       <div class="stat-card stat-card-lavender">
         <div class="stat-label">운영 매장</div>
@@ -162,7 +162,7 @@ async function renderHome() {
     </div>
 
     <div class="section-card" style="margin-top:18px">
-      <h3>장기재고 현황 (90일 이상)</h3>
+      <h3>장기재고 현황 (365일 이상, 최초 입고일 기준)</h3>
       ${renderOldTable(counts, oldCounts)}
     </div>
   `;
