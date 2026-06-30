@@ -388,13 +388,24 @@
     window.addEventListener('beforeunload', e=>{ if(allData.length||currentHangerData.length){e.preventDefault();e.returnValue='';} });
 
     // ── Setup Screen Logic ──
+    function dbWithTimeout(query, ms = 7000) {
+        return Promise.race([query, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+    }
+
     async function initApp() {
-        // Resume existing session
+        // Validate stored sessionMeta against current active session
         try {
             const saved = localStorage.getItem(SESSION_META_KEY);
-            if (saved) { sessionMeta = JSON.parse(saved); showScanScreen(); return; }
+            if (saved) {
+                const meta = JSON.parse(saved);
+                const { data } = await dbWithTimeout(
+                    sb.from('stocktake_sessions').select('id').eq('id', meta.sessionId).eq('status', 'in_progress').maybeSingle()
+                );
+                if (data) { sessionMeta = meta; showScanScreen(); return; }
+                localStorage.removeItem(SESSION_META_KEY); // 세션 만료 또는 불일치 → 폐기
+            }
         } catch(e) {}
-        // Has scan data but no session (interrupted offline) → go to scan screen
+        // Has scan data but no session (offline) → go to scan screen
         try {
             const sd = localStorage.getItem(STORAGE_KEY);
             if (sd) { const st=JSON.parse(sd); if((st.allData?.length||0)+(st.currentHangerData?.length||0)>0){showScanScreen();return;} }
@@ -408,7 +419,9 @@
         const banner = document.getElementById('sessionBanner');
         const form = document.getElementById('setupForm');
         try {
-            const { data: sessions } = await sb.from('stocktake_sessions').select('id,session_date').eq('status','in_progress').limit(1);
+            const { data: sessions } = await dbWithTimeout(
+                sb.from('stocktake_sessions').select('id,session_date').eq('status','in_progress').limit(1)
+            );
             if (!sessions?.length) {
                 banner.textContent = '진행 중인 재고조사가 없습니다\n관리자에게 문의하세요';
                 banner.className = 'session-banner error';
@@ -424,7 +437,9 @@
             const d = new Date(session.session_date + 'T00:00:00');
             banner.textContent = `📋 ${d.getMonth()+1}월 ${d.getDate()}일 재고조사 진행 중`;
             banner.className = 'session-banner active';
-            const { data: locs } = await sb.from('locations').select('name').eq('is_active',true).order('created_at');
+            const { data: locs } = await dbWithTimeout(
+                sb.from('locations').select('name').eq('is_active',true).order('created_at')
+            );
             const sel = document.getElementById('locationSelect');
             (locs||[]).forEach(l=>{ const o=document.createElement('option'); o.value=l.name; o.textContent=l.name; sel.appendChild(o); });
             form.style.display = 'flex';
