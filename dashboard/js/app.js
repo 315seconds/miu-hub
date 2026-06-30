@@ -80,6 +80,8 @@ function renderSidebar() {
       `<a class="mob-tab" href="#home">전체</a>`,
       ...stores.map(l => `<a class="mob-tab" href="#loc/${enc(l.name)}">${l.name}</a>`),
       ...wh.map(l => `<a class="mob-tab" href="#loc/${enc(l.name)}">${l.name} 창고</a>`),
+      ...(closedLocations.length ? [`<a class="mob-tab" href="#closed">철수 재고</a>`] : []),
+      `<a class="mob-tab" href="#stocktake">재고조사</a>`,
     ].join('');
   }
 }
