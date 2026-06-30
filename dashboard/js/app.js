@@ -168,7 +168,7 @@ async function renderHome() {
   `;
 
   drawStockChart(counts);
-  drawSalesChart(stores, sales);
+  drawSalesChart(stores, sales, closedLocations.map(l => l.name));
 }
 
 function renderOldTable(counts, oldCounts) {
@@ -477,18 +477,26 @@ function drawStockChart(counts) {
   });
 }
 
-function drawSalesChart(stores, sales) {
+function drawSalesChart(stores, sales, closedNames = []) {
   const ctx = document.getElementById('chart-sales');
   if (!ctx) return;
-  const data = stores
-    .map(n => ({ name: n, rev: sales[n]?.revenue || 0 }))
+
+  const activeData = stores
+    .map(n => ({ name: n, rev: sales[n]?.revenue || 0, closed: false }))
     .sort((a, b) => b.rev - a.rev);
+
+  const closedData = closedNames
+    .map(n => ({ name: n + ' (철수)', rev: sales[n]?.revenue || 0, closed: true }))
+    .filter(d => d.rev > 0)
+    .sort((a, b) => b.rev - a.rev);
+
+  const data = [...activeData, ...closedData];
 
   activeCharts.sales = new Chart(ctx, {
     type: 'bar',
     data: {
       labels:   data.map(d => d.name),
-      datasets: [{ data: data.map(d => d.rev), backgroundColor: '#ffb084', borderRadius: 5 }]
+      datasets: [{ data: data.map(d => d.rev), backgroundColor: data.map(d => d.closed ? '#c0bdb8' : '#ffb084'), borderRadius: 5 }]
     },
     options: {
       plugins: { legend: { display: false } },
@@ -751,10 +759,16 @@ async function fetchItems(locationName) {
 }
 
 async function fetchStoreSales(locationName) {
-  const { data } = await sb.from('sold_items').select('sold_date,price')
-    .eq('store', SOLD_PFX + locationName).gte('sold_date', monthStart())
-    .order('sold_date', { ascending: false }).limit(1000);
-  return data || [];
+  const all = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await sb.from('sold_items').select('sold_date,price')
+      .eq('store', SOLD_PFX + locationName).gte('sold_date', monthStart())
+      .order('sold_date', { ascending: false }).range(from, from + 999);
+    if (error || !data?.length) break;
+    all.push(...data);
+    if (data.length < 1000) break;
+  }
+  return all;
 }
 
 // Returns barcode → session_date (latest arrival at this location via move sessions)
