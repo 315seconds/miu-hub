@@ -36,6 +36,11 @@ body { background: #f1f5f9; font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', 
 .screen-header h1 { font-size: 15px; font-weight: 700; }
 .screen-header .sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
 .btn-group { display: flex; gap: 8px; margin-left: auto; align-items: center; }
+.team-btn {
+  background: #1e3a5f; color: #93c5fd; border: 1px solid #3b82f6;
+  border-radius: 6px; padding: 7px 12px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.team-btn.active { background: #3b82f6; color: #fff; }
 .zpl-btn {
   background: #334155; color: #93c5fd; border: 1px solid #475569;
   border-radius: 6px; padding: 7px 12px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
@@ -75,6 +80,8 @@ body { background: #f1f5f9; font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', 
     <div class="sub" id="header-sub"></div>
   </div>
   <div class="btn-group">
+    <button class="team-btn active" data-team="online">온라인</button>
+    <button class="team-btn" data-team="logistics">물류</button>
     <button class="zpl-btn" id="zpl-btn">⬇ ZPL 다운로드</button>
     <button class="print-btn" id="zebra-btn">🦓 Zebra 직접 출력</button>
   </div>

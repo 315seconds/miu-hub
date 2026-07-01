@@ -583,13 +583,14 @@ async function submitPriceChanges() {
 
     if (S.priceMode === 'bulk') {
       document.getElementById('bulk-notice').style.display = 'block';
-    } else {
-      const zplBtn = document.getElementById('zpl-btn');
-      zplBtn.style.display = 'block';
-      zplBtn.onclick = () => {
-        window.open('labels.html?barcodes=' + encodeURIComponent(changes.map(c=>c.barcode).join(',')), '_blank');
-      };
     }
+    const zplBtn = document.getElementById('zpl-btn');
+    zplBtn.style.display = 'block';
+    zplBtn.onclick = () => {
+      const barcodesStr = encodeURIComponent(changes.map(c=>c.barcode).join(','));
+      const overridesStr = encodeURIComponent(changes.map(c=>`${c.barcode}:${c.newPrice}`).join(','));
+      window.open(`labels.html?barcodes=${barcodesStr}&price_overrides=${overridesStr}`, '_blank');
+    };
 
     document.getElementById('kiosk-btn').onclick = submitKioskUpdate;
   } catch(e) {

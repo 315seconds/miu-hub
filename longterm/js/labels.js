@@ -1,11 +1,9 @@
-// ZPL 상수 — Flask 코드와 동일한 값
-const ZPL = {
-  LW: 472, LH: 354,
-  NAME_H: 45,
-  Y_NAME: 10, Y_PRICE: 63, Y_BC: 145, H_BC: 140, Y_BCNUM: 293,
-  F_PRICE: 74, F_BCNUM: 35,
-  BC_FO_X: 84, BC_BY: 3,
+// ZPL 상수 — 온라인(300dpi) / 물류(203dpi)
+const ZPL_CONFIGS = {
+  online:    { LW: 472, LH: 354, NAME_H: 45, Y_NAME: 10, Y_PRICE: 63, Y_BC: 145, H_BC: 140, Y_BCNUM: 293, F_PRICE: 74, F_BCNUM: 35, BC_FO_X: 84, BC_BY: 3 },
+  logistics: { LW: 320, LH: 240, NAME_H: 30, Y_NAME:  7, Y_PRICE: 43, Y_BC:  98, H_BC:  95, Y_BCNUM: 198, F_PRICE: 50, F_BCNUM: 24, BC_FO_X: 57, BC_BY: 2 },
 };
+let ZPL = ZPL_CONFIGS.online;
 
 // ZPL ^FD 필드에 ^ 문자가 들어가면 명령어로 해석되므로 제거
 function sanitizeZpl(s) {
@@ -175,7 +173,7 @@ async function buildItemsFromSession(sessionId) {
 }
 
 // 바코드 목록 기반 아이템 구성
-async function buildItemsFromBarcodes(barcodes) {
+async function buildItemsFromBarcodes(barcodes, priceOverrides = {}) {
   const { data: rows, error } = await sb
     .from("inventory_items")
     .select("barcode,price,brand,category,product_name")
@@ -189,9 +187,10 @@ async function buildItemsFromBarcodes(barcodes) {
   for (const bc of barcodes) {
     const row = dbMap[bc.toUpperCase()];
     if (!row) { notFound.push(bc); continue; }
+    const override = priceOverrides[bc.toUpperCase()];
     items.push({
       barcode: bc,
-      price: isFinite(Number(row.price)) ? Number(row.price) : 0,
+      price: override != null ? override : (isFinite(Number(row.price)) ? Number(row.price) : 0),
       displayName: buildDisplayName(row.brand, row.category, row.product_name, bc),
     });
   }
@@ -303,8 +302,17 @@ async function main() {
           : "");
     } else if (barcodesParam) {
       const barcodes = barcodesParam.split(",").map(s => s.trim().toUpperCase()).filter(Boolean);
-      ({ items, notFound } = await buildItemsFromBarcodes(barcodes));
-      document.getElementById("header-title").textContent = "🖨 라벨 재출력";
+      const priceOverrides = {};
+      const overridesParam = params.get("price_overrides");
+      if (overridesParam) {
+        overridesParam.split(",").forEach(pair => {
+          const idx = pair.indexOf(":");
+          if (idx > 0) priceOverrides[pair.slice(0, idx).trim().toUpperCase()] = Number(pair.slice(idx + 1).trim());
+        });
+      }
+      ({ items, notFound } = await buildItemsFromBarcodes(barcodes, priceOverrides));
+      document.getElementById("header-title").textContent =
+        Object.keys(priceOverrides).length ? "🖨 수정된 라벨 출력" : "🖨 라벨 재출력";
       document.getElementById("header-sub").textContent = `총 ${items.length}장`;
     } else {
       document.getElementById("header-title").textContent = "잘못된 접근";
@@ -329,10 +337,23 @@ async function main() {
   renderPreview(items);
 
   const labelItems = items.filter(it => !it.isSeparator);
-  const zplText = generateZpl(items);
 
-  zplBtn.addEventListener("click", () => downloadZpl(zplText, zplFilename));
-  zebraBtn.addEventListener("click", () => zebraPrint(zplText, labelItems.length));
+  function bindPrintButtons() {
+    const zplText = generateZpl(items);
+    zplBtn.onclick = () => downloadZpl(zplText, zplFilename);
+    zebraBtn.onclick = () => zebraPrint(zplText, labelItems.length);
+  }
+
+  document.querySelectorAll(".team-btn").forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll(".team-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      ZPL = ZPL_CONFIGS[btn.dataset.team];
+      bindPrintButtons();
+    };
+  });
+
+  bindPrintButtons();
 }
 
 main();
