@@ -47,8 +47,8 @@ function buildDisplayName(brand, category, productName, barcode) {
   category = (category || "").trim();
   productName = (productName || "").trim();
   if (brand && category) return `${brand} ${category}`;
-  if (category) return category;
   if (productName) return productName;
+  if (category) return category;
   return barcode || "";
 }
 
@@ -124,7 +124,7 @@ async function buildItemsFromSession(sessionId) {
   if (hangerIds.length) {
     const { data: invItems, error: itemErr } = await sb
       .from("inventory_items")
-      .select("hanger_id,barcode,price,brand,category,order_index")
+      .select("hanger_id,barcode,price,brand,category,product_name,order_index")
       .in("hanger_id", hangerIds)
       .order("hanger_id")
       .order("order_index");
@@ -141,6 +141,7 @@ async function buildItemsFromSession(sessionId) {
         price: isFinite(Number(it.price)) ? Number(it.price) : 0,
         brand: it.brand || "",
         category,
+        product_name: it.product_name || "",
         barcode: it.barcode || "",
         hangerNumber: hanger.hanger_number,
       });
@@ -153,7 +154,7 @@ async function buildItemsFromSession(sessionId) {
   }
 
   allItems.forEach(it => {
-    it.displayName = buildDisplayName(it.brand, it.category, "", it.barcode);
+    it.displayName = buildDisplayName(it.brand, it.category, it.product_name || "", it.barcode);
   });
 
   // 행거 순서대로 정렬 후 구분자 삽입
