@@ -1215,7 +1215,7 @@ function buildStocktakeExcel(report, dateStr) {
 
 async function uploadStocktakeReport(sessionId, buffer, dateStr) {
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const filename = `${dateStr}_재고조사보고서.xlsx`;
+  const filename = `stocktake-report_${dateStr}.xlsx`;
   const { error } = await sb.storage.from('stocktake-reports').upload(filename, blob, { upsert: true });
   if (error) throw error;
   const { data } = sb.storage.from('stocktake-reports').getPublicUrl(filename);
