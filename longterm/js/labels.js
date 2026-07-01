@@ -41,6 +41,20 @@ function nameToGFA(text) {
   return `^GFA,${total},${total},${bpr},${hex}`;
 }
 
+// Code 128 바코드 너비 추정 → 라벨 중앙 정렬 X 계산
+function calcBarcodeX(barcodeStr) {
+  if (!barcodeStr) return ZPL.BC_FO_X;
+  let cPairs = 0, i = 0;
+  while (i < barcodeStr.length - 1) {
+    if (/\d/.test(barcodeStr[i]) && /\d/.test(barcodeStr[i + 1])) { cPairs++; i += 2; }
+    else { i++; }
+  }
+  const bChars = barcodeStr.length - cPairs * 2;
+  const switches = (cPairs > 0 && bChars > 0) ? 11 : 0;
+  const modules = 35 + cPairs * 11 + bChars * 11 + switches;
+  return Math.max(4, Math.floor((ZPL.LW - modules * ZPL.BC_BY) / 2));
+}
+
 // displayName 계산 (세션/재출력 경로 공통)
 function buildDisplayName(brand, category, productName, barcode) {
   brand = (brand || "").trim();
@@ -87,7 +101,7 @@ function generateZpl(items) {
     // 바코드 없으면 ^BC 명령어 생략 (빈 ^FD로 프린터 오류 방지)
     const bcLines = barcode
       ? [
-          `^FO${ZPL.BC_FO_X},${ZPL.Y_BC}^BY${ZPL.BC_BY}^BCN,${ZPL.H_BC},N,N,N^FD${barcode}^FS`,
+          `^FO${calcBarcodeX(barcode)},${ZPL.Y_BC}^BY${ZPL.BC_BY}^BCN,${ZPL.H_BC},N,N,N^FD${barcode}^FS`,
           `^FO0,${ZPL.Y_BCNUM}^A0N,${ZPL.F_BCNUM},${ZPL.F_BCNUM}^FB${ZPL.LW},1,0,C^FD${barcode}^FS`,
         ]
       : [];
