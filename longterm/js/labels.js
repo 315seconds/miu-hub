@@ -1,7 +1,10 @@
-// ZPL 상수 — 온라인(300dpi) / 물류(203dpi)
+// ZPL 상수 — 온라인(300dpi GT800-3005P0-100) / 물류(203dpi GT800)
+// 세로 스택형 레이아웃: 상품명 → 가격 → 바코드 → 바코드번호
+// NAME_H: GFA 캔버스 높이(1줄), NAME_H2: 2줄일 때 높이
+// GAP1/2/3: 블록 사이 여백. Y 좌표는 콘텐츠 총 높이 기준으로 매 아이템마다 동적으로 계산해 라벨 내에서 중앙정렬한다.
 const ZPL_CONFIGS = {
-  online:    { LW: 472, LH: 354, NAME_H: 45, Y_NAME: 10, Y_PRICE: 63, Y_BC: 145, H_BC: 140, Y_BCNUM: 293, F_PRICE: 74, F_BCNUM: 35, BC_FO_X: 84, BC_BY: 3 },
-  logistics: { LW: 320, LH: 240, NAME_H: 30, Y_NAME:  7, Y_PRICE: 43, Y_BC:  98, H_BC:  95, Y_BCNUM: 198, F_PRICE: 50, F_BCNUM: 24, BC_FO_X: 57, BC_BY: 2 },
+  online:    { LW: 472, LH: 354, NAME_H: 48, NAME_H2: 90, GAP1: 8, GAP2: 10, GAP3: 8, H_BC: 130, F_PRICE: 72, F_BCNUM: 34, BC_BY: 3 },
+  logistics: { LW: 320, LH: 240, NAME_H: 33, NAME_H2: 61, GAP1: 5, GAP2:  7, GAP3: 5, H_BC:  88, F_PRICE: 49, F_BCNUM: 23, BC_BY: 2 },
 };
 let ZPL = ZPL_CONFIGS.online;
 
@@ -10,22 +13,9 @@ function sanitizeZpl(s) {
   return String(s == null ? "" : s).replace(/\^/g, "");
 }
 
-// Canvas로 텍스트를 비트맵 → ZPL ^GFA 변환
-function nameToGFA(text) {
-  const W = ZPL.LW, H = ZPL.NAME_H;
-  const canvas = document.createElement("canvas");
-  canvas.width = W; canvas.height = H;
-  const ctx = canvas.getContext("2d");
-
-  ctx.fillStyle = "#fff";
-  ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = "#000";
-  ctx.font = `700 38px "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText(text, W / 2, H / 2);
-
-  const pixels = ctx.getImageData(0, 0, W, H).data;
+// Canvas 픽셀 → ZPL ^GFA hex
+function _pixelsToGFA(canvas, W, H) {
+  const pixels = canvas.getContext("2d").getImageData(0, 0, W, H).data;
   const bpr = Math.ceil(W / 8);
   let hex = "";
   for (let y = 0; y < H; y++) {
@@ -37,22 +27,81 @@ function nameToGFA(text) {
     }
     hex += Array.from(row).map(b => b.toString(16).padStart(2, "0").toUpperCase()).join("");
   }
-  const total = bpr * H;
-  return `^GFA,${total},${total},${bpr},${hex}`;
+  return `^GFA,${bpr * H},${bpr * H},${bpr},${hex}`;
+}
+
+// Canvas로 텍스트를 비트맵 → ZPL ^GFA 변환
+// 반환: { gfa: "^GFA,...", h: 실제사용높이 }
+function nameToGFA(text) {
+  const W = ZPL.LW;
+  const BASE_FONT = Math.round(ZPL.NAME_H * 0.78);
+  const MIN_FONT  = Math.round(BASE_FONT * 0.55);
+  const FONT_FAM  = '"Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif';
+
+  // 1줄 폰트 자동 축소
+  const c1 = document.createElement("canvas");
+  c1.width = W; c1.height = ZPL.NAME_H;
+  const ctx1 = c1.getContext("2d");
+
+  let fontSize = BASE_FONT;
+  ctx1.font = `700 ${fontSize}px ${FONT_FAM}`;
+  while (ctx1.measureText(text).width > W - 8 && fontSize > MIN_FONT) {
+    fontSize -= 1;
+    ctx1.font = `700 ${fontSize}px ${FONT_FAM}`;
+  }
+
+  // 축소해도 넘치면 2줄 분리
+  if (ctx1.measureText(text).width > W - 8) {
+    const words = text.split(" ");
+    let best = Math.ceil(words.length / 2);
+    // 공백 기준 가운데 나누기
+    let line1 = words.slice(0, best).join(" ");
+    let line2 = words.slice(best).join(" ");
+    if (!line2) { line1 = text.slice(0, Math.ceil(text.length / 2)); line2 = text.slice(Math.ceil(text.length / 2)); }
+
+    const H2 = ZPL.NAME_H2;
+    const lineH = Math.floor(H2 / 2);
+    const c2 = document.createElement("canvas");
+    c2.width = W; c2.height = H2;
+    const ctx2 = c2.getContext("2d");
+    ctx2.fillStyle = "#fff"; ctx2.fillRect(0, 0, W, H2);
+    ctx2.fillStyle = "#000";
+
+    let fs2 = BASE_FONT;
+    ctx2.font = `700 ${fs2}px ${FONT_FAM}`;
+    const maxW = Math.max(ctx2.measureText(line1).width, ctx2.measureText(line2).width);
+    if (maxW > W - 8) {
+      fs2 = Math.max(MIN_FONT, Math.floor(fs2 * (W - 8) / maxW));
+    }
+    ctx2.font = `700 ${fs2}px ${FONT_FAM}`;
+    ctx2.textAlign = "center"; ctx2.textBaseline = "middle";
+    ctx2.fillText(line1, W / 2, lineH * 0.5);
+    ctx2.fillText(line2, W / 2, lineH * 1.5);
+    return { gfa: _pixelsToGFA(c2, W, H2), h: H2 };
+  }
+
+  ctx1.fillStyle = "#fff"; ctx1.fillRect(0, 0, W, ZPL.NAME_H);
+  ctx1.fillStyle = "#000";
+  ctx1.font = `700 ${fontSize}px ${FONT_FAM}`;
+  ctx1.textAlign = "center"; ctx1.textBaseline = "middle";
+  ctx1.fillText(text, W / 2, ZPL.NAME_H / 2);
+  return { gfa: _pixelsToGFA(c1, W, ZPL.NAME_H), h: ZPL.NAME_H };
 }
 
 // Code 128 바코드 너비 추정 → 라벨 중앙 정렬 X 계산
 function calcBarcodeX(barcodeStr) {
-  if (!barcodeStr) return ZPL.BC_FO_X;
+  if (!barcodeStr) return 0;
+  // Code 128C로 인코딩 가능한 연속 숫자 쌍 수 계산
   let cPairs = 0, i = 0;
   while (i < barcodeStr.length - 1) {
     if (/\d/.test(barcodeStr[i]) && /\d/.test(barcodeStr[i + 1])) { cPairs++; i += 2; }
     else { i++; }
   }
   const bChars = barcodeStr.length - cPairs * 2;
-  const switches = (cPairs > 0 && bChars > 0) ? 11 : 0;
+  const switches = (cPairs > 0 && bChars > 0) ? 11 : 0; // code set 전환 오버헤드
+  // start(11) + data + check(11) + stop(13) = 35 fixed
   const modules = 35 + cPairs * 11 + bChars * 11 + switches;
-  return Math.max(4, Math.floor((ZPL.LW - modules * ZPL.BC_BY) / 2));
+  return Math.max(0, Math.floor((ZPL.LW - modules * ZPL.BC_BY) / 2));
 }
 
 // displayName 계산 (세션/재출력 경로 공통)
@@ -88,21 +137,38 @@ function generateZpl(items) {
     const displayName = (item.displayName || "").trim();
     const hasKorean = /[ㄱ-ㅎ가-힣]/.test(displayName);
 
-    let nameCmd;
-    if (hasKorean) {
-      nameCmd = `^FO0,${ZPL.Y_NAME}${nameToGFA(displayName)}^FS`;
-    } else if (displayName) {
-      const ascii = sanitizeZpl(displayName.replace(/[^\x00-\x7F]/g, "")).slice(0, 29);
-      nameCmd = `^FO0,${ZPL.Y_NAME}^A0N,${ZPL.NAME_H},${ZPL.NAME_H}^FB${ZPL.LW},1,0,C^FD${ascii}^FS`;
-    } else {
-      nameCmd = "";
+    // 상품명 비트맵/텍스트 준비 (실제 사용 높이 nameH만 먼저 계산, Y좌표는 아래서 일괄 계산)
+    let nameGfa = null, nameAscii = null, nameH = 0;
+    if (displayName) {
+      if (hasKorean) {
+        const { gfa, h } = nameToGFA(displayName);
+        nameGfa = gfa;
+        nameH = h;
+      } else {
+        nameAscii = sanitizeZpl(displayName.replace(/[^\x00-\x7F]/g, "")).slice(0, 29);
+        nameH = ZPL.NAME_H;
+      }
     }
 
+    // 콘텐츠 총 높이 기준으로 Y좌표를 동적 계산해 라벨(LH) 내에서 상하 중앙정렬
+    const totalH = nameH + ZPL.GAP1 + ZPL.F_PRICE + ZPL.GAP2 + ZPL.H_BC + ZPL.GAP3 + ZPL.F_BCNUM;
+    const yName  = Math.max(0, Math.floor((ZPL.LH - totalH) / 2));
+    const yPrice = yName  + nameH        + ZPL.GAP1;
+    const yBc    = yPrice + ZPL.F_PRICE  + ZPL.GAP2;
+    const yBcNum = yBc    + ZPL.H_BC     + ZPL.GAP3;
+
+    const nameCmd = nameGfa
+      ? `^FO0,${yName}${nameGfa}^FS`
+      : nameAscii
+        ? `^FO0,${yName}^A0N,${ZPL.NAME_H},${ZPL.NAME_H}^FB${ZPL.LW},1,0,C^FD${nameAscii}^FS`
+        : "";
+
     // 바코드 없으면 ^BC 명령어 생략 (빈 ^FD로 프린터 오류 방지)
+    // ^BCN은 ^FB 중앙정렬 미지원 → 모듈 수 기반으로 X 직접 계산
     const bcLines = barcode
       ? [
-          `^FO${calcBarcodeX(barcode)},${ZPL.Y_BC}^BY${ZPL.BC_BY}^BCN,${ZPL.H_BC},N,N,N^FD${barcode}^FS`,
-          `^FO0,${ZPL.Y_BCNUM}^A0N,${ZPL.F_BCNUM},${ZPL.F_BCNUM}^FB${ZPL.LW},1,0,C^FD${barcode}^FS`,
+          `^FO${calcBarcodeX(barcode)},${yBc}^BY${ZPL.BC_BY}^BCN,${ZPL.H_BC},N,N,N^FD${barcode}^FS`,
+          `^FO0,${yBcNum}^A0N,${ZPL.F_BCNUM},${ZPL.F_BCNUM}^FB${ZPL.LW},1,0,C^FD${barcode}^FS`,
         ]
       : [];
 
@@ -110,7 +176,7 @@ function generateZpl(items) {
       "^XA", "^LH0,0",
       `^PW${ZPL.LW}`, `^LL${ZPL.LH}`,
       ...(nameCmd ? [nameCmd] : []),
-      `^FO0,${ZPL.Y_PRICE}^A0N,${ZPL.F_PRICE},${ZPL.F_PRICE}^FB${ZPL.LW},1,0,C^FD${priceStr}^FS`,
+      `^FO0,${yPrice}^A0N,${ZPL.F_PRICE},${ZPL.F_PRICE}^FB${ZPL.LW},1,0,C^FD${priceStr}^FS`,
       ...bcLines,
       "^XZ", ""
     );
