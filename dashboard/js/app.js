@@ -1036,7 +1036,7 @@ async function renderStocktake() {
             <div style="font-size:15px;font-weight:700;color:var(--ink-strong)">🟡 ${dateStr} 재고조사 진행 중</div>
             <div class="st-progress" style="margin-top:4px">제출 완료: <strong>${submittedNames.length}</strong> / 전체 ${activeLocNames.length}개</div>
           </div>
-          <button class="btn-complete" id="btn-complete" onclick="completeStocktake('${active.id}','${dateStr}',this)">재고조사 완료 + 보고서 생성</button>
+          <button class="btn-complete" id="btn-complete" onclick="completeStocktake('${active.id}','${dateStr}','${active.session_date}',this)">재고조사 완료 + 보고서 생성</button>
         </div>
         <table class="st-table">
           <thead><tr><th>매장/창고</th><th>상태</th><th>스캔수</th><th>담당자</th><th>제출시각</th></tr></thead>
@@ -1121,7 +1121,7 @@ async function submitByFile(locationName, sessionId) {
   fileInput.click();
 }
 
-async function completeStocktake(sessionId, dateStr, btn) {
+async function completeStocktake(sessionId, dateStr, sessionDate, btn) {
   if (!confirm(`${dateStr} 재고조사를 완료 처리하고 보고서를 생성할까요?\n잠시 시간이 걸릴 수 있습니다.`)) return;
   btn.disabled = true;
   btn.textContent = '보고서 생성 중...';
@@ -1137,7 +1137,7 @@ async function completeStocktake(sessionId, dateStr, btn) {
     const a = document.createElement('a');
     a.href = url; a.download = `재고조사_${dateStr}.xlsx`; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 10000);
-    const reportUrl = await uploadStocktakeReport(sessionId, xlsxBuffer, dateStr);
+    const reportUrl = await uploadStocktakeReport(sessionId, xlsxBuffer, sessionDate);
     const { error } = await sb.from('stocktake_sessions').update({ status: 'completed', report_url: reportUrl }).eq('id', sessionId);
     if (error) throw error;
     await route();
