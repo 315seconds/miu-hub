@@ -1070,7 +1070,8 @@ async function renderStocktake() {
 async function createStocktakeSession() {
   const today = new Date().toLocaleDateString('ko-KR');
   if (!confirm(`${today} 재고조사를 시작할까요?`)) return;
-  const dateStr = new Date().toISOString().slice(0, 10);
+  const _d = new Date();
+  const dateStr = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`;
   const { error } = await sb.from('stocktake_sessions').insert({ session_date: dateStr, status: 'in_progress' });
   if (error) { alert('오류: ' + error.message); return; }
   await route();
