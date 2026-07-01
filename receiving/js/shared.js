@@ -21,6 +21,8 @@ const PAGE_TAB = {
   'more.html': 'more',
   'logs.html': 'more',
   'reprint.html': 'more',
+  'price-change.html': 'more',
+  'price-change-log.html': 'more',
 };
 
 function initBottomNav() {

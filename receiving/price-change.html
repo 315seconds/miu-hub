@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>가격 수정</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="page-wrap">
+    <div class="page-header">
+      <div class="page-header-inner">
+        <div class="page-header-left">
+          <a href="index.html" class="back-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><polyline points="15 18 9 12 15 6"/></svg>
+          </a>
+        </div>
+        <div class="page-header-title">가격 수정</div>
+        <div class="page-header-right" style="padding-right:8px">
+          <a href="price-change-log.html" class="btn btn-ghost btn-sm" style="font-size:12px">📜 이력</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-body">
+      <div id="error-msg" class="error" style="display:none"></div>
+
+      <!-- 1단계: 바코드 입력 -->
+      <div id="step1">
+        <div class="tab-bar">
+          <button class="tab-btn active" data-tab="scan">📷 리더기 스캔</button>
+          <button class="tab-btn" data-tab="manual">✏️ 직접 입력</button>
+        </div>
+
+        <div class="tab-panel active" id="panel-scan">
+          <div class="scan-box">
+            <div class="scan-input-wrap">
+              <input class="scan-input-field" id="barcode-input" placeholder="바코드를 스캔하세요..."
+                     autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-panel" id="panel-manual">
+          <div class="scan-box">
+            <div class="scan-input-wrap">
+              <input class="scan-input-field" id="manual-barcode" placeholder="바코드 입력 후 Enter..."
+                     autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            </div>
+            <textarea id="paste-area" class="manual-textarea" placeholder="여러 개 붙여넣기 (줄바꿈/쉼표/공백)&#10;C24578&#10;C24579"></textarea>
+            <button class="btn btn-outline btn-block mt8" id="paste-btn">붙여넣기 추가</button>
+          </div>
+        </div>
+
+        <div class="scan-box" id="scan-box" style="margin-top:10px">
+          <div id="scan-empty" class="scan-empty">바코드를 추가하면 여기에 표시됩니다</div>
+          <div id="scan-list"></div>
+        </div>
+
+        <div class="flex" style="align-items:center; gap:12px">
+          <span class="count-badge"><span id="count">0</span>개</span>
+          <button class="btn btn-warn flex-1" id="lookup-btn" disabled>💰 가격 수정하기</button>
+          <button class="btn btn-outline btn-sm" id="clear-btn">전체 삭제</button>
+        </div>
+        <div class="mt8">
+          <input type="text" id="changed-by" placeholder="담당자 이름 (선택)">
+        </div>
+      </div>
+
+      <!-- 2단계: 가격 편집 -->
+      <div id="step2" style="display:none"></div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/shared.js"></script>
+  <script src="js/price-change.js"></script>
+</body>
+</html>
