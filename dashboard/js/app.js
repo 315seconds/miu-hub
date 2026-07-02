@@ -1106,7 +1106,7 @@ async function submitByFile(locationName, sessionId) {
       const wb = window.XLSX.read(buffer, { type: 'array' });
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = window.XLSX.utils.sheet_to_json(ws, { header: 1 });
-      const barcodes = rows.map(r => String(r[0] ?? '').trim()).filter(b => b);
+      const barcodes = rows.map(r => String(r[0] ?? '').trim().toUpperCase()).filter(b => b);
       if (!barcodes.length) { alert('파일에서 바코드를 찾을 수 없습니다.'); return; }
       if (!confirm(`${locationName} · ${scannerName.trim()}\n총 ${barcodes.length}건을 제출할까요?`)) return;
 
@@ -1150,6 +1150,9 @@ async function completeStocktake(sessionId, dateStr, sessionDate, btn) {
 }
 
 function buildStocktakeReport(scans, dbItems) {
+  scans = scans.map(s => ({ ...s, barcode: (s.barcode || '').trim().toUpperCase() }));
+  dbItems = dbItems.map(i => ({ ...i, barcode: (i.barcode || '').trim().toUpperCase() }));
+
   const scanMap = {};
   scans.forEach(s => { if (!scanMap[s.barcode]) scanMap[s.barcode] = s; });
   const dbMap = {};
