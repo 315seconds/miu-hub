@@ -1172,7 +1172,18 @@ function buildStocktakeReport(scans, dbItems) {
     else { 신규미스캔.push(item); }
   });
 
-  return { 정상, 위치불일치, 장부부재, 신규미스캔, 누적미스캔 };
+  const byBarcode = {};
+  scans.forEach(s => { if (!byBarcode[s.barcode]) byBarcode[s.barcode] = []; byBarcode[s.barcode].push(s); });
+  const 중복스캔 = Object.entries(byBarcode)
+    .filter(([, list]) => list.length >= 2)
+    .map(([barcode, list]) => ({
+      barcode,
+      count: list.length,
+      locations: [...new Set(list.map(s => s.scanned_location))].join(', '),
+      scanners: [...new Set(list.map(s => s.scanner_name))].join(', '),
+    }));
+
+  return { 정상, 위치불일치, 장부부재, 신규미스캔, 누적미스캔, 중복스캔 };
 }
 
 function buildStocktakeExcel(report, dateStr) {
@@ -1188,6 +1199,7 @@ function buildStocktakeExcel(report, dateStr) {
     ['❓ 장부부재', report.장부부재.length],
     ['🔴 신규미스캔', report.신규미스캔.length],
     ['📦 누적미스캔', report.누적미스캔.length],
+    ['🔁 중복스캔', report.중복스캔.length],
     [], ['총 스캔', total],
   ]), '요약');
 
@@ -1210,6 +1222,10 @@ function buildStocktakeExcel(report, dateStr) {
   const s누적 = [['바코드','카테고리','DB위치','가격','권장조치']];
   report.누적미스캔.forEach(r => s누적.push([r.barcode, r.category||'', r.location, r.price||0, '분실 가능성 높음']));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s누적), '누적미스캔');
+
+  const s중복 = [['바코드','스캔횟수','위치','담당자','권장조치']];
+  report.중복스캔.forEach(r => s중복.push([r.barcode, r.count, r.locations, r.scanners, '실수 중복 스캔인지 확인 (같은 바코드로 여러 개 관리되는 품목은 정상)']));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s중복), '중복스캔');
 
   return XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
 }
