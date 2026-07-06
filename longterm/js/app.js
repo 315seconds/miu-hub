@@ -88,6 +88,7 @@ const S = {
   priceOriginal: [],
   lastChanges: [],
   directMode: false,
+  currentHanger: 1,
 };
 
 // ── 화면 전환 ─────────────────────────────────────────────────────────────────
@@ -127,7 +128,7 @@ async function initSetup() {
       S.store = store; S.threshold = threshold; S.threshold2 = threshold2;
       S.operator = operator; S.directMode = false;
     }
-    S.items = new Map(); S.selected = new Set();
+    S.items = new Map(); S.selected = new Set(); S.currentHanger = 1;
     showStep('scan');
     initScanStep();
   }
@@ -204,8 +205,12 @@ function initScanStep() {
       if (!ok) return;
     }
     clearSavedState();
-    S.items = new Map();
+    S.items = new Map(); S.currentHanger = 1;
     showStep('setup');
+  };
+  document.getElementById('hanger-done-btn').onclick = () => {
+    S.currentHanger += 1;
+    updateHangerBar();
   };
   document.getElementById('process-btn').onclick = () => {
     const valid = [...S.items.values()].filter(i => !i.loading && !i.notFound && !i.error);
@@ -218,7 +223,8 @@ function initScanStep() {
 }
 
 async function addItemToScan(barcode) {
-  S.items.set(barcode, { barcode, loading: true });
+  const hangerNumber = S.currentHanger;
+  S.items.set(barcode, { barcode, loading: true, hangerNumber });
   renderScanList();
 
   try {
@@ -237,7 +243,7 @@ async function addItemToScan(barcode) {
     ]);
 
     if (error || !item) {
-      S.items.set(barcode, { barcode, notFound: true }); renderScanList(); return;
+      S.items.set(barcode, { barcode, notFound: true, hangerNumber }); renderScanList(); return;
     }
 
     const currentLoc = item.location || S.store;
@@ -254,6 +260,7 @@ async function addItemToScan(barcode) {
     const lastChange = priceHistory?.[0] ?? null;
     S.items.set(barcode, {
       barcode,
+      hangerNumber,
       price: item.price || 0,
       displayName: buildDisplayName(item.brand, item.category, item.product_name, barcode),
       location: item.location || '-',
@@ -273,9 +280,19 @@ async function addItemToScan(barcode) {
       } : null,
     });
   } catch(e) {
-    S.items.set(barcode, { barcode, error: e.message });
+    S.items.set(barcode, { barcode, error: e.message, hangerNumber });
   }
   renderScanList();
+}
+
+function updateHangerBar() {
+  const all = [...S.items.values()].filter(i => !i.loading && !i.notFound && !i.error);
+  const curCount = all.filter(i => i.hangerNumber === S.currentHanger).length;
+  const doneHangers = S.currentHanger - 1;
+  document.getElementById('hanger-info').textContent = doneHangers > 0
+    ? `행거 ${S.currentHanger} · ${curCount}개 (완료 ${doneHangers}개 행거)`
+    : `행거 ${S.currentHanger} · ${curCount}개`;
+  document.getElementById('hanger-done-btn').disabled = curCount === 0;
 }
 
 function renderScanList() {
@@ -338,6 +355,7 @@ function renderScanList() {
     btn.onclick = () => { S.items.delete(btn.dataset.bc); renderScanList(); };
   });
 
+  updateHangerBar();
   saveState();
 }
 
@@ -442,14 +460,22 @@ function initPriceStep() {
   <div class="slack-notice">⚠️ Slack <strong>공동판매 사용중</strong> 채널에 <strong>현재 사용중</strong> 메시지를 먼저 남기세요.</div>
   <div class="mode-bar">
     <button class="mode-btn active" id="mode-ind">개별 수정</button>
-    <button class="mode-btn" id="mode-bulk">일괄 % 수정</button>
+    <button class="mode-btn" id="mode-bulk-pct">일괄 % 수정</button>
+    <button class="mode-btn" id="mode-bulk-fixed">일괄 동일가 수정</button>
   </div>
-  <div class="bulk-box" id="bulk-box">
+  <div class="bulk-box" id="bulk-box-pct">
     <div class="row-gap">
       <span style="color:#fbbf24;font-weight:600">할인율</span>
       <input class="bulk-input" id="bulk-pct" type="number" min="1" max="99" placeholder="30">
       <span style="color:#fbbf24;font-weight:700">%</span>
       <span class="muted" style="font-size:12px">반올림 천원 단위</span>
+    </div>
+  </div>
+  <div class="bulk-box" id="bulk-box-fixed">
+    <div class="row-gap">
+      <span style="color:#fbbf24;font-weight:600">동일 가격</span>
+      <input class="bulk-input" id="bulk-fixed" type="number" min="0" step="1000" placeholder="10000" style="width:96px">
+      <span style="color:#fbbf24;font-weight:700">원</span>
     </div>
   </div>`;
 
@@ -495,9 +521,11 @@ function initPriceStep() {
   el.innerHTML = html;
 
   el.querySelector('#price-back').onclick = () => { showStep('process'); initProcessStep(); };
-  el.querySelector('#mode-ind').onclick  = () => setPriceMode('individual');
-  el.querySelector('#mode-bulk').onclick = () => setPriceMode('bulk');
-  el.querySelector('#bulk-pct').oninput  = applyBulk;
+  el.querySelector('#mode-ind').onclick        = () => setPriceMode('individual');
+  el.querySelector('#mode-bulk-pct').onclick   = () => setPriceMode('bulk-pct');
+  el.querySelector('#mode-bulk-fixed').onclick = () => setPriceMode('bulk-fixed');
+  el.querySelector('#bulk-pct').oninput   = applyBulkPct;
+  el.querySelector('#bulk-fixed').oninput = applyBulkFixed;
   el.querySelectorAll('.price-input').forEach(inp => inp.oninput = () => onPriceChange(inp));
   el.querySelector('#price-apply').onclick  = openPriceConfirm;
   el.querySelector('#price-cancel').onclick = () => el.querySelector('#price-modal').classList.remove('open');
@@ -507,8 +535,10 @@ function initPriceStep() {
 function setPriceMode(mode) {
   S.priceMode = mode;
   document.getElementById('mode-ind').classList.toggle('active', mode==='individual');
-  document.getElementById('mode-bulk').classList.toggle('active', mode==='bulk');
-  document.getElementById('bulk-box').classList.toggle('open', mode==='bulk');
+  document.getElementById('mode-bulk-pct').classList.toggle('active', mode==='bulk-pct');
+  document.getElementById('mode-bulk-fixed').classList.toggle('active', mode==='bulk-fixed');
+  document.getElementById('bulk-box-pct').classList.toggle('open', mode==='bulk-pct');
+  document.getElementById('bulk-box-fixed').classList.toggle('open', mode==='bulk-fixed');
   if (mode === 'individual') {
     S.priceOriginal.forEach((d, i) => {
       const inp = document.getElementById(`new-${i}`);
@@ -517,13 +547,24 @@ function setPriceMode(mode) {
   }
 }
 
-function applyBulk() {
+function applyBulkPct() {
   const pct = parseFloat(document.getElementById('bulk-pct').value);
   if (isNaN(pct) || pct<=0 || pct>=100) return;
   S.priceOriginal.forEach((d, i) => {
     const inp = document.getElementById(`new-${i}`);
     if (!inp) return;
     inp.value = Math.round((d.oldPrice * (1-pct/100)) / 1000) * 1000;
+    onPriceChange(inp);
+  });
+}
+
+function applyBulkFixed() {
+  const price = parseInt(document.getElementById('bulk-fixed').value);
+  if (isNaN(price) || price<0) return;
+  S.priceOriginal.forEach((d, i) => {
+    const inp = document.getElementById(`new-${i}`);
+    if (!inp) return;
+    inp.value = price;
     onPriceChange(inp);
   });
 }
@@ -557,7 +598,11 @@ async function submitPriceChanges() {
   try {
     const now = new Date().toISOString();
     const { error } = await sb.from('price_changes').insert(
-      changes.map(c => ({ barcode:c.barcode, old_price:c.oldPrice, new_price:c.newPrice, changed_by: S.operator || null, changed_at:now, excel_updated:false }))
+      changes.map(c => ({
+        barcode:c.barcode, old_price:c.oldPrice, new_price:c.newPrice,
+        changed_by: S.operator || null, changed_at:now, excel_updated:false,
+        hanger_number: S.items.get(c.barcode)?.hangerNumber ?? null,
+      }))
     );
     if (error) throw error;
 
@@ -581,7 +626,7 @@ async function submitPriceChanges() {
     backBtn.textContent = '← 홈으로';
     backBtn.onclick = () => { clearSavedState(); S.items = new Map(); showStep('setup'); initSetup(); };
 
-    if (S.priceMode === 'bulk') {
+    if (S.priceMode === 'bulk-pct') {
       document.getElementById('bulk-notice').style.display = 'block';
     }
     const zplBtn = document.getElementById('zpl-btn');
@@ -667,6 +712,7 @@ function saveState() {
     threshold: S.threshold,
     threshold2: S.threshold2,
     directMode: S.directMode,
+    currentHanger: S.currentHanger,
     items,
   }));
 }
@@ -681,6 +727,7 @@ function loadSavedState() {
     S.threshold = data.threshold || 60;
     S.threshold2 = data.threshold2 ?? null;
     S.directMode = data.directMode ?? false;
+    S.currentHanger = data.currentHanger || 1;
     S.items = new Map(data.items || []);
     return true;
   } catch(e) {

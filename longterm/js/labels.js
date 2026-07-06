@@ -32,15 +32,15 @@ function _pixelsToGFA(canvas, W, H) {
 
 // Canvas로 텍스트를 비트맵 → ZPL ^GFA 변환
 // 반환: { gfa: "^GFA,...", h: 실제사용높이 }
-function nameToGFA(text) {
+function nameToGFA(text, boxH = ZPL.NAME_H, boxH2 = ZPL.NAME_H2) {
   const W = ZPL.LW;
-  const BASE_FONT = Math.round(ZPL.NAME_H * 0.78);
+  const BASE_FONT = Math.round(boxH * 0.78);
   const MIN_FONT  = Math.round(BASE_FONT * 0.55);
   const FONT_FAM  = '"Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif';
 
   // 1줄 폰트 자동 축소
   const c1 = document.createElement("canvas");
-  c1.width = W; c1.height = ZPL.NAME_H;
+  c1.width = W; c1.height = boxH;
   const ctx1 = c1.getContext("2d");
 
   let fontSize = BASE_FONT;
@@ -59,7 +59,7 @@ function nameToGFA(text) {
     let line2 = words.slice(best).join(" ");
     if (!line2) { line1 = text.slice(0, Math.ceil(text.length / 2)); line2 = text.slice(Math.ceil(text.length / 2)); }
 
-    const H2 = ZPL.NAME_H2;
+    const H2 = boxH2;
     const lineH = Math.floor(H2 / 2);
     const c2 = document.createElement("canvas");
     c2.width = W; c2.height = H2;
@@ -80,12 +80,12 @@ function nameToGFA(text) {
     return { gfa: _pixelsToGFA(c2, W, H2), h: H2 };
   }
 
-  ctx1.fillStyle = "#fff"; ctx1.fillRect(0, 0, W, ZPL.NAME_H);
+  ctx1.fillStyle = "#fff"; ctx1.fillRect(0, 0, W, boxH);
   ctx1.fillStyle = "#000";
   ctx1.font = `700 ${fontSize}px ${FONT_FAM}`;
   ctx1.textAlign = "center"; ctx1.textBaseline = "middle";
-  ctx1.fillText(text, W / 2, ZPL.NAME_H / 2);
-  return { gfa: _pixelsToGFA(c1, W, ZPL.NAME_H), h: ZPL.NAME_H };
+  ctx1.fillText(text, W / 2, boxH / 2);
+  return { gfa: _pixelsToGFA(c1, W, boxH), h: boxH };
 }
 
 // Code 128 바코드 너비 추정 → 라벨 중앙 정렬 X 계산
@@ -120,13 +120,26 @@ function generateZpl(items) {
   for (const item of items) {
     if (item.isSeparator) {
       const hnum = sanitizeZpl(item.hangerNumber);
-      const numFont = String(hnum).length === 1 ? 200 : 160;
-      lines.push(
-        "^XA", "^LH0,0",
-        `^PW${ZPL.LW}`, `^LL${ZPL.LH}`,
-        `^FO0,90^A0N,${numFont},${numFont}^FB${ZPL.LW},1,0,C^FD${hnum}^FS`,
-        "^XZ", ""
-      );
+      if (item.operatorName) {
+        const label = `${sanitizeZpl(item.operatorName)} · ${hnum}번 행거`;
+        const boxH = Math.round(ZPL.LH * 0.5);
+        const { gfa, h } = nameToGFA(label, boxH, boxH);
+        const y = Math.max(0, Math.floor((ZPL.LH - h) / 2));
+        lines.push(
+          "^XA", "^LH0,0",
+          `^PW${ZPL.LW}`, `^LL${ZPL.LH}`,
+          `^FO0,${y}${gfa}^FS`,
+          "^XZ", ""
+        );
+      } else {
+        const numFont = String(hnum).length === 1 ? 200 : 160;
+        lines.push(
+          "^XA", "^LH0,0",
+          `^PW${ZPL.LW}`, `^LL${ZPL.LH}`,
+          `^FO0,90^A0N,${numFont},${numFont}^FB${ZPL.LW},1,0,C^FD${hnum}^FS`,
+          "^XZ", ""
+        );
+      }
       continue;
     }
 
@@ -278,12 +291,70 @@ async function buildItemsFromBarcodes(barcodes, priceOverrides = {}) {
   return { items, notFound };
 }
 
+// 로컬(KST) 기준 YYYY-MM-DD
+function localDateStr(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function nextDateStr(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d + 1));
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
+}
+
+// 특정 날짜(KST)의 미출력 가격변경 건을 담당자→행거번호 순으로 그룹핑해 아이템 목록 구성
+async function buildItemsFromPriceChanges(dateStr, includePrinted) {
+  let query = sb.from("price_changes")
+    .select("id,barcode,new_price,changed_by,hanger_number,changed_at")
+    .gte("changed_at", `${dateStr}T00:00:00+09:00`)
+    .lt("changed_at", `${nextDateStr(dateStr)}T00:00:00+09:00`)
+    .order("changed_by", { ascending: true, nullsFirst: false })
+    .order("hanger_number", { ascending: true, nullsFirst: false })
+    .order("changed_at", { ascending: true });
+  if (!includePrinted) query = query.is("printed_at", null);
+
+  const { data: changes, error } = await query;
+  if (error) throw new Error(error.message);
+  if (!changes || !changes.length) return { items: [], changeIds: [] };
+
+  const barcodes = [...new Set(changes.map(c => c.barcode))];
+  const { data: invRows, error: invErr } = await sb
+    .from("inventory_items")
+    .select("barcode,brand,category,product_name")
+    .in("barcode", barcodes);
+  if (invErr) throw new Error(invErr.message);
+  const invMap = Object.fromEntries((invRows || []).map(r => [r.barcode, r]));
+
+  const items = [];
+  let curOperator = undefined, curHanger = undefined;
+  for (const c of changes) {
+    const operatorName = c.changed_by || "담당자 미입력";
+    const hangerNumber = c.hanger_number ?? 1;
+    if (operatorName !== curOperator || hangerNumber !== curHanger) {
+      curOperator = operatorName; curHanger = hangerNumber;
+      items.push({ isSeparator: true, operatorName, hangerNumber });
+    }
+    const inv = invMap[c.barcode] || {};
+    items.push({
+      barcode: c.barcode,
+      price: isFinite(Number(c.new_price)) ? Number(c.new_price) : 0,
+      displayName: buildDisplayName(inv.brand, inv.category, inv.product_name, c.barcode),
+    });
+  }
+  return { items, changeIds: changes.map(c => c.id) };
+}
+
+async function markPrinted(changeIds) {
+  if (!changeIds || !changeIds.length) return;
+  await sb.from("price_changes").update({ printed_at: new Date().toISOString() }).in("id", changeIds);
+}
+
 // HTML 라벨 미리보기 렌더 (SVG id는 index 기반으로 CSS selector 충돌 방지)
 function renderPreview(items) {
   const grid = document.getElementById("label-grid");
   grid.innerHTML = items.map((item, idx) => {
     if (item.isSeparator) {
-      return `<div class="label-separator"><div class="sep-num">${escapeHtml(String(item.hangerNumber))}</div></div>`;
+      const text = item.operatorName ? `${item.operatorName} · ${item.hangerNumber}번 행거` : String(item.hangerNumber);
+      return `<div class="label-separator"><div class="sep-num">${escapeHtml(text)}</div></div>`;
     }
     return `
       <div class="label">
@@ -364,10 +435,60 @@ async function main() {
   const params = new URLSearchParams(location.search);
   const sessionId = params.get("session_id");
   const barcodesParam = params.get("barcodes");
+  const isDaily = params.get("daily") === "1";
 
   const zplBtn = document.getElementById("zpl-btn");
   const zebraBtn = document.getElementById("zebra-btn");
-  let items, notFound = [], sess = null, zplFilename = "labels.zpl";
+  let items, notFound = [], sess = null, zplFilename = "labels.zpl", changeIds = [];
+
+  if (isDaily) {
+    document.getElementById("daily-controls").style.display = "flex";
+    const dateInput = document.getElementById("daily-date");
+    dateInput.value = params.get("date") || localDateStr();
+
+    async function loadDaily() {
+      const dateStr = dateInput.value || localDateStr();
+      const includePrinted = document.getElementById("daily-include-printed").checked;
+      document.getElementById("header-title").textContent = `🖨 일괄출력 — ${dateStr}`;
+      document.getElementById("header-sub").textContent = "불러오는 중...";
+      document.getElementById("not-found-box").style.display = "none";
+      try {
+        const result = await buildItemsFromPriceChanges(dateStr, includePrinted);
+        items = result.items; changeIds = result.changeIds;
+        zplFilename = `labels_daily_${dateStr}.zpl`;
+        const labelCount = items.filter(it => !it.isSeparator).length;
+        document.getElementById("header-sub").textContent = labelCount
+          ? `총 ${labelCount}장 (미출력 기준${includePrinted ? " · 출력완료건 포함" : ""})`
+          : "출력할 가격변경 건이 없습니다.";
+        renderPreview(items);
+        bindDailyPrintButtons();
+      } catch (e) {
+        document.getElementById("header-sub").textContent = "오류: " + e.message;
+      }
+    }
+    function bindDailyPrintButtons() {
+      const zplText = generateZpl(items);
+      const labelCount = items.filter(it => !it.isSeparator).length;
+      zplBtn.onclick = () => { downloadZpl(zplText, zplFilename); markPrinted(changeIds); };
+      zebraBtn.onclick = () => { zebraPrint(zplText, labelCount); markPrinted(changeIds); };
+    }
+    document.getElementById("daily-reload-btn").onclick = loadDaily;
+    document.getElementById("daily-include-printed").onchange = loadDaily;
+    dateInput.onchange = loadDaily;
+
+    document.querySelectorAll(".team-btn").forEach(btn => {
+      btn.onclick = () => {
+        document.querySelectorAll(".team-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        ZPL = ZPL_CONFIGS[btn.dataset.team];
+        renderPreview(items);
+        bindDailyPrintButtons();
+      };
+    });
+
+    await loadDaily();
+    return;
+  }
 
   try {
     if (sessionId) {
