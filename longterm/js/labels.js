@@ -388,7 +388,7 @@ function downloadZpl(zplText, filename) {
   setTimeout(() => URL.revokeObjectURL(a.href), 100);
 }
 
-async function zebraPrint(zplText, totalCount) {
+async function zebraPrint(zplText, totalCount, onSuccess) {
   const btn = document.getElementById("zebra-btn");
   btn.disabled = true;
   btn.textContent = "⏳ 프린터 연결 중…";
@@ -411,6 +411,7 @@ async function zebraPrint(zplText, totalCount) {
         () => {
           btn.textContent = "✓ 출력 완료!";
           btn.style.background = "#166534";
+          if (typeof onSuccess === "function") onSuccess();
           setTimeout(() => {
             btn.textContent = "🦓 Zebra 직접 출력";
             btn.style.background = "#22c55e";
@@ -470,7 +471,7 @@ async function main() {
       const zplText = generateZpl(items);
       const labelCount = items.filter(it => !it.isSeparator).length;
       zplBtn.onclick = () => { downloadZpl(zplText, zplFilename); markPrinted(changeIds); };
-      zebraBtn.onclick = () => { zebraPrint(zplText, labelCount); markPrinted(changeIds); };
+      zebraBtn.onclick = () => zebraPrint(zplText, labelCount, () => markPrinted(changeIds));
     }
     document.getElementById("daily-reload-btn").onclick = loadDaily;
     document.getElementById("daily-include-printed").onchange = loadDaily;
