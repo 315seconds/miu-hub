@@ -15,7 +15,7 @@ async function load() {
       .from("inventory_hangers")
       .select("*, inventory_items(*)")
       .eq("session_id", SESSION_ID)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: false });
     if (he) throw he;
 
     const total = hangers.reduce((s, h) => s + (h.inventory_items || []).length, 0);
@@ -50,9 +50,30 @@ function render({ session: sess, hangers, total }) {
     </div>
     <div class="sum-bar">
       <span class="muted text-sm">행거 ${hangers.length}개 · 총 ${total}벌</span>
-      ${sess.status === "pending" ? '<a href="#add-hanger" class="btn btn-primary btn-sm">+ 행거 추가</a>' : ""}
     </div>
   `;
+
+  if (sess.status === "pending") {
+    html += `
+      <div id="add-hanger" class="card mt16">
+        <h2>행거 추가</h2>
+        <div class="flex mb8">
+          <div class="form-group flex-1" style="margin-bottom:0">
+            <label>행거 번호</label>
+            <input type="text" id="hanger-number" placeholder="1, 2, A1 ..." autofocus>
+          </div>
+          <div class="form-group flex-1" style="margin-bottom:0">
+            <label>카테고리</label>
+            <input type="text" id="hanger-category" placeholder="자켓, 스웨터, 청바지 ...">
+          </div>
+        </div>
+        <div class="form-group mt8">
+          <label>담당자 이름 (선택)</label>
+          <input type="text" id="submitted-by" placeholder="본인 이름">
+        </div>
+        <button id="add-hanger-btn" class="btn btn-success btn-block">행거 추가 →</button>
+      </div>`;
+  }
 
   if (hangers.length > 0) {
     html += hangers.map(h => {
@@ -87,28 +108,6 @@ function render({ session: sess, hangers, total }) {
     }).join("");
   } else {
     html += '<div class="empty">아직 행거가 없습니다</div>';
-  }
-
-  if (sess.status === "pending") {
-    html += `
-      <div id="add-hanger" class="card mt16">
-        <h2>행거 추가</h2>
-        <div class="flex mb8">
-          <div class="form-group flex-1" style="margin-bottom:0">
-            <label>행거 번호</label>
-            <input type="text" id="hanger-number" placeholder="1, 2, A1 ..." autofocus>
-          </div>
-          <div class="form-group flex-1" style="margin-bottom:0">
-            <label>카테고리</label>
-            <input type="text" id="hanger-category" placeholder="자켓, 스웨터, 청바지 ...">
-          </div>
-        </div>
-        <div class="form-group mt8">
-          <label>담당자 이름 (선택)</label>
-          <input type="text" id="submitted-by" placeholder="본인 이름">
-        </div>
-        <button id="add-hanger-btn" class="btn btn-success btn-block">행거 추가 →</button>
-      </div>`;
   }
 
   c.innerHTML = html;
