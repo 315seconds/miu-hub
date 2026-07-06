@@ -84,6 +84,8 @@ def run_kiosk(excel_path):
         service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=opts)
     W = WebDriverWait(driver, 20)
+    # 저장/자료수신 확인 알럿은 배치 건수가 많으면 서버 처리에 20초 이상 걸릴 수 있어 더 길게 대기
+    W_LONG = WebDriverWait(driver, 120)
 
     try:
         # ── 1. 로그인 (3개 필드: 회사코드 / 아이디 / 비밀번호) ──────────────
@@ -159,8 +161,8 @@ def run_kiosk(excel_path):
         # ── 7. 팝업 저장 클릭 (btnSaveExcel) — JS click ──────────────────────
         save_btn = W.until(EC.presence_of_element_located((By.ID, 'btnSaveExcel')))
         driver.execute_script('arguments[0].click();', save_btn)
-        # 저장 후 "저장되었습니다" alert 처리
-        W.until(EC.alert_is_present())
+        # 저장 후 "저장되었습니다" alert 처리 (대량 건수는 서버 처리 시간이 길어질 수 있음)
+        W_LONG.until(EC.alert_is_present())
         driver.switch_to.alert.accept()
         time.sleep(1)
         log('저장 완료')
@@ -185,7 +187,7 @@ def run_kiosk(excel_path):
         driver.execute_script('arguments[0].click();', req_btn)
 
         # ── 10. 브라우저 confirm → OK ─────────────────────────────────────────
-        W.until(EC.alert_is_present())
+        W_LONG.until(EC.alert_is_present())
         driver.switch_to.alert.accept()
         time.sleep(2)
         log('자료수신 완료')

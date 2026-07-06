@@ -115,6 +115,7 @@ async function initSetup() {
     const store = sel.value;
     const operator = document.getElementById('operator-input').value.trim();
     if (!store) { appAlert('매장을 선택해주세요.'); return; }
+    if (!operator) { appAlert('담당자 이름을 입력해주세요.'); return; }
     if (direct) {
       S.store = store; S.threshold = 60; S.threshold2 = null;
       S.operator = operator; S.directMode = true;
