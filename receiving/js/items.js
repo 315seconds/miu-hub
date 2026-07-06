@@ -163,7 +163,7 @@ async function fetchItemData(bc) {
     ts:       session.session_date || invItem.created_at,
     price:    invItem.price,
     location: session.location || '',
-    by:       session.created_by,
+    by:       hanger.submitted_by || session.created_by,
   });
   moves.forEach(m => {
     const ms = m.move_sessions || {};
@@ -172,7 +172,7 @@ async function fetchItemData(bc) {
       ts:            ms.session_date || m.created_at,
       from_location: ms.from_location || '',
       to_location:   ms.to_location || '',
-      by:            ms.created_by || '',
+      by:            m.scanned_by || ms.created_by || '',
     });
   });
   prices.forEach(p => {
