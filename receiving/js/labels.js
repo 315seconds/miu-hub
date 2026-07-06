@@ -205,6 +205,8 @@ async function buildItemsFromSession(sessionId) {
   const prefix = sess.barcode_prefix;
   const startNum = sess.start_barcode_num;
   const hangers = hangerRows || [];
+  // hanger_number는 TEXT 컬럼이라 DB 정렬은 사전식("1","10","11","2"...)이 됨 — 숫자 자연 정렬로 보정
+  hangers.sort((a, b) => String(a.hanger_number).localeCompare(String(b.hanger_number), "ko", { numeric: true }));
 
   // N+1 방지: 모든 hanger_id를 한 번에 조회
   const hangerIds = hangers.map(h => h.id);
@@ -214,28 +216,32 @@ async function buildItemsFromSession(sessionId) {
       .from("inventory_items")
       .select("hanger_id,barcode,price,brand,category,product_name,order_index")
       .in("hanger_id", hangerIds)
-      .order("hanger_id")
       .order("order_index");
     if (itemErr) throw new Error(itemErr.message);
 
-    // hanger_id → hanger 매핑
-    const hangerMap = Object.fromEntries(hangers.map(h => [h.id, h]));
+    // hanger_id별 order_index 순 그룹핑
+    const itemsByHanger = {};
     for (const it of (invItems || [])) {
-      const hanger = hangerMap[it.hanger_id];
-      if (!hanger) continue;
+      (itemsByHanger[it.hanger_id] ??= []).push(it);
+    }
+
+    // 행거 순서(hanger_number 오름차순) 그대로 순회 → 바코드 자동할당이 행거 순서를 따르도록 보장
+    for (const hanger of hangers) {
       let category = hanger.category || "";
       if (sess.location === "온라인" && !category.startsWith("온")) category = "온" + category;
-      allItems.push({
-        price: isFinite(Number(it.price)) ? Number(it.price) : 0,
-        brand: it.brand || "",
-        category,
-        product_name: it.product_name || "",
-        barcode: it.barcode || "",
-        hangerNumber: hanger.hanger_number,
-        hangerId: hanger.id,
-        submittedBy: hanger.submitted_by || "",
-        printedAt: hanger.printed_at || null,
-      });
+      for (const it of (itemsByHanger[hanger.id] || [])) {
+        allItems.push({
+          price: isFinite(Number(it.price)) ? Number(it.price) : 0,
+          brand: it.brand || "",
+          category,
+          product_name: it.product_name || "",
+          barcode: it.barcode || "",
+          hangerNumber: hanger.hanger_number,
+          hangerId: hanger.id,
+          submittedBy: hanger.submitted_by || "",
+          printedAt: hanger.printed_at || null,
+        });
+      }
     }
   }
 
@@ -247,10 +253,6 @@ async function buildItemsFromSession(sessionId) {
   allItems.forEach(it => {
     it.displayName = buildDisplayName(it.brand, it.category, it.product_name || "", it.barcode);
   });
-
-  // 행거 순서대로 정렬 후 구분자 삽입
-  const hangerOrder = Object.fromEntries(hangers.map((h, i) => [h.hanger_number, i]));
-  allItems.sort((a, b) => (hangerOrder[a.hangerNumber] ?? 0) - (hangerOrder[b.hangerNumber] ?? 0));
 
   const result = [];
   let curHanger = null;
