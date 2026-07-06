@@ -47,8 +47,7 @@ async function loadLog() {
         .gte("changed_at", `${from}T00:00:00+09:00`)
         .lte("changed_at", `${to}T23:59:59+09:00`)
         .eq("excel_failed", false)
-        .order("changed_at", { ascending: false })
-        .limit(500),
+        .order("changed_at", { ascending: false }),
       sb.from("price_changes")
         .select("barcode, old_price, new_price, changed_by, changed_at")
         .eq("excel_failed", true)
