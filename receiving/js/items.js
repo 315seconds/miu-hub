@@ -162,7 +162,6 @@ async function fetchItemData(bc) {
     type:     'ingest',
     ts:       session.session_date || invItem.created_at,
     price:    invItem.price,
-    location: session.location || '',
     by:       hanger.submitted_by || session.created_by,
   });
   moves.forEach(m => {
@@ -232,7 +231,7 @@ function renderSingle(data) {
       if (ev.type === 'ingest') return `
         <div class="tl-item"><span class="tl-icon">📦</span>
           <div class="tl-body">
-            <div class="tl-main">입고 — ${escapeHtml(ev.location || '')}</div>
+            <div class="tl-main">입고</div>
             <div class="tl-sub">₩${ev.price ? ev.price.toLocaleString() : '—'}${ev.by ? ' · ' + escapeHtml(ev.by) : ''}</div>
           </div><span class="tl-date">${(ev.ts || '').slice(0, 10)}</span>
         </div>`;
@@ -324,7 +323,7 @@ async function toggleTimeline(card) {
         if (ev.type === 'ingest') return `
           <div class="tl-item"><span class="tl-icon">📦</span>
             <div class="tl-body">
-              <div class="tl-main">입고 — ${escapeHtml(ev.location || '')}</div>
+              <div class="tl-main">입고</div>
               <div class="tl-sub">₩${ev.price ? ev.price.toLocaleString() : '—'}${ev.by ? ' · ' + escapeHtml(ev.by) : ''}</div>
             </div><span class="tl-date">${(ev.ts || '').slice(0, 10)}</span>
           </div>`;
