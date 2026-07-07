@@ -491,7 +491,7 @@ function initPriceStep() {
         <span class="price-old" id="old-${i}">${item.oldPrice.toLocaleString()}</span>
         <span class="muted">→</span>
         <input class="price-input" id="new-${i}" type="number" step="1000" min="0"
-               value="${item.oldPrice}" data-original="${item.oldPrice}">
+               placeholder="${item.oldPrice}" data-original="${item.oldPrice}">
         <span class="muted">원</span>
       </div>
     </div>`).join('');
@@ -544,7 +544,7 @@ function setPriceMode(mode) {
   if (mode === 'individual') {
     S.priceOriginal.forEach((d, i) => {
       const inp = document.getElementById(`new-${i}`);
-      if (inp) { inp.value = d.oldPrice; onPriceChange(inp); }
+      if (inp) { inp.value = ''; onPriceChange(inp); }
     });
   }
 }
@@ -572,7 +572,8 @@ function applyBulkFixed() {
 }
 
 function onPriceChange(inp) {
-  inp.classList.toggle('changed', parseInt(inp.value) !== parseInt(inp.dataset.original));
+  const val = parseInt(inp.value);
+  inp.classList.toggle('changed', !isNaN(val) && val !== parseInt(inp.dataset.original));
 }
 
 function getChanges() {
