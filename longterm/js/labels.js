@@ -481,6 +481,7 @@ async function main() {
       zplBtn.onclick = () => { downloadZpl(zplText, zplFilename); markPrinted(changeIds); };
       zebraBtn.onclick = () => zebraPrint(zplText, labelCount, () => markPrinted(changeIds));
     }
+    document.getElementById("daily-home-btn").onclick = () => { location.href = "index.html"; };
     document.getElementById("daily-reload-btn").onclick = loadDaily;
     document.getElementById("daily-include-printed").onchange = loadDaily;
     dateInput.onchange = loadDaily;

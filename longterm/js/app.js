@@ -713,6 +713,7 @@ function saveState() {
   const items = [...S.items.entries()].filter(([, v]) => !v.loading);
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify({
     store: S.store,
+    operator: S.operator,
     threshold: S.threshold,
     threshold2: S.threshold2,
     directMode: S.directMode,
@@ -728,6 +729,7 @@ function loadSavedState() {
     const data = JSON.parse(raw);
     if (!data.store) return false;
     S.store = data.store;
+    S.operator = data.operator || '';
     S.threshold = data.threshold || 60;
     S.threshold2 = data.threshold2 ?? null;
     S.directMode = data.directMode ?? false;
