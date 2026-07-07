@@ -514,7 +514,7 @@ function initPriceStep() {
         일괄 할인된 물건에는 <strong>해당 %가 표시된 스티커</strong>를 기존 바코드 위에 붙여주세요.
       </div>
       <button class="btn btn-green btn-block" id="zpl-btn" style="display:none">🖨 수정된 라벨 ZPL 다운로드</button>
-      <button class="btn btn-kiosk btn-block" id="kiosk-btn" style="margin-top:8px">🖥 키오스크 가격 업데이트</button>
+      <button class="btn btn-kiosk btn-block" id="kiosk-btn" style="margin-top:8px">📥 키오스크 업로드 파일 다운로드</button>
       <div id="kiosk-status" class="muted" style="font-size:12px;text-align:center;margin-top:6px"></div>
     </div>
   </div>`;
@@ -642,7 +642,7 @@ async function submitPriceChanges() {
       window.open(`labels.html?barcodes=${barcodesStr}&price_overrides=${overridesStr}`, '_blank');
     };
 
-    document.getElementById('kiosk-btn').onclick = submitKioskUpdate;
+    document.getElementById('kiosk-btn').onclick = downloadKioskFile;
   } catch(e) {
     await appAlert('오류: ' + e.message);
   } finally {
@@ -650,23 +650,22 @@ async function submitPriceChanges() {
   }
 }
 
-async function submitKioskUpdate() {
+function downloadKioskFile() {
   const btn = document.getElementById('kiosk-btn');
   const status = document.getElementById('kiosk-status');
-  btn.disabled = true; btn.textContent = '⏳ 전송 중...';
 
-  const { error } = await sb.from('kiosk_updates').insert(
-    S.lastChanges.map(c => ({ barcode:c.barcode, new_price:c.newPrice }))
-  );
+  const ws = XLSX.utils.aoa_to_sheet([
+    ['바코드', '판매단가'],
+    ...S.lastChanges.map(c => [c.barcode, c.newPrice]),
+  ]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+  const dateStr = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `kiosk_upload_${dateStr}.xlsx`);
 
-  if (error) {
-    btn.disabled = false; btn.textContent = '🖥 키오스크 가격 업데이트';
-    status.textContent = '오류: ' + error.message;
-    return;
-  }
-  btn.textContent = '✅ 전송 완료';
+  btn.textContent = '✅ 다운로드 완료';
   btn.style.background = '#166534';
-  status.textContent = `${S.lastChanges.length}개 전송됨 · 30초 내 자동 반영됩니다`;
+  status.textContent = `${S.lastChanges.length}개 · 키오스크 관리사이트에서 수동으로 업로드해주세요`;
   status.style.color = '#166534';
   status.style.fontWeight = '500';
 }
