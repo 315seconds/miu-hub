@@ -369,9 +369,10 @@ function initProcessStep() {
   const ok  = all.filter(i => i.tier === 0).sort((a,b) => b.daysInStore - a.daysInStore);
 
   // directMode: 전체 선택, 일반 모드: tier2(가격변경) 자동 선택
+  // 선택 목록 자체는 스캔한 순서(all 기준)를 유지 — 화면 표시용 t2/t1/ok만 daysInStore 순 정렬
   S.selected = S.directMode
     ? new Set(all.map(i => i.barcode))
-    : new Set(t2.map(i => i.barcode));
+    : new Set(all.filter(i => i.tier === 2).map(i => i.barcode));
 
   let html = `<div class="page-header">
     <button class="back-btn" id="proc-back">← 스캔으로</button>
@@ -597,11 +598,13 @@ async function submitPriceChanges() {
   btn.disabled = true; btn.textContent = '⏳ 처리 중...';
   const changes = getChanges();
   try {
-    const now = new Date().toISOString();
+    const now = Date.now();
+    // changed_at을 항목마다 1ms씩 늘려서 부여 — 동일 시각으로 저장하면 나중에 라벨 출력 정렬 시
+    // 동률 처리 순서가 보장되지 않아 체크한 순서와 다르게 출력되는 문제 방지
     const { error } = await sb.from('price_changes').insert(
-      changes.map(c => ({
+      changes.map((c, i) => ({
         barcode:c.barcode, old_price:c.oldPrice, new_price:c.newPrice,
-        changed_by: S.operator || null, changed_at:now, excel_updated:false,
+        changed_by: S.operator || null, changed_at: new Date(now + i).toISOString(), excel_updated:false,
         hanger_number: S.items.get(c.barcode)?.hangerNumber ?? null,
       }))
     );
