@@ -303,6 +303,9 @@ function nextDateStr(dateStr) {
   return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
 }
 
+// 같은 담당자·같은 행거번호라도 제출 시각 간격이 이 이상 벌어지면 별도 작업(세션)으로 보고 구분선을 다시 삽입
+const SESSION_GAP_MS = 60 * 1000;
+
 // 특정 날짜(KST)의 미출력 가격변경 건을 담당자→행거번호 순으로 그룹핑해 아이템 목록 구성
 async function buildItemsFromPriceChanges(dateStr, includePrinted) {
   let query = sb.from("price_changes")
@@ -327,14 +330,17 @@ async function buildItemsFromPriceChanges(dateStr, includePrinted) {
   const invMap = Object.fromEntries((invRows || []).map(r => [r.barcode, r]));
 
   const items = [];
-  let curOperator = undefined, curHanger = undefined;
+  let curOperator = undefined, curHanger = undefined, lastChangedAtMs = null;
   for (const c of changes) {
     const operatorName = c.changed_by || "담당자 미입력";
     const hangerNumber = c.hanger_number ?? 1;
-    if (operatorName !== curOperator || hangerNumber !== curHanger) {
+    const changedAtMs = new Date(c.changed_at).getTime();
+    const newSession = lastChangedAtMs != null && (changedAtMs - lastChangedAtMs) > SESSION_GAP_MS;
+    if (operatorName !== curOperator || hangerNumber !== curHanger || newSession) {
       curOperator = operatorName; curHanger = hangerNumber;
       items.push({ isSeparator: true, operatorName, hangerNumber });
     }
+    lastChangedAtMs = changedAtMs;
     const inv = invMap[c.barcode] || {};
     items.push({
       barcode: c.barcode,
