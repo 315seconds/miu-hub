@@ -1158,8 +1158,9 @@ function buildStocktakeReport(scans, dbItems) {
   const dbMap = {};
   dbItems.forEach(i => { dbMap[i.barcode] = i; });
   const scannedLocs = new Set(scans.map(s => s.scanned_location));
+  const closedLocNames = new Set(closedLocations.map(l => l.name));
 
-  const 정상=[], 위치불일치=[], 장부부재=[], 신규미스캔=[], 누적미스캔=[];
+  const 정상=[], 위치불일치=[], 장부부재=[], 신규미스캔=[], 누적미스캔=[], 철수잔여=[];
 
   Object.values(scanMap).forEach(scan => {
     const db = dbMap[scan.barcode];
@@ -1169,10 +1170,13 @@ function buildStocktakeReport(scans, dbItems) {
   });
 
   dbItems.forEach(item => {
-    if (!scannedLocs.has(item.location)) return;
     if (scanMap[item.barcode]) return;
-    if (item.location.includes('재고조사')) { 누적미스캔.push(item); }
-    else { 신규미스캔.push(item); }
+    if (scannedLocs.has(item.location)) {
+      if (item.location.includes('재고조사')) { 누적미스캔.push(item); }
+      else { 신규미스캔.push(item); }
+    } else if (closedLocNames.has(item.location)) {
+      철수잔여.push(item);
+    }
   });
 
   const byBarcode = {};
@@ -1186,7 +1190,7 @@ function buildStocktakeReport(scans, dbItems) {
       scanners: [...new Set(list.map(s => s.scanner_name))].join(', '),
     }));
 
-  return { 정상, 위치불일치, 장부부재, 신규미스캔, 누적미스캔, 중복스캔 };
+  return { 정상, 위치불일치, 장부부재, 신규미스캔, 누적미스캔, 철수잔여, 중복스캔 };
 }
 
 function buildStocktakeExcel(report, dateStr) {
@@ -1202,6 +1206,7 @@ function buildStocktakeExcel(report, dateStr) {
     ['❓ 장부부재', report.장부부재.length],
     ['🔴 신규미스캔', report.신규미스캔.length],
     ['📦 누적미스캔', report.누적미스캔.length],
+    ['🏚️ 철수잔여', report.철수잔여.length],
     ['🔁 중복스캔', report.중복스캔.length],
     [], ['총 스캔', total],
   ]), '요약');
@@ -1225,6 +1230,10 @@ function buildStocktakeExcel(report, dateStr) {
   const s누적 = [['바코드','카테고리','DB위치','가격','권장조치']];
   report.누적미스캔.forEach(r => s누적.push([r.barcode, r.category||'', r.location, r.price||0, '분실 가능성 높음']));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s누적), '누적미스캔');
+
+  const s철수 = [['바코드','카테고리','DB위치','가격','권장조치']];
+  report.철수잔여.forEach(r => s철수.push([r.barcode, r.category||'', r.location, r.price||0, '철수 지점 잔여 재고 - 회수/처분 확인 필요']));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s철수), '철수잔여');
 
   const s중복 = [['바코드','스캔횟수','위치','담당자','권장조치']];
   report.중복스캔.forEach(r => s중복.push([r.barcode, r.count, r.locations, r.scanners, '실수 중복 스캔인지 확인 (같은 바코드로 여러 개 관리되는 품목은 정상)']));
