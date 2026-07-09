@@ -1,6 +1,7 @@
 // ─── Constants ────────────────────────────────────────────────────────────────
 const WAREHOUSE = ['공동물류', '온라인', '재봉합성수', '재봉합부천'];
-const EXCLUDED  = ['폐기'];
+const EXCLUDED  = ['폐기', '위탁종료'];
+const isExcludedLocation = name => EXCLUDED.includes(name) || name.includes('재고조사');
 const SOLD_PFX  = '공동판매';
 const ADMIN_PIN = '1357';
 
@@ -703,12 +704,12 @@ function downloadClosedCSV() {
 // ─── Data ─────────────────────────────────────────────────────────────────────
 async function fetchLocations() {
   const { data } = await sb.from('locations').select('id,name,is_active').eq('is_active', true).order('created_at');
-  return (data || []).filter(l => !EXCLUDED.includes(l.name));
+  return (data || []).filter(l => !isExcludedLocation(l.name));
 }
 
 async function fetchClosedLocations() {
   const { data } = await sb.from('locations').select('id,name').eq('is_active', false).order('created_at');
-  return (data || []).filter(l => !EXCLUDED.includes(l.name));
+  return (data || []).filter(l => !isExcludedLocation(l.name));
 }
 
 async function fetchCounts(names) {
