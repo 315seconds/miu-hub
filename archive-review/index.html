@@ -50,6 +50,19 @@ body {
 }
 .header-home:active { background: var(--surface-strong); }
 .header-title { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+.header-right { display: flex; align-items: center; gap: 8px; }
+.header-refresh {
+  border: none;
+  background: none;
+  font-size: 17px;
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+  color: var(--ink);
+}
+.header-refresh:active { background: var(--surface-strong); }
+.header-refresh.spinning { animation: header-refresh-spin 0.6s linear; }
+@keyframes header-refresh-spin { to { transform: rotate(360deg); } }
 .header-user {
   font-size: 13px;
   color: var(--muted);
@@ -211,7 +224,10 @@ textarea {
     <a href="../" class="header-home" title="허브 홈으로">🏠</a>
     <div class="header-title">빈티지 아카이브 평가</div>
   </div>
-  <div class="header-user" id="current-user" onclick="changeUser()"></div>
+  <div class="header-right">
+    <button class="header-refresh" id="refresh-btn" onclick="refreshData()" title="새로고침">🔄</button>
+    <div class="header-user" id="current-user" onclick="changeUser()"></div>
+  </div>
 </div>
 
 <div class="grid" id="grid"></div>

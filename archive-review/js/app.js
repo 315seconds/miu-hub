@@ -179,6 +179,15 @@ async function submitRating() {
   renderGrid();
 }
 
+async function refreshData() {
+  const btn = document.getElementById("refresh-btn");
+  btn.disabled = true;
+  btn.classList.add("spinning");
+  await loadData();
+  btn.classList.remove("spinning");
+  btn.disabled = false;
+}
+
 async function loadData() {
   const [{ data: photoRows, error: photoErr }, { data: ratingRows, error: ratingErr }] = await Promise.all([
     sb.from("archive_photos").select("id, public_url").order("uploaded_at", { ascending: false }),
