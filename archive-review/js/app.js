@@ -139,6 +139,20 @@ function closeSheet() {
   activePhotoId = null;
 }
 
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// 화면을 오래 열어둔 뒤 첫 요청이 iOS 절전모드 등으로 "Load failed" 나는 경우가 있어
+// 실패 시 짧게 대기 후 한 번 더 시도한다.
+async function upsertRatingWithRetry(payload, retries = 1) {
+  for (let attempt = 0; ; attempt++) {
+    const result = await sb.from("photo_ratings").upsert(payload, { onConflict: "photo_id,employee_name" });
+    if (!result.error || attempt >= retries) return result;
+    await wait(800);
+  }
+}
+
 async function submitRating() {
   if (selectedScore === null) {
     alert("점수를 선택해주세요.");
@@ -149,22 +163,20 @@ async function submitRating() {
   btn.textContent = "제출 중...";
 
   const feedback = document.getElementById("feedback-input").value.trim();
-  const { error } = await sb.from("photo_ratings").upsert(
-    {
-      photo_id: activePhotoId,
-      employee_name: currentUser,
-      score: selectedScore,
-      feedback: feedback || null,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "photo_id,employee_name" }
-  );
+  const { error } = await upsertRatingWithRetry({
+    photo_id: activePhotoId,
+    employee_name: currentUser,
+    score: selectedScore,
+    feedback: feedback || null,
+    updated_at: new Date().toISOString(),
+  });
 
   btn.disabled = false;
   btn.textContent = "제출";
 
   if (error) {
-    alert("제출 실패: " + error.message);
+    const isNetworkError = /load failed|fetch/i.test(error.message || "");
+    alert(isNetworkError ? "네트워크 연결이 불안정해요. 다시 한 번 제출해주세요." : "제출 실패: " + error.message);
     return;
   }
 
