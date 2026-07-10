@@ -39,6 +39,16 @@ body {
   top: 0;
   z-index: 10;
 }
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-home {
+  font-size: 18px;
+  text-decoration: none;
+  color: var(--ink);
+  width: 30px; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+}
+.header-home:active { background: var(--surface-strong); }
 .header-title { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
 .header-user {
   font-size: 13px;
@@ -99,11 +109,28 @@ body {
   overflow-y: auto;
   padding: 16px 20px 28px;
 }
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  margin-bottom: 14px;
+}
 .sheet-close {
   width: 36px; height: 4px;
   background: var(--hairline);
   border-radius: 2px;
-  margin: 0 auto 14px;
+}
+.sheet-back {
+  position: absolute;
+  left: 0;
+  top: -4px;
+  border: none;
+  background: none;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 4px;
 }
 .sheet img { width: 100%; border-radius: 12px; display: block; margin-bottom: 12px; }
 .sheet-stats { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
@@ -180,7 +207,10 @@ textarea {
 </div>
 
 <div class="header">
-  <div class="header-title">빈티지 아카이브 평가</div>
+  <div class="header-left">
+    <a href="../" class="header-home" title="허브 홈으로">🏠</a>
+    <div class="header-title">빈티지 아카이브 평가</div>
+  </div>
   <div class="header-user" id="current-user" onclick="changeUser()"></div>
 </div>
 
@@ -189,7 +219,10 @@ textarea {
 
 <div class="overlay" id="overlay" onclick="if(event.target===this) closeSheet()">
   <div class="sheet">
-    <div class="sheet-close"></div>
+    <div class="sheet-header">
+      <button class="sheet-back" onclick="closeSheet()">← 목록으로</button>
+      <div class="sheet-close"></div>
+    </div>
     <img id="sheet-img" src="" alt="">
     <div class="sheet-stats">평균 <b id="sheet-avg">-</b>점 · <span id="sheet-count">0</span>명 평가</div>
     <div class="score-row" id="score-row"></div>
