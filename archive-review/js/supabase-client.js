@@ -4,6 +4,6 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const EMPLOYEES = [
   "강현성", "권석현", "김민우", "김민지", "김지윤",
-  "박현준", "부석준", "이광원", "이수빈", "전수지",
+  "박현준", "부석준", "이강철", "이광원", "이수빈", "전수지",
   "정경환", "최영훈", "황태훈",
 ];
