@@ -111,19 +111,31 @@ async function initSetup() {
 
   const sel = document.getElementById('store-select');
   sel.innerHTML = '<option value="">로딩 중...</option>';
+  const opSel = document.getElementById('operator-input');
+  opSel.innerHTML = '<option value="">로딩 중...</option>';
 
-  const { data: locs, error } = await sb.from('locations').select('name').eq('is_active', true).order('name');
+  const [{ data: locs, error }, { data: handlers, error: handlerError }] = await Promise.all([
+    sb.from('locations').select('name').eq('is_active', true).order('name'),
+    sb.from('handlers').select('name').eq('is_active', true).order('name'),
+  ]);
   if (error || !locs?.length) {
     sel.innerHTML = '<option value="">매장 정보 로드 실패</option>'; return;
   }
   sel.innerHTML = '<option value="">매장을 선택하세요</option>' +
     locs.map(l => `<option value="${escapeHtml(l.name)}">${escapeHtml(l.name)}</option>`).join('');
 
+  if (handlerError || !handlers?.length) {
+    opSel.innerHTML = '<option value="">담당자 정보 로드 실패</option>';
+  } else {
+    opSel.innerHTML = '<option value="">담당자를 선택하세요</option>' +
+      handlers.map(h => `<option value="${escapeHtml(h.name)}">${escapeHtml(h.name)}</option>`).join('');
+  }
+
   function startScan({ direct = false } = {}) {
     const store = sel.value;
-    const operator = document.getElementById('operator-input').value.trim();
+    const operator = opSel.value;
     if (!store) { appAlert('매장을 선택해주세요.'); return; }
-    if (!operator) { appAlert('담당자 이름을 입력해주세요.'); return; }
+    if (!operator) { appAlert('담당자를 선택해주세요.'); return; }
     if (direct) {
       S.store = store; S.threshold = 60; S.threshold2 = null;
       S.operator = operator; S.directMode = true;
