@@ -120,7 +120,7 @@ function renderLog(groups, failedRows = []) {
           <div class="change-header" data-id="${id}">
             <span class="change-chevron" id="chv-${id}">▶</span>
             <div style="flex:1; min-width:0">
-              <div style="font-size:14px; font-weight:700; color:#e2e8f0">
+              <div style="font-size:14px; font-weight:700; color:var(--fg-primary)">
                 ${escapeHtml(s.changed_by || "담당자 미기재")}
                 <span style="font-size:12px; color:#64748b; font-weight:400; margin-left:6px">${escapeHtml(s.time)}</span>
               </div>
