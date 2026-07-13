@@ -77,6 +77,8 @@ async function loadLog() {
   }
 }
 
+const sessionItemsById = {};
+
 function renderLog(groups, failedRows = []) {
   const listEl = document.getElementById("log-list");
   let html = "";
@@ -112,6 +114,7 @@ function renderLog(groups, failedRows = []) {
     html += `<div class="date-group">${m}월 ${parseInt(d)}일 (${dayName})</div>`;
     g.sessions.forEach((s, si) => {
       const id = `cs-${g.date}-${si}`;
+      sessionItemsById[id] = s.items;
       html += `
         <div class="change-card">
           <div class="change-header" data-id="${id}">
@@ -123,6 +126,7 @@ function renderLog(groups, failedRows = []) {
               </div>
             </div>
             <span class="summary-pill">${s.items.length}건</span>
+            <button class="btn btn-outline btn-sm session-xlsx-btn" data-id="${id}" style="margin-left:8px; flex-shrink:0">⬇ 엑셀</button>
           </div>
           <div class="change-body" id="body-${id}">
             ${s.items.map(item => `
@@ -145,6 +149,39 @@ function renderLog(groups, failedRows = []) {
       document.getElementById(`chv-${id}`).classList.toggle("open");
     })
   );
+  document.querySelectorAll(".session-xlsx-btn").forEach(btn =>
+    btn.addEventListener("click", e => {
+      e.stopPropagation();
+      downloadSessionExcel(btn, sessionItemsById[btn.dataset.id]);
+    })
+  );
+}
+
+async function downloadSessionExcel(btn, items) {
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = "⏳";
+  try {
+    const barcodes = [...new Set(items.map(r => r.barcode))];
+    const { data: invRows, error } = await sb.from("inventory_items").select("barcode, category").in("barcode", barcodes);
+    if (error) throw error;
+    const categoryOf = Object.fromEntries((invRows || []).map(r => [r.barcode, r.category || ""]));
+
+    const rows = [
+      ["바코드", "카테고리", "수정전가격", "수정후가격"],
+      ...items.map(r => [r.barcode, categoryOf[r.barcode] || "", r.old_price ?? "", r.new_price]),
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "가격수정");
+
+    const kst = new Date(new Date(items[0].changed_at).getTime() + 9 * 60 * 60 * 1000).toISOString();
+    const fileLabel = `${kst.slice(0, 10)}_${kst.slice(11, 16).replace(":", "")}`;
+    XLSX.writeFile(wb, `가격수정_${fileLabel}.xlsx`);
+  } catch (e) {
+    showError("엑셀 다운로드 실패: " + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
 }
 
 loadLog();
