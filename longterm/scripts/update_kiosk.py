@@ -23,6 +23,10 @@ KIOSK_USER      = os.environ.get('KIWOOM_USERID',  os.environ.get('KIOSK_USER', 
 KIOSK_PASS      = os.environ.get('KIWOOM_USERPASS', os.environ.get('KIOSK_PASS', ''))
 CHROMEDRIVER    = os.environ.get('CHROMEDRIVER_PATH')  # snap chromedriver 경로
 BASE_URL        = 'https://asp.kiwoompaypos.co.kr'
+# 500건 이상 일괄 업로드 시 벤더 사이트가 저장 처리를 끝내지 못하고 무한 대기 상태로
+# 멈추는 현상이 확인됨(알럿도 안 뜨고 실행결과 그리드도 비어있음). 1~2건은 항상 성공했으므로
+# 청크 단위로 나눠서 업로드한다.
+CHUNK_SIZE      = int(os.environ.get('KIOSK_CHUNK_SIZE', '50'))
 
 HDR = {
     'apikey': SUPABASE_KEY,
@@ -59,19 +63,77 @@ def mark_processed(ids):
     r.raise_for_status()
 
 
-def make_excel(rows):
+def make_excel(rows, suffix=0):
     wb = Workbook()
     ws = wb.active
     ws.append(['바코드', '판매단가'])
     for row in rows:
         ws.append([str(row['barcode']), int(row['new_price'])])
     # /tmp 대신 스크립트 옆 디렉토리 사용 (headless Chrome 파일 접근 제한 우회)
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'kiosk_upload.xlsx')
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), f'kiosk_upload_{suffix}.xlsx')
     wb.save(path)
     return path
 
 
-def run_kiosk(excel_path):
+def upload_chunk(driver, W, W_LONG, excel_path):
+    """엑셀 업로드 팝업 열기 → 파일 업로드 → 저장 → 자료수신 (한 청크 분량)."""
+    # ── 4. 콘텐츠 iframe 안에서 엑셀 업로드 버튼 클릭 ─────────────────────
+    W.until(EC.element_to_be_clickable(
+        (By.XPATH, '//button[contains(text(),"엑셀 업로드") or contains(text(),"Excel Upload") or contains(text(),"Excel upload")]')
+    )).click()
+    log('엑셀 업로드 팝업 열기')
+
+    # ── 5. cmbUploadType → Cover the same goods (덮어쓰기) ─────────────────
+    sel_el = W.until(EC.presence_of_element_located((By.ID, 'cmbUploadType')))
+    sel = Select(sel_el)
+    sel.select_by_visible_text('Cover the same goods')
+    log(f'덮어쓰기 옵션 선택: {sel.first_selected_option.text}')
+
+    # ── 6. 파일 업로드 ────────────────────────────────────────────────────
+    file_input = W.until(EC.presence_of_element_located(
+        (By.ID, 'uploadExcelFile')
+    ))
+    file_input.send_keys(os.path.abspath(excel_path))
+    time.sleep(2)  # 업로드 후 그리드 갱신 대기
+    log('파일 업로드 완료')
+
+    # ── 7. 팝업 저장 클릭 (btnSaveExcel) — JS click ──────────────────────
+    save_btn = W.until(EC.presence_of_element_located((By.ID, 'btnSaveExcel')))
+    driver.execute_script('arguments[0].click();', save_btn)
+    # 저장 후 "저장되었습니다" alert 처리 (대량 건수는 서버 처리 시간이 길어질 수 있음)
+    W_LONG.until(EC.alert_is_present())
+    driver.switch_to.alert.accept()
+    time.sleep(1)
+    log('저장 완료')
+
+    # ── 8. 팝업 닫기 (modal-footer 내 text="Close" 버튼만 정확히 클릭) ──────
+    close_btn = driver.find_element(
+        By.XPATH,
+        '//div[contains(@class,"modal-footer")]//button[normalize-space()="Close"]'
+    )
+    driver.execute_script('arguments[0].click();', close_btn)
+    time.sleep(1)
+
+    # ── 9. 전체 선택 후 자료수신 클릭 ────────────────────────────────────
+    # 그리드 행을 전체 선택해야 자료수신이 활성화됨
+    select_all = W.until(EC.element_to_be_clickable(
+        (By.CSS_SELECTOR, '.dt-button.buttons-select-all')
+    ))
+    driver.execute_script('arguments[0].click();', select_all)
+    time.sleep(1)
+
+    req_btn = W.until(EC.element_to_be_clickable((By.ID, 'btnReqDownload')))
+    driver.execute_script('arguments[0].click();', req_btn)
+
+    # ── 10. 브라우저 confirm → OK ─────────────────────────────────────────
+    W_LONG.until(EC.alert_is_present())
+    driver.switch_to.alert.accept()
+    time.sleep(2)
+    log('자료수신 완료')
+
+
+def run_kiosk(chunks):
+    """chunks: [(excel_path, [id, ...]), ...] — 청크별로 업로드하고 성공할 때마다 즉시 processed 처리."""
     opts = Options()
     opts.add_argument('--headless=new')
     opts.add_argument('--no-sandbox')
@@ -134,64 +196,28 @@ def run_kiosk(excel_path):
         time.sleep(3)
         log('상품 등록(본사) 진입')
 
-        # ── 4. 콘텐츠 iframe으로 전환 후 엑셀 업로드 버튼 클릭 ─────────────────
+        # ── 4. 콘텐츠 iframe으로 전환 (이후 청크에서도 재사용) ─────────────────
         iframe = W.until(EC.presence_of_element_located(
             (By.XPATH, '//iframe[contains(@src,"CompanyGoodsReg")]')
         ))
         driver.switch_to.frame(iframe)
-        W.until(EC.element_to_be_clickable(
-            (By.XPATH, '//button[contains(text(),"엑셀 업로드") or contains(text(),"Excel Upload") or contains(text(),"Excel upload")]')
-        )).click()
-        log('엑셀 업로드 팝업 열기')
 
-        # ── 5. cmbUploadType → Cover the same goods (덮어쓰기) ─────────────────
-        sel_el = W.until(EC.presence_of_element_located((By.ID, 'cmbUploadType')))
-        sel = Select(sel_el)
-        sel.select_by_visible_text('Cover the same goods')
-        log(f'덮어쓰기 옵션 선택: {sel.first_selected_option.text}')
+        for i, (excel_path, ids) in enumerate(chunks, 1):
+            log(f'청크 {i}/{len(chunks)} 시작 ({len(ids)}건)')
+            upload_chunk(driver, W, W_LONG, excel_path)
+            mark_processed(ids)
+            log(f'청크 {i}/{len(chunks)} 완료: {len(ids)}건 처리됨')
 
-        # ── 6. 파일 업로드 ────────────────────────────────────────────────────
-        file_input = W.until(EC.presence_of_element_located(
-            (By.CSS_SELECTOR, 'input[type="file"]')
-        ))
-        file_input.send_keys(os.path.abspath(excel_path))
-        time.sleep(2)  # 업로드 후 그리드 갱신 대기
-        log('파일 업로드 완료')
-
-        # ── 7. 팝업 저장 클릭 (btnSaveExcel) — JS click ──────────────────────
-        save_btn = W.until(EC.presence_of_element_located((By.ID, 'btnSaveExcel')))
-        driver.execute_script('arguments[0].click();', save_btn)
-        # 저장 후 "저장되었습니다" alert 처리 (대량 건수는 서버 처리 시간이 길어질 수 있음)
-        W_LONG.until(EC.alert_is_present())
-        driver.switch_to.alert.accept()
-        time.sleep(1)
-        log('저장 완료')
-
-        # ── 8. 팝업 닫기 (modal-footer 내 text="Close" 버튼만 정확히 클릭) ──────
-        close_btn = driver.find_element(
-            By.XPATH,
-            '//div[contains(@class,"modal-footer")]//button[normalize-space()="Close"]'
-        )
-        driver.execute_script('arguments[0].click();', close_btn)
-        time.sleep(1)
-
-        # ── 9. 전체 선택 후 자료수신 클릭 ────────────────────────────────────
-        # 그리드 행을 전체 선택해야 자료수신이 활성화됨
-        select_all = W.until(EC.element_to_be_clickable(
-            (By.CSS_SELECTOR, '.dt-button.buttons-select-all')
-        ))
-        driver.execute_script('arguments[0].click();', select_all)
-        time.sleep(1)
-
-        req_btn = W.until(EC.element_to_be_clickable((By.ID, 'btnReqDownload')))
-        driver.execute_script('arguments[0].click();', req_btn)
-
-        # ── 10. 브라우저 confirm → OK ─────────────────────────────────────────
-        W_LONG.until(EC.alert_is_present())
-        driver.switch_to.alert.accept()
-        time.sleep(2)
-        log('자료수신 완료')
-
+    except Exception:
+        log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'logs')
+        try:
+            driver.save_screenshot(os.path.join(log_dir, 'kiosk_error.png'))
+            with open(os.path.join(log_dir, 'kiosk_error.html'), 'w') as f:
+                f.write(driver.page_source)
+            log('실패 시점 스크린샷/페이지 저장: logs/kiosk_error.png, kiosk_error.html')
+        except Exception as diag_e:
+            log(f'진단 정보 저장 실패: {diag_e}')
+        raise
     finally:
         driver.quit()
 
@@ -201,22 +227,28 @@ def main():
     if not rows:
         sys.exit(0)  # 처리할 항목 없음 — 로그 안 남김
 
-    log(f'가격 수정 {len(rows)}건 처리 시작')
-    excel_path = make_excel(rows)
+    log(f'가격 수정 {len(rows)}건 처리 시작 (청크 크기: {CHUNK_SIZE})')
+
+    chunks = []
+    excel_paths = []
+    for i in range(0, len(rows), CHUNK_SIZE):
+        chunk_rows = rows[i:i + CHUNK_SIZE]
+        path = make_excel(chunk_rows, suffix=i // CHUNK_SIZE)
+        excel_paths.append(path)
+        chunks.append((path, [r['id'] for r in chunk_rows]))
 
     try:
-        run_kiosk(excel_path)
-        ids = [r['id'] for r in rows]
-        mark_processed(ids)
-        log(f'완료: {len(ids)}건 처리됨')
+        run_kiosk(chunks)
+        log(f'전체 완료: {len(rows)}건 처리됨')
     except Exception as e:
         log(f'오류: {e}')
         sys.exit(1)
     finally:
-        try:
-            os.unlink(excel_path)
-        except Exception:
-            pass
+        for p in excel_paths:
+            try:
+                os.unlink(p)
+            except Exception:
+                pass
 
 
 if __name__ == '__main__':
