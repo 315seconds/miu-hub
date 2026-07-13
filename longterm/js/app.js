@@ -115,7 +115,7 @@ async function initSetup() {
   opSel.innerHTML = '<option value="">로딩 중...</option>';
 
   const [{ data: locs, error }, { data: handlers, error: handlerError }] = await Promise.all([
-    sb.from('locations').select('name').eq('is_active', true).order('name'),
+    sb.from('locations').select('name').eq('is_active', true).neq('name', '폐기').order('name'),
     sb.from('handlers').select('name').eq('is_active', true).order('name'),
   ]);
   if (error || !locs?.length) {
