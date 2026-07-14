@@ -67,11 +67,15 @@ function nameToGFA(text, boxH = ZPL.NAME_H, boxH2 = ZPL.NAME_H2) {
     ctx2.fillStyle = "#fff"; ctx2.fillRect(0, 0, W, H2);
     ctx2.fillStyle = "#000";
 
-    let fs2 = BASE_FONT;
+    // 2줄일 때는 한 줄당 lineH만큼만 쓸 수 있으므로, boxH 기준 BASE_FONT를 그대로 쓰면
+    // (boxH와 boxH2가 같은 separator 라벨처럼) 줄당 높이보다 폰트가 커져 위아래가 잘리고
+    // 두 줄이 겹쳐 보이는 문제가 생김 — lineH 기준으로도 폰트 크기를 한 번 더 제한한다.
+    let fs2 = Math.min(BASE_FONT, Math.round(lineH * 0.82));
+    const minFont2 = Math.round(fs2 * 0.55);
     ctx2.font = `700 ${fs2}px ${FONT_FAM}`;
     const maxW = Math.max(ctx2.measureText(line1).width, ctx2.measureText(line2).width);
     if (maxW > W - 8) {
-      fs2 = Math.max(MIN_FONT, Math.floor(fs2 * (W - 8) / maxW));
+      fs2 = Math.max(minFont2, Math.floor(fs2 * (W - 8) / maxW));
     }
     ctx2.font = `700 ${fs2}px ${FONT_FAM}`;
     ctx2.textAlign = "center"; ctx2.textBaseline = "middle";
