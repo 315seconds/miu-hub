@@ -66,7 +66,7 @@ body { background: #f1f5f9; font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', 
   .label-separator { transform: scale(1.9); transform-origin: top left; margin-right: calc(4cm * .9); margin-bottom: calc(3cm * .9); }
 }
 .daily-controls { display: none; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; }
-.daily-controls input[type="date"] {
+.daily-controls input[type="date"], .daily-controls select {
   background: #334155; color: #e2e8f0; border: 1px solid #475569;
   border-radius: 6px; padding: 6px 8px; font-size: 13px; font-family: inherit;
 }
@@ -98,6 +98,7 @@ body { background: #f1f5f9; font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', 
   <div class="daily-controls" id="daily-controls">
     <button class="zpl-btn" id="daily-home-btn">🏠 홈</button>
     <input type="date" id="daily-date">
+    <select id="daily-store"><option value="">매장: 전체</option></select>
     <label class="daily-toggle"><input type="checkbox" id="daily-include-printed"> 출력완료건 포함</label>
     <button class="zpl-btn" id="daily-reload-btn">🔄 조회</button>
     <button class="zpl-btn" id="daily-kiosk-btn">📥 키오스크 업로드 파일</button>

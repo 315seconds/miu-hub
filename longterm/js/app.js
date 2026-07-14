@@ -626,6 +626,7 @@ async function submitPriceChanges() {
         barcode:c.barcode, old_price:c.oldPrice, new_price:c.newPrice,
         changed_by: S.operator || null, changed_at: new Date(now + i).toISOString(), excel_updated:false,
         hanger_number: S.items.get(c.barcode)?.hangerNumber ?? null,
+        store: S.store || null,
       }))
     );
     if (error) throw error;

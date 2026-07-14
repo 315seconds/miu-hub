@@ -307,15 +307,17 @@ function nextDateStr(dateStr) {
 const SESSION_GAP_MS = 60 * 1000;
 
 // 특정 날짜(KST)의 미출력 가격변경 건을 담당자→행거번호 순으로 그룹핑해 아이템 목록 구성
-async function buildItemsFromPriceChanges(dateStr, includePrinted) {
+// store: 특정 매장명이면 해당 매장 건만(매장 미지정 과거 데이터는 제외), falsy면 전체(매장 미지정 포함)
+async function buildItemsFromPriceChanges(dateStr, includePrinted, store) {
   let query = sb.from("price_changes")
-    .select("id,barcode,new_price,changed_by,hanger_number,changed_at")
+    .select("id,barcode,new_price,changed_by,hanger_number,changed_at,store")
     .gte("changed_at", `${dateStr}T00:00:00+09:00`)
     .lt("changed_at", `${nextDateStr(dateStr)}T00:00:00+09:00`)
     .order("changed_by", { ascending: true, nullsFirst: false })
     .order("hanger_number", { ascending: true, nullsFirst: false })
     .order("changed_at", { ascending: true });
   if (!includePrinted) query = query.is("printed_at", null);
+  if (store) query = query.eq("store", store);
 
   const { data: changes, error } = await query;
   if (error) throw new Error(error.message);
@@ -454,15 +456,23 @@ async function main() {
     document.getElementById("daily-controls").style.display = "flex";
     const dateInput = document.getElementById("daily-date");
     dateInput.value = params.get("date") || localDateStr();
+    const storeSelect = document.getElementById("daily-store");
+
+    sb.from("locations").select("name").eq("is_active", true).neq("name", "폐기").order("name")
+      .then(({ data: locs }) => {
+        storeSelect.innerHTML = '<option value="">매장: 전체</option>' +
+          (locs || []).map(l => `<option value="${escapeHtml(l.name)}">${escapeHtml(l.name)}</option>`).join("");
+      });
 
     async function loadDaily() {
       const dateStr = dateInput.value || localDateStr();
       const includePrinted = document.getElementById("daily-include-printed").checked;
-      document.getElementById("header-title").textContent = `🖨 일괄출력 — ${dateStr}`;
+      const store = storeSelect.value;
+      document.getElementById("header-title").textContent = `🖨 일괄출력 — ${dateStr}${store ? " · " + store : ""}`;
       document.getElementById("header-sub").textContent = "불러오는 중...";
       document.getElementById("not-found-box").style.display = "none";
       try {
-        const result = await buildItemsFromPriceChanges(dateStr, includePrinted);
+        const result = await buildItemsFromPriceChanges(dateStr, includePrinted, store);
         items = result.items; changeIds = result.changeIds;
         zplFilename = `labels_daily_${dateStr}.zpl`;
         const labelCount = items.filter(it => !it.isSeparator).length;
@@ -496,6 +506,7 @@ async function main() {
     };
     document.getElementById("daily-include-printed").onchange = loadDaily;
     dateInput.onchange = loadDaily;
+    storeSelect.onchange = loadDaily;
 
     document.querySelectorAll(".team-btn").forEach(btn => {
       btn.onclick = () => {
