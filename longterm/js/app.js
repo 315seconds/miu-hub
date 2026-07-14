@@ -84,7 +84,6 @@ const S = {
   operator: '',
   items: new Map(),    // barcode → itemData
   selected: new Set(),
-  priceMode: 'individual',
   priceOriginal: [],
   lastChanges: [],
   directMode: false,
@@ -468,51 +467,67 @@ function updateProcActions() {
 // ── STEP 4A: 가격수정 ────────────────────────────────────────────────────────
 
 function initPriceStep() {
-  S.priceMode = 'individual';
+  S.priceModeByHanger = {};
   S.priceOriginal = [...S.selected].map(bc => {
     const item = S.items.get(bc);
-    return { barcode: bc, oldPrice: item?.price||0, displayName: item?.displayName||bc };
+    return { barcode: bc, oldPrice: item?.price||0, displayName: item?.displayName||bc, hangerNumber: item?.hangerNumber ?? 1 };
   });
+
+  // 행거번호가 바뀌는 지점마다 새 그룹 시작(스캔 순서상 행거번호는 항상 비내림차순이라 인접 그룹핑으로 충분)
+  // — 행거별로 수정방식(개별/일괄%/일괄동일가)을 따로 고를 수 있도록 그룹 단위로 렌더링한다.
+  const groups = [];
+  S.priceOriginal.forEach((item, i) => {
+    const last = groups[groups.length - 1];
+    if (last && last.hangerNumber === item.hangerNumber) last.indices.push(i);
+    else groups.push({ hangerNumber: item.hangerNumber, indices: [i] });
+  });
+  S.priceGroups = groups;
 
   let html = `<div class="page-header">
     <button class="back-btn" id="price-back">← 선택으로</button>
     <span class="page-title">가격수정 (${S.priceOriginal.length}개)</span>
   </div>
-  <div class="slack-notice">⚠️ Slack <strong>공동판매 사용중</strong> 채널에 <strong>현재 사용중</strong> 메시지를 먼저 남기세요.</div>
-  <div class="mode-bar">
-    <button class="mode-btn active" id="mode-ind">개별 수정</button>
-    <button class="mode-btn" id="mode-bulk-pct">일괄 % 수정</button>
-    <button class="mode-btn" id="mode-bulk-fixed">일괄 동일가 수정</button>
-  </div>
-  <div class="bulk-box" id="bulk-box-pct">
-    <div class="row-gap">
-      <span style="color:#fbbf24;font-weight:600">할인율</span>
-      <input class="bulk-input" id="bulk-pct" type="number" min="1" max="99" placeholder="30">
-      <span style="color:#fbbf24;font-weight:700">%</span>
-      <span class="muted" style="font-size:12px">반올림 천원 단위</span>
-    </div>
-  </div>
-  <div class="bulk-box" id="bulk-box-fixed">
-    <div class="row-gap">
-      <span style="color:#fbbf24;font-weight:600">동일 가격</span>
-      <input class="bulk-input" id="bulk-fixed" type="number" min="0" step="1000" placeholder="10000" style="width:96px">
-      <span style="color:#fbbf24;font-weight:700">원</span>
-    </div>
-  </div>`;
+  <div class="slack-notice">⚠️ Slack <strong>공동판매 사용중</strong> 채널에 <strong>현재 사용중</strong> 메시지를 먼저 남기세요.</div>`;
 
-  html += S.priceOriginal.map((item, i) => `
-    <div class="item-card">
-      <div class="row-gap" style="margin-bottom:6px">
-        <span class="bc-text">${escapeHtml(item.barcode)}</span>
-        <span class="muted">${escapeHtml(item.displayName)}</span>
+  html += groups.map(g => `
+    <div class="hanger-group">
+      <div class="section-hd">🏷 ${g.hangerNumber}번 행거 · ${g.indices.length}개</div>
+      <div class="mode-bar">
+        <button class="mode-btn active" data-hanger="${g.hangerNumber}" data-mode="individual">개별 수정</button>
+        <button class="mode-btn" data-hanger="${g.hangerNumber}" data-mode="bulk-pct">일괄 % 수정</button>
+        <button class="mode-btn" data-hanger="${g.hangerNumber}" data-mode="bulk-fixed">일괄 동일가 수정</button>
       </div>
-      <div class="row-gap">
-        <span class="price-old" id="old-${i}">${item.oldPrice.toLocaleString()}</span>
-        <span class="muted">→</span>
-        <input class="price-input" id="new-${i}" type="number" step="1000" min="0"
-               placeholder="${item.oldPrice}" data-original="${item.oldPrice}">
-        <span class="muted">원</span>
+      <div class="bulk-box" id="bulk-box-pct-${g.hangerNumber}">
+        <div class="row-gap">
+          <span style="color:#fbbf24;font-weight:600">할인율</span>
+          <input class="bulk-input" id="bulk-pct-${g.hangerNumber}" type="number" min="1" max="99" placeholder="30">
+          <span style="color:#fbbf24;font-weight:700">%</span>
+          <span class="muted" style="font-size:12px">반올림 천원 단위</span>
+        </div>
       </div>
+      <div class="bulk-box" id="bulk-box-fixed-${g.hangerNumber}">
+        <div class="row-gap">
+          <span style="color:#fbbf24;font-weight:600">동일 가격</span>
+          <input class="bulk-input" id="bulk-fixed-${g.hangerNumber}" type="number" min="0" step="1000" placeholder="10000" style="width:96px">
+          <span style="color:#fbbf24;font-weight:700">원</span>
+        </div>
+      </div>
+      ${g.indices.map(i => {
+        const item = S.priceOriginal[i];
+        return `<div class="item-card">
+          <div class="row-gap" style="margin-bottom:6px">
+            <span class="bc-text">${escapeHtml(item.barcode)}</span>
+            <span class="muted">${escapeHtml(item.displayName)}</span>
+          </div>
+          <div class="row-gap">
+            <span class="price-old" id="old-${i}">${item.oldPrice.toLocaleString()}</span>
+            <span class="muted">→</span>
+            <input class="price-input" id="new-${i}" type="number" step="1000" min="0"
+                   placeholder="${item.oldPrice}" data-original="${item.oldPrice}">
+            <span class="muted">원</span>
+          </div>
+        </div>`;
+      }).join('')}
     </div>`).join('');
 
   html += `<button class="btn btn-price btn-block" id="price-apply" style="margin-top:16px">✅ 수정 적용하기</button>
@@ -542,36 +557,41 @@ function initPriceStep() {
   el.innerHTML = html;
 
   el.querySelector('#price-back').onclick = () => { showStep('process'); initProcessStep(); };
-  el.querySelector('#mode-ind').onclick        = () => setPriceMode('individual');
-  el.querySelector('#mode-bulk-pct').onclick   = () => setPriceMode('bulk-pct');
-  el.querySelector('#mode-bulk-fixed').onclick = () => setPriceMode('bulk-fixed');
-  el.querySelector('#bulk-pct').oninput   = applyBulkPct;
-  el.querySelector('#bulk-fixed').oninput = applyBulkFixed;
+  el.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.onclick = () => setHangerPriceMode(Number(btn.dataset.hanger), btn.dataset.mode);
+  });
+  groups.forEach(g => {
+    document.getElementById(`bulk-pct-${g.hangerNumber}`).oninput   = () => applyHangerBulkPct(g.hangerNumber);
+    document.getElementById(`bulk-fixed-${g.hangerNumber}`).oninput = () => applyHangerBulkFixed(g.hangerNumber);
+  });
   el.querySelectorAll('.price-input').forEach(inp => inp.oninput = () => onPriceChange(inp));
   el.querySelector('#price-apply').onclick  = openPriceConfirm;
   el.querySelector('#price-cancel').onclick = () => el.querySelector('#price-modal').classList.remove('open');
   el.querySelector('#price-confirm').onclick = submitPriceChanges;
 }
 
-function setPriceMode(mode) {
-  S.priceMode = mode;
-  document.getElementById('mode-ind').classList.toggle('active', mode==='individual');
-  document.getElementById('mode-bulk-pct').classList.toggle('active', mode==='bulk-pct');
-  document.getElementById('mode-bulk-fixed').classList.toggle('active', mode==='bulk-fixed');
-  document.getElementById('bulk-box-pct').classList.toggle('open', mode==='bulk-pct');
-  document.getElementById('bulk-box-fixed').classList.toggle('open', mode==='bulk-fixed');
+function setHangerPriceMode(hangerNumber, mode) {
+  S.priceModeByHanger[hangerNumber] = mode;
+  document.querySelectorAll(`.mode-btn[data-hanger="${hangerNumber}"]`).forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  document.getElementById(`bulk-box-pct-${hangerNumber}`).classList.toggle('open', mode === 'bulk-pct');
+  document.getElementById(`bulk-box-fixed-${hangerNumber}`).classList.toggle('open', mode === 'bulk-fixed');
   if (mode === 'individual') {
-    S.priceOriginal.forEach((d, i) => {
+    const g = S.priceGroups.find(g => g.hangerNumber === hangerNumber);
+    g.indices.forEach(i => {
       const inp = document.getElementById(`new-${i}`);
       if (inp) { inp.value = ''; onPriceChange(inp); }
     });
   }
 }
 
-function applyBulkPct() {
-  const pct = parseFloat(document.getElementById('bulk-pct').value);
+function applyHangerBulkPct(hangerNumber) {
+  const pct = parseFloat(document.getElementById(`bulk-pct-${hangerNumber}`).value);
   if (isNaN(pct) || pct<=0 || pct>=100) return;
-  S.priceOriginal.forEach((d, i) => {
+  const g = S.priceGroups.find(g => g.hangerNumber === hangerNumber);
+  g.indices.forEach(i => {
+    const d = S.priceOriginal[i];
     const inp = document.getElementById(`new-${i}`);
     if (!inp) return;
     inp.value = Math.round((d.oldPrice * (1-pct/100)) / 1000) * 1000;
@@ -579,10 +599,11 @@ function applyBulkPct() {
   });
 }
 
-function applyBulkFixed() {
-  const price = parseInt(document.getElementById('bulk-fixed').value);
+function applyHangerBulkFixed(hangerNumber) {
+  const price = parseInt(document.getElementById(`bulk-fixed-${hangerNumber}`).value);
   if (isNaN(price) || price<0) return;
-  S.priceOriginal.forEach((d, i) => {
+  const g = S.priceGroups.find(g => g.hangerNumber === hangerNumber);
+  g.indices.forEach(i => {
     const inp = document.getElementById(`new-${i}`);
     if (!inp) return;
     inp.value = price;
@@ -651,7 +672,7 @@ async function submitPriceChanges() {
     backBtn.textContent = '← 홈으로';
     backBtn.onclick = () => { clearSavedState(); S.items = new Map(); showStep('setup'); initSetup(); };
 
-    if (S.priceMode === 'bulk-pct') {
+    if (Object.values(S.priceModeByHanger).some(m => m === 'bulk-pct')) {
       document.getElementById('bulk-notice').style.display = 'block';
     }
     const zplBtn = document.getElementById('zpl-btn');
