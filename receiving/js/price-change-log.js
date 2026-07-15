@@ -196,9 +196,14 @@ async function downloadAllExcel() {
   btn.disabled = true; btn.textContent = "⏳";
   try {
     const barcodes = [...new Set(allLoadedRows.map(r => r.barcode))];
-    const { data: invRows, error } = await sb.from("inventory_items").select("barcode, category").in("barcode", barcodes);
-    if (error) throw error;
-    const categoryOf = Object.fromEntries((invRows || []).map(r => [r.barcode, r.category || ""]));
+    const categoryOf = {};
+    const CHUNK = 200;
+    for (let i = 0; i < barcodes.length; i += CHUNK) {
+      const chunk = barcodes.slice(i, i + CHUNK);
+      const { data: invRows, error } = await sb.from("inventory_items").select("barcode, category").in("barcode", chunk);
+      if (error) throw error;
+      (invRows || []).forEach(r => { categoryOf[r.barcode] = r.category || ""; });
+    }
 
     const rowsOut = [
       ["수정일시", "담당자", "바코드", "카테고리", "수정전가격", "수정후가격"],
