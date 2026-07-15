@@ -1,6 +1,6 @@
 let currentFilter = "today";
 
-function toDateStr(d) { return d.toISOString().slice(0, 10); }
+function toDateStr(d) { return new Date(d.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10); }
 function getRange() {
   const now = new Date(), today = toDateStr(now);
   if (currentFilter === "today") return { from: today, to: today };
@@ -34,6 +34,9 @@ document.querySelectorAll(".log-filter-btn").forEach(btn => {
   });
 });
 document.getElementById("custom-load-btn").addEventListener("click", loadLog);
+document.getElementById("download-all-btn").addEventListener("click", downloadAllExcel);
+
+let allLoadedRows = [];
 
 async function loadLog() {
   const listEl = document.getElementById("log-list");
@@ -55,6 +58,8 @@ async function loadLog() {
     ]);
     if (error) throw error;
     if (failedError) throw failedError;
+
+    allLoadedRows = rows || [];
 
     // 날짜 → (담당자, HH:MM) 으로 그룹핑 (KST 기준)
     const dayMap = {};
@@ -177,6 +182,37 @@ async function downloadSessionExcel(btn, items) {
     const kst = new Date(new Date(items[0].changed_at).getTime() + 9 * 60 * 60 * 1000).toISOString();
     const fileLabel = `${kst.slice(0, 10)}_${kst.slice(11, 16).replace(":", "")}`;
     XLSX.writeFile(wb, `가격수정_${fileLabel}.xlsx`);
+  } catch (e) {
+    showError("엑셀 다운로드 실패: " + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = original;
+  }
+}
+
+async function downloadAllExcel() {
+  if (!allLoadedRows.length) { showError("다운로드할 데이터가 없습니다"); return; }
+  const btn = document.getElementById("download-all-btn");
+  const original = btn.textContent;
+  btn.disabled = true; btn.textContent = "⏳";
+  try {
+    const barcodes = [...new Set(allLoadedRows.map(r => r.barcode))];
+    const { data: invRows, error } = await sb.from("inventory_items").select("barcode, category").in("barcode", barcodes);
+    if (error) throw error;
+    const categoryOf = Object.fromEntries((invRows || []).map(r => [r.barcode, r.category || ""]));
+
+    const rowsOut = [
+      ["수정일시", "담당자", "바코드", "카테고리", "수정전가격", "수정후가격"],
+      ...allLoadedRows.map(r => {
+        const kst = new Date(new Date(r.changed_at).getTime() + 9 * 60 * 60 * 1000).toISOString();
+        return [`${kst.slice(0, 10)} ${kst.slice(11, 16)}`, r.changed_by || "미기재", r.barcode, categoryOf[r.barcode] || "", r.old_price ?? "", r.new_price];
+      }),
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(rowsOut);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "가격수정");
+
+    const { from, to } = getRange();
+    XLSX.writeFile(wb, `가격수정_${from}_${to}.xlsx`);
   } catch (e) {
     showError("엑셀 다운로드 실패: " + e.message);
   } finally {
