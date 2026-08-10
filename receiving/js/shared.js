@@ -69,6 +69,14 @@ function appConfirm(msg) {
   });
 }
 
+function viewPhoto(url) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+  overlay.innerHTML = `<img src="${escapeHtml(url)}" style="max-width:100%;max-height:100%;object-fit:contain;border-radius:8px" alt="사진 원본">`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', () => overlay.remove());
+}
+
 function appAlert(msg) {
   return new Promise(resolve => {
     const overlay = document.createElement('div');

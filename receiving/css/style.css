@@ -521,7 +521,7 @@ a.link:active { opacity: 0.7; }
   align-items: center;
   margin: 12px 0;
 }
-.photo-preview { max-width: 80px; border-radius: var(--radius-sm); margin-top: 4px; border: 1px solid var(--line-default); }
+.photo-preview { max-width: 80px; border-radius: var(--radius-sm); margin-top: 4px; border: 1px solid var(--line-default); cursor: zoom-in; }
 .price-ref-panel {
   display: none;
   background: var(--bg-secondary);

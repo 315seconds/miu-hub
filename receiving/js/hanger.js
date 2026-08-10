@@ -108,6 +108,9 @@ function render(items) {
   }
 
   document.getElementById("content").innerHTML = html;
+  document.getElementById("item-list").addEventListener("click", e => {
+    if (e.target.classList.contains("photo-preview")) viewPhoto(e.target.src);
+  });
   if (isPending) bindHandlers();
 }
 

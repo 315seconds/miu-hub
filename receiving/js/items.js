@@ -373,7 +373,7 @@ function renderItemCard(item, clickable = false) {
       ${clickable ? '<span class="card-chevron" style="margin-left:auto; color:#475569; font-size:18px">›</span>' : ''}
     </div>
     <div class="flex" style="gap:12px; align-items:flex-start">
-      ${item.photo_url ? `<img src="${escapeHtml(item.photo_url)}" style="width:72px; height:72px; object-fit:cover; border-radius:8px; flex-shrink:0" alt="사진">` : ''}
+      ${item.photo_url ? `<img src="${escapeHtml(item.photo_url)}" style="width:72px; height:72px; object-fit:cover; border-radius:8px; flex-shrink:0; cursor:zoom-in" alt="사진" onclick="event.stopPropagation(); viewPhoto('${escapeHtml(item.photo_url)}')">` : ''}
       <div>
         <div style="font-size:15px; font-weight:700; color:var(--fg-primary)">
           ₩${item.price ? item.price.toLocaleString() : '—'}
