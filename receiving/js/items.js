@@ -269,12 +269,141 @@ function renderSingle(data) {
   return html;
 }
 
+// ── 엑셀 다운로드 ─────────────────────────────────────────────────────────────
+const TL_TYPE_LABEL = { ingest: '입고', move: '이동', price: '가격수정', sold: '판매' };
+const TL_TYPE_FILL = {
+  ingest: 'FFB9DEFF', // sky (입고는 조금 더 진하게)
+  move:   'FFF1EFFF', // light purple
+  price:  'FFFFF4D1', // yellow
+  sold:   'FFDFF7EC', // mint
+};
+
+function tlDetailText(ev) {
+  if (ev.type === 'ingest') return `입고 (₩${(ev.price ?? 0).toLocaleString()})`;
+  if (ev.type === 'move')   return `${ev.from_location || '?'} → ${ev.to_location || '?'}`;
+  if (ev.type === 'price')  return `₩${(ev.old_price ?? 0).toLocaleString()} → ₩${(ev.new_price ?? 0).toLocaleString()}`;
+  if (ev.type === 'sold')   return `${ev.store || '-'} 매장 · ₩${(ev.price ?? 0).toLocaleString()}`;
+  return '';
+}
+
+function buildLookupWorkbook(barcodes, results) {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = '마켓인유';
+  wb.created = new Date();
+
+  const sumSheet = wb.addWorksheet('요약');
+  sumSheet.columns = [
+    { header: '순번',       key: 'no',       width: 6 },
+    { header: '바코드',     key: 'barcode',  width: 12 },
+    { header: '카테고리',   key: 'category', width: 14 },
+    { header: '브랜드',     key: 'brand',    width: 12 },
+    { header: '현재가격',   key: 'price',    width: 12 },
+    { header: '현재위치',   key: 'location', width: 14 },
+    { header: '판매여부',   key: 'status',   width: 10 },
+    { header: '이동횟수',   key: 'moves',    width: 10 },
+    { header: '최초입고일', key: 'ingested', width: 12 },
+    { header: '최근이력일', key: 'updated',  width: 12 },
+  ];
+
+  const tlSheet = wb.addWorksheet('이력');
+  tlSheet.columns = [
+    { header: '바코드',   key: 'barcode', width: 12 },
+    { header: '순번',     key: 'no',      width: 6 },
+    { header: '날짜',     key: 'date',    width: 12 },
+    { header: '구분',     key: 'type',    width: 10 },
+    { header: '상세내용', key: 'detail',  width: 34 },
+    { header: '담당자',   key: 'by',      width: 10 },
+  ];
+
+  barcodes.forEach((bc, i) => {
+    const data = results[i];
+    const item = data ? (data.items || [])[0] : null;
+    const tl   = data ? (data.timeline || []) : [];
+    const moves     = tl.filter(e => e.type === 'move').length;
+    const ingestEv  = tl.find(e => e.type === 'ingest');
+    const lastEv    = tl[tl.length - 1];
+
+    sumSheet.addRow({
+      no: i + 1,
+      barcode: bc,
+      category: item ? (item.category || '') : '조회결과없음',
+      brand: item?.brand || '',
+      price: item?.price != null ? Number(item.price) : '',
+      location: item?.location || '',
+      status: item ? (item.status === 'sold' ? '판매됨' : '보유중') : '-',
+      moves,
+      ingested: fmtDate(ingestEv?.ts),
+      updated: fmtDate(lastEv?.ts),
+    });
+
+    if (tl.length === 0) {
+      tlSheet.addRow({ barcode: bc, no: '', date: '', type: '', detail: '조회 결과 없음', by: '' });
+    } else {
+      tl.forEach((ev, j) => {
+        const row = tlSheet.addRow({
+          barcode: bc,
+          no: j + 1,
+          date: fmtDate(ev.ts),
+          type: TL_TYPE_LABEL[ev.type] || ev.type,
+          detail: tlDetailText(ev),
+          by: ev.by || '-',
+        });
+        const fill = TL_TYPE_FILL[ev.type];
+        if (fill) row.eachCell(cell => { cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fill } }; });
+      });
+    }
+  });
+
+  sumSheet.getColumn('price').numFmt = '#,##0';
+  [sumSheet, tlSheet].forEach(ws => {
+    ws.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    ws.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF7B5CFF' } };
+    ws.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
+    ws.views = [{ state: 'frozen', ySplit: 1 }];
+  });
+  sumSheet.autoFilter = { from: 'A1', to: 'J1' };
+  tlSheet.autoFilter = { from: 'A1', to: 'F1' };
+
+  let prevBarcode = null;
+  tlSheet.eachRow((row, idx) => {
+    if (idx === 1) return;
+    const rowBc = row.getCell('barcode').value;
+    if (rowBc !== prevBarcode) row.eachCell(cell => { cell.border = { top: { style: 'thin', color: { argb: 'FFAFA8BC' } } }; });
+    prevBarcode = rowBc;
+  });
+
+  return wb;
+}
+
+async function downloadLookupExcel(barcodes, results, btn) {
+  const prevText = btn.textContent;
+  btn.disabled = true; btn.textContent = '⏳ 생성 중...';
+  try {
+    const wb  = await buildLookupWorkbook(barcodes, results);
+    const buf = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    a.href = url; a.download = `물건조회_${today}.xlsx`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    showError('엑셀 생성 실패: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = prevText;
+  }
+}
+
 function renderBulk(barcodes, results) {
   const found    = results.filter(r => r && (r.items || []).length > 0).length;
   const notFound = barcodes.length - found;
   const resultEl = document.getElementById('result');
 
-  let html = `<div class="muted text-sm mb8">총 ${barcodes.length}개 조회 — 확인 ${found}건${notFound > 0 ? ` / 미확인 ${notFound}건` : ''}</div>`;
+  let html = `<div class="flex mb8" style="align-items:center; gap:8px">
+    <div class="muted text-sm" style="flex:1">총 ${barcodes.length}개 조회 — 확인 ${found}건${notFound > 0 ? ` / 미확인 ${notFound}건` : ''}</div>
+    <button class="btn btn-outline btn-sm" id="excel-download-btn">📥 엑셀 다운로드</button>
+  </div>`;
   barcodes.forEach((bc, i) => {
     const data  = results[i];
     const items = data ? (data.items || []) : [];
@@ -293,6 +422,8 @@ function renderBulk(barcodes, results) {
   resultEl.querySelectorAll('.item-card[data-barcode]').forEach(card => {
     card.addEventListener('click', () => toggleTimeline(card));
   });
+  const dlBtn = document.getElementById('excel-download-btn');
+  dlBtn?.addEventListener('click', () => downloadLookupExcel(barcodes, results, dlBtn));
 }
 
 async function toggleTimeline(card) {
