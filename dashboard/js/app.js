@@ -208,17 +208,19 @@ async function renderLocation(name) {
     return;
   }
 
+  const items = await fetchItems(name);
+
   // Fetch in parallel; store-specific data only for non-warehouses
-  const fetches = [fetchItems(name)];
+  const fetches = [fetchPriceChangeMap(items)];
   if (!isWh) {
     fetches.push(fetchStoreSales(name));
     fetches.push(fetchArrivalMap(name));
     fetches.push(fetchYesterdayCatSales(name));
     fetches.push(fetchMonthlyCatSales(name));
   }
-  const [items, sales = [], arrivalMap = {}, yestSales = {}, monthlyCatSales = {}] = await Promise.all(fetches);
+  const [priceChangeMap, sales = [], arrivalMap = {}, yestSales = {}, monthlyCatSales = {}] = await Promise.all(fetches);
 
-  const cats    = buildCategoryStats(items, arrivalMap);
+  const cats    = buildCategoryStats(items, arrivalMap, priceChangeMap);
   const buckets = calcAgeBuckets(items, arrivalMap);
   const monthRev  = (sales || []).reduce((s, i) => s + (i.price || 0), 0);
   const oldCount  = items.filter(i => getArrivalAge(i, arrivalMap) > 90).length;
@@ -370,7 +372,7 @@ function onCatClick(e) {
     } else {
       box.classList.add('active');
       wrap.dataset.activeBucket = bucket;
-      wrap.innerHTML = renderBarcodeList(barcodes);
+      wrap.innerHTML = renderBarcodeList(barcodes, bucket);
     }
   });
 
@@ -386,9 +388,15 @@ function ageBox(label, val, color, bg, bucket) {
   </div>`;
 }
 
-function renderBarcodeList(barcodes) {
+function renderBarcodeList(barcodes, bucket) {
   if (!barcodes.length) return '<div class="empty" style="padding:10px 0">바코드 없음</div>';
-  return `<div class="barcode-list">${barcodes.map(b => `<span class="barcode-chip">${b.barcode ?? b}</span>`).join('')}</div>`;
+  return `<div class="barcode-list">${barcodes.map(b => {
+    if (typeof b === 'string') return `<span class="barcode-chip">${b}</span>`;
+    const hasPriceChange = b.priceChangedDaysAgo != null;
+    const urgent = bucket === 'old' && hasPriceChange;
+    const badge = hasPriceChange ? `<span class="chip-badge">💰 ${b.priceChangedDaysAgo}일 전</span>` : '';
+    return `<span class="barcode-chip${urgent ? ' barcode-chip-urgent' : ''}">${b.barcode}${badge}</span>`;
+  }).join('')}</div>`;
 }
 
 function downloadCatCSV(idx) {
@@ -890,14 +898,37 @@ function getArrivalAge(item, arrivalMap) {
   return Math.floor((Date.now() - new Date(arrivedAt)) / 86400000);
 }
 
-function buildCategoryStats(items, arrivalMap = {}) {
+// Returns { barcode: latest changed_at } for items currently held
+async function fetchPriceChangeMap(items) {
+  try {
+    const barcodes = [...new Set(items.map(i => i.barcode))];
+    if (!barcodes.length) return {};
+    const map = {};
+    for (let i = 0; i < barcodes.length; i += 200) {
+      const chunk = barcodes.slice(i, i + 200);
+      const { data } = await sb.from('price_changes').select('barcode,changed_at').in('barcode', chunk);
+      (data || []).forEach(r => {
+        if (!map[r.barcode] || r.changed_at > map[r.barcode]) map[r.barcode] = r.changed_at;
+      });
+    }
+    return map;
+  } catch {
+    return {};
+  }
+}
+
+function buildCategoryStats(items, arrivalMap = {}, priceChangeMap = {}) {
   const map = {};
   items.forEach(item => {
     const k   = normalizeCatName(item.category);
     const age = getArrivalAge(item, arrivalMap);
     if (!map[k]) map[k] = { total: 0, d30: 0, d60: 0, d90: 0, old: 0, barcodes: { d30: [], d60: [], d90: [], old: [] } };
     map[k].total++;
-    const entry = { barcode: item.barcode, price: item.price || 0, age };
+    const lastPriceChangeAt = priceChangeMap[item.barcode] || null;
+    const priceChangedDaysAgo = lastPriceChangeAt
+      ? Math.floor((Date.now() - new Date(lastPriceChangeAt)) / 86400000)
+      : null;
+    const entry = { barcode: item.barcode, price: item.price || 0, age, priceChangedDaysAgo };
     if      (age <= 30) { map[k].d30++; map[k].barcodes.d30.push(entry); }
     else if (age <= 60) { map[k].d60++; map[k].barcodes.d60.push(entry); }
     else if (age <= 90) { map[k].d90++; map[k].barcodes.d90.push(entry); }
