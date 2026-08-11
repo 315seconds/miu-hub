@@ -144,7 +144,7 @@ async function fetchItemData(bc) {
   const hanger  = invItem.inventory_hangers || {};
   const session = hanger.inventory_sessions || {};
   const category = hanger.category || invItem.category || '';
-  const location = session.location || invItem.location || '';
+  const location = invItem.location || session.location || '';
 
   const item = {
     barcode:   invItem.barcode,
