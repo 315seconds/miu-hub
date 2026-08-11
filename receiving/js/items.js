@@ -199,6 +199,19 @@ async function fetchItemData(bc) {
 // ── 조회 실행 ─────────────────────────────────────────────────────────────────
 document.getElementById('search-btn').addEventListener('click', () => searchBarcodes(scanned));
 
+const SEARCH_BATCH_SIZE = 25;
+
+async function fetchItemDataBatched(barcodes, onProgress) {
+  const results = [];
+  for (let i = 0; i < barcodes.length; i += SEARCH_BATCH_SIZE) {
+    const chunk = barcodes.slice(i, i + SEARCH_BATCH_SIZE);
+    const chunkResults = await Promise.all(chunk.map(bc => fetchItemData(bc).catch(() => null)));
+    results.push(...chunkResults);
+    onProgress?.(results.length, barcodes.length);
+  }
+  return results;
+}
+
 async function searchBarcodes(barcodes) {
   if (barcodes.length === 0) return;
   const resultEl = document.getElementById('result');
@@ -209,7 +222,9 @@ async function searchBarcodes(barcodes) {
       const data = await fetchItemData(barcodes[0]);
       resultEl.innerHTML = renderSingle(data);
     } else {
-      const results = await Promise.all(barcodes.map(bc => fetchItemData(bc).catch(() => null)));
+      const results = await fetchItemDataBatched(barcodes, (done, total) => {
+        resultEl.innerHTML = `<div class="empty" style="color:#60a5fa">⏳ 조회 중... (${done}/${total})</div>`;
+      });
       renderBulk(barcodes, results);
     }
   } catch (e) {
