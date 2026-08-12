@@ -525,6 +525,9 @@ function initPriceStep() {
             <input class="price-input" id="new-${i}" type="number" step="1000" min="0"
                    placeholder="${item.oldPrice}" data-original="${item.oldPrice}">
             <span class="muted">원</span>
+            <button class="pct-quick-btn" data-index="${i}" data-pct="30">30%</button>
+            <button class="pct-quick-btn" data-index="${i}" data-pct="50">50%</button>
+            <button class="pct-quick-btn" data-index="${i}" data-pct="70">70%</button>
           </div>
         </div>`;
       }).join('')}
@@ -565,6 +568,9 @@ function initPriceStep() {
     document.getElementById(`bulk-fixed-${g.hangerNumber}`).oninput = () => applyHangerBulkFixed(g.hangerNumber);
   });
   el.querySelectorAll('.price-input').forEach(inp => inp.oninput = () => onPriceChange(inp));
+  el.querySelectorAll('.pct-quick-btn').forEach(btn => {
+    btn.onclick = () => applyItemPct(Number(btn.dataset.index), Number(btn.dataset.pct));
+  });
   el.querySelector('#price-apply').onclick  = openPriceConfirm;
   el.querySelector('#price-cancel').onclick = () => el.querySelector('#price-modal').classList.remove('open');
   el.querySelector('#price-confirm').onclick = submitPriceChanges;
@@ -597,6 +603,14 @@ function applyHangerBulkPct(hangerNumber) {
     inp.value = Math.round((d.oldPrice * (1-pct/100)) / 1000) * 1000;
     onPriceChange(inp);
   });
+}
+
+function applyItemPct(i, pct) {
+  const d = S.priceOriginal[i];
+  const inp = document.getElementById(`new-${i}`);
+  if (!inp) return;
+  inp.value = Math.round((d.oldPrice * (1-pct/100)) / 1000) * 1000;
+  onPriceChange(inp);
 }
 
 function applyHangerBulkFixed(hangerNumber) {
