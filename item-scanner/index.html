@@ -939,6 +939,7 @@ async function saveCapture(){
     if(match){
       match.brandCaptured = data.brand_captured;
       match.photoCaptured = data.photo_captured;
+      match.error = false;
     }
     currentNeedCount = Math.max(0,currentNeedCount-1);
     currentDoneCount += 1;
