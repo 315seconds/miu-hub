@@ -67,7 +67,6 @@ button{touch-action:manipulation}
 .brand-input:focus{border-color:#54aeff;outline:0;box-shadow:0 0 0 3px rgba(9,105,218,.18)}
 .no-brand-btn{margin-top:8px;padding:8px 12px;border:1px solid var(--border);border-radius:6px;background:var(--subtle);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer}
 .no-brand-btn:active{background:#fff}
-.lock-warning{margin-top:14px;padding:9px 10px;border-radius:7px;background:var(--yellow-bg);color:var(--yellow);font-size:11px;line-height:1.5;text-align:left}
 .actions{display:flex;flex-direction:column;gap:8px;margin-top:16px}.btn{padding:13px 14px;border-radius:6px;border:1px solid rgba(31,35,40,.15);font-size:14px;font-weight:600;cursor:pointer}
 .btn:disabled{opacity:.55;cursor:not-allowed}.btn-primary{background:#1f883d;color:#fff;box-shadow:0 1px 0 rgba(31,35,40,.1)}.btn-primary:hover:not(:disabled){background:#1a7f37}.btn-secondary{background:var(--subtle);color:var(--text);border-color:var(--border)}
 .camera-input{display:none}.preview{display:none;margin-top:14px}.preview.show{display:block}.preview img{width:100%;max-height:220px;object-fit:cover;border:1px solid var(--border);border-radius:8px}
@@ -159,7 +158,6 @@ button{touch-action:manipulation}
       <button class="btn btn-primary" id="saveBtn" type="button" disabled>저장</button>
       <button class="btn btn-secondary" id="laterBtn" type="button">나중에</button>
     </div>
-    <p class="lock-warning">⚠️ 지금 저장하지 않고 "나중에"를 누르면 이 기기에서 <strong id="lockWarningBarcode">이 바코드</strong>를 다시 스캔할 수 없습니다. 다른 기기로 다시 스캔하거나 관리자에게 문의해주세요.</p>
   </div>
 </div>
 
@@ -227,7 +225,6 @@ const saveBtn = $('saveBtn');
 const beforePhoto = $('beforePhoto');
 const rows = $('rows');
 const saveStatus = $('saveStatus');
-const lockWarningBarcode = $('lockWarningBarcode');
 const connectionStatus = $('connectionStatus');
 const connectionError = $('connectionError');
 const connectionErrorText = $('connectionErrorText');
@@ -669,15 +666,9 @@ noBrandBtn.addEventListener('click',()=>{
   updateSaveButtonState();
 });
 
-laterBtn.addEventListener('click',async()=>{
+laterBtn.addEventListener('click',()=>{
   if(isSaving || !currentScanEntry) return;
-  const confirmed = await requestConfirmation({
-    title:'나중에 입력할까요?',
-    message:`${currentScanEntry.barcode}: 지금 입력하지 않으면 이 기기에서 같은 바코드를 다시 스캔할 수 없습니다. 정말 나중으로 미룰까요?`,
-    actionLabel:'그래도 나중에',
-    danger:true
-  });
-  if(confirmed) closeCaptureModal();
+  closeCaptureModal();
 });
 
 function requestConfirmation({title,message,actionLabel='확인',danger=false,showCancel=true}){
@@ -877,7 +868,6 @@ function openCaptureModal(entry){
   captureTitle.textContent = copy.title;
   captureDesc.textContent = copy.desc;
   modalBarcode.textContent = entry.barcode;
-  lockWarningBarcode.textContent = entry.barcode;
   brandSection.style.display = entry.brandNeeded ? 'block' : 'none';
   photoSection.style.display = entry.photoNeeded ? 'block' : 'none';
   brandInput.value = '';
