@@ -471,7 +471,7 @@ async function loadHangerState(){
 
   const currentFilter = query=>query.eq('device_id',DEVICE_ID).eq('hanger_id',activeHanger.id);
   const [recent,current,need] = await Promise.all([
-    currentFilter(supabase.from('hanger_scans').select('id,barcode,brand_needed,photo_needed,brand_captured,photo_captured,scanned_at').order('id',{ascending:false}).limit(30)),
+    currentFilter(supabase.from('hanger_scans').select('id,barcode,brand_needed,photo_needed,brand_captured,photo_captured,scanned_at').order('id',{ascending:false})),
     currentFilter(supabase.from('hanger_scans').select('*',{count:'exact',head:true})),
     currentFilter(supabase.from('hanger_scans').select('*',{count:'exact',head:true}))
       .or('and(brand_needed.eq.true,brand_captured.eq.false),and(photo_needed.eq.true,photo_captured.eq.false)')
@@ -594,7 +594,6 @@ async function handleScan(barcode){
       time:formatTime(savedScan.scanned_at)
     };
     logs.unshift(entry);
-    logs = logs.slice(0,30);
     currentHangerCount += 1;
     cumulativeCount += 1;
     if(entry.brandNeeded || entry.photoNeeded) currentNeedCount += 1; else currentDoneCount += 1;
@@ -1249,7 +1248,7 @@ function render(){
   if(!logs.length){
     rows.innerHTML='<div class="empty">현재 행거에 아직 스캔 기록이 없습니다.</div>';
   }else{
-    rows.innerHTML = logs.slice(0,30).map(item=>{
+    rows.innerHTML = logs.map(item=>{
       const status = scanStatusLabel(item);
       const resumable = isResumable(item);
       return `<div class="row${resumable?' resumable':''}"${resumable?` data-log-id="${item.id}"`:''}><div><div class="code">${escapeHtml(item.barcode)}</div><div class="time">${item.time}</div></div><div class="tag ${status.cls}">${status.label}</div><button class="row-delete" type="button" data-delete-id="${item.id}" aria-label="스캔 삭제">✕</button></div>`;
