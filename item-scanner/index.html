@@ -30,6 +30,8 @@ button{touch-action:manipulation}
 .header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;background:var(--subtle);border:1px solid var(--border);border-radius:10px}
 .brand-name{font-size:15px;font-weight:700}.brand-sub{margin-top:3px;color:var(--muted);font:9px var(--mono);letter-spacing:1.2px}
 .status{flex:0 0 auto;padding:5px 9px;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--muted);font:700 10px var(--mono)}
+.home-link{flex:0 0 auto;padding:5px 9px;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--muted);font-size:11px;text-decoration:none}
+.home-link:active{background:var(--subtle)}
 .status.online{color:var(--green);background:var(--green-bg);border-color:#4ac26b}.status.error{color:var(--red);background:var(--red-bg);border-color:#ff8182}
 .connection{display:none;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid #ff8182;border-radius:8px;background:var(--red-bg);color:var(--red);font-size:12px;line-height:1.4}
 .connection.show{display:flex}.retry-btn{flex:0 0 auto;padding:6px 9px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);font-size:11px;font-weight:600;cursor:pointer}
@@ -75,6 +77,7 @@ button{touch-action:manipulation}
 <main class="app">
   <header class="header">
     <div><div class="brand-name">브랜드/사진 스캐너</div><div class="brand-sub">MARKET IN U · SUPABASE TEST</div></div>
+    <a class="home-link" href="../">← 허브</a>
     <div class="status" id="connectionStatus">연결 중</div>
   </header>
 
