@@ -603,11 +603,9 @@ async function handleScan(barcode){
     if(recoveredHanger) setHangerMessage('행거 정보를 다시 연결하고 스캔을 정상 저장했습니다.',false);
 
     if(entry.brandNeeded || entry.photoNeeded){
-      currentScanEntry = entry;
-      currentHangerScanId = savedScan.id;
       vibrate([180,80,180]);
       playWarningTone();
-      openCaptureModal(entry);
+      setHangerMessage(`${barcode}: 정보 필요 · 스캔이 끝나면 목록에서 눌러 입력하세요.`,false);
     }else{
       vibrate(35);
       setHangerMessage(`${barcode}: 브랜드와 사진정보 다 들어가있습니다.`,false);
