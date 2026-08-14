@@ -274,6 +274,11 @@ begin
       message = 'hanger scan not found for this device';
   end if;
 
+  -- 행거 초기화 후 같은 바코드를 다시 스캔/저장하는 경우, 이전 캡처는 덮어쓰기(최신 것만 유지)한다.
+  delete from public.item_captures
+  where device_id = p_device_id
+    and barcode = normalized_barcode;
+
   insert into public.item_captures (barcode, brand, storage_path, device_id, hanger_scan_id)
   values (normalized_barcode, p_brand, p_storage_path, p_device_id, p_hanger_scan_id)
   returning * into capture_row;
