@@ -133,7 +133,8 @@ button{touch-action:manipulation}
 
     <div class="capture-section" id="brandSection">
       <label class="section-label" for="brandInput">브랜드</label>
-      <input id="brandInput" class="brand-input" type="text" placeholder="브랜드명을 입력하세요" autocomplete="off" autocorrect="off" spellcheck="false">
+      <input id="brandInput" class="brand-input" type="text" placeholder="브랜드명을 입력하세요" autocomplete="off" autocorrect="off" spellcheck="false" list="brandList">
+      <datalist id="brandList"></datalist>
     </div>
 
     <div class="capture-section" id="photoSection">
@@ -210,6 +211,7 @@ const captureDesc = $('captureDesc');
 const modalBarcode = $('modalBarcode');
 const brandSection = $('brandSection');
 const brandInput = $('brandInput');
+const brandList = $('brandList');
 const photoSection = $('photoSection');
 const cameraInput = $('cameraInput');
 const cameraBtn = $('cameraBtn');
@@ -408,6 +410,16 @@ async function checkInventoryStatus(barcode){
   const brandFilled = data.some(row => row.brand);
   const photoFilled = data.some(row => row.photo_url);
   return { found:true, brandNeeded:!brandFilled, photoNeeded:!photoFilled };
+}
+
+async function loadBrandSuggestions(){
+  const { data, error } = await prodSupabase
+    .from('inventory_items')
+    .select('brand')
+    .not('brand','is',null);
+  if(error) throw error;
+  const brands = [...new Set(data.map(row => row.brand.trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+  brandList.innerHTML = brands.map(brand => `<option value="${escapeHtml(brand)}">`).join('');
 }
 
 async function loadActiveHanger(){
@@ -1269,6 +1281,7 @@ window.addEventListener('beforeunload',()=>{
   hangerSyncChannel?.close();
 });
 loadAppState();
+loadBrandSuggestions().catch(error => console.error('Failed to load brand suggestions', error));
 </script>
 </body>
 </html>
