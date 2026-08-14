@@ -1,0 +1,24 @@
+{
+  "name": "브랜드/사진 스캐너",
+  "short_name": "브랜드/사진 스캐너",
+  "description": "바코드를 스캔해 브랜드·사진 중 비어있는 정보를 현장에서 채워넣는 모바일 도구",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#f6f8fa",
+  "icons": [
+    {
+      "src": "icon-192-ee409840.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512-baaae6a4.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

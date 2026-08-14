@@ -118,6 +118,7 @@ body {
 .tile-report     { border-left: 3px solid #f59e0b; }
 .tile-inventory  { border-left: 3px solid #06b6d4; }
 .tile-lookup     { border-left: 3px solid #6366f1; }
+.tile-scanner    { border-left: 3px solid #ec4899; }
 
 .footer {
   text-align: center;
@@ -136,6 +137,15 @@ body {
 </div>
 
 <div class="grid">
+  <!-- 브랜드/사진 소급백필 임시 타일: 작업 끝나면 이 블록만 삭제하면 됨 -->
+  <a href="item-scanner/" class="tile tile-scanner">
+    <div class="tile-icon">📷</div>
+    <div>
+      <div class="tile-label">브랜드/사진 스캐너</div>
+      <div class="tile-desc">바코드 스캔 → 브랜드·사진 현장 입력</div>
+    </div>
+  </a>
+
   <a href="receiving/" class="tile tile-receiving">
     <div class="tile-icon">📦</div>
     <div>

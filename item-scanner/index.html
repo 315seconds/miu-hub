@@ -1,0 +1,1271 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#f6f8fa">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="브랜드/사진 스캐너">
+<title>브랜드/사진 스캐너</title>
+<link rel="icon" href="icon-192-ee409840.png" type="image/png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-4c938e16.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<style>
+:root{
+  --bg:#fff;--subtle:#f6f8fa;--border:#d0d7de;--border-muted:#d8dee4;
+  --text:#1f2328;--muted:#656d76;--dim:#8c959f;--blue:#0969da;
+  --green:#1a7f37;--green-bg:#dafbe1;--red:#cf222e;--red-bg:#ffebe9;
+  --yellow:#9a6700;--yellow-bg:#fff8c5;--shadow:0 1px 0 rgba(31,35,40,.04);
+  --sans:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--text);min-height:100%;font-family:var(--sans)}
+button,input{font:inherit}
+button{touch-action:manipulation}
+.app{max-width:480px;min-height:100dvh;margin:0 auto;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px}
+.header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;background:var(--subtle);border:1px solid var(--border);border-radius:10px}
+.brand-name{font-size:15px;font-weight:700}.brand-sub{margin-top:3px;color:var(--muted);font:9px var(--mono);letter-spacing:1.2px}
+.status{flex:0 0 auto;padding:5px 9px;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--muted);font:700 10px var(--mono)}
+.status.online{color:var(--green);background:var(--green-bg);border-color:#4ac26b}.status.error{color:var(--red);background:var(--red-bg);border-color:#ff8182}
+.connection{display:none;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid #ff8182;border-radius:8px;background:var(--red-bg);color:var(--red);font-size:12px;line-height:1.4}
+.connection.show{display:flex}.retry-btn{flex:0 0 auto;padding:6px 9px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);font-size:11px;font-weight:600;cursor:pointer}
+.hanger-strip{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+.hanger-badge{font-size:13px;font-weight:700;white-space:nowrap}.hanger-progress{color:var(--muted);font-size:11px;text-align:right}.hanger-progress strong{color:var(--text);font-weight:700}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{padding:12px;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+.stat-label{color:var(--muted);font-size:9px;font-weight:600;letter-spacing:.8px}.stat-value{margin-top:5px;font-size:24px;font-weight:700}
+.scan-card{padding:16px;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+.scan-title{margin-bottom:10px;font-size:13px;font-weight:700}.scan-input{width:100%;padding:15px 16px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);font:600 16px var(--mono);text-align:center;letter-spacing:1px;box-shadow:inset 0 1px 0 rgba(208,215,222,.2)}
+.scan-input:focus{border-color:#54aeff;outline:0;box-shadow:0 0 0 3px rgba(9,105,218,.18)}.scan-input:disabled{background:var(--subtle);color:var(--dim);cursor:not-allowed}
+.hint{margin-top:8px;color:var(--muted);font-size:11px;line-height:1.5;text-align:center}.hint strong{color:var(--text)}
+.hanger-actions{display:grid;grid-template-columns:.85fr 1.25fr 1.45fr;gap:8px}.hanger-action{min-height:50px;padding:10px 8px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--text);font-size:12px;font-weight:750;cursor:pointer}
+.hanger-action.reset{color:var(--red);border-color:#ff8182}.hanger-action.complete{background:var(--blue);border-color:var(--blue);color:#fff}.hanger-action:disabled{opacity:.45;cursor:not-allowed}
+.hanger-message{display:none;margin-top:-4px;padding:8px 10px;border-radius:7px;background:var(--green-bg);color:var(--green);font-size:11px;line-height:1.4}.hanger-message.show{display:block}.hanger-message.error{background:var(--red-bg);color:var(--red)}
+.list{flex:1;overflow:hidden;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+.list-head{display:flex;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border-muted);background:var(--subtle);color:var(--muted);font-size:11px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border-muted)}.row:last-child{border-bottom:0}
+.row.resumable{cursor:pointer}.row.resumable:active{background:var(--subtle)}
+.code{font:600 12px var(--mono)}.time{margin-top:3px;color:var(--muted);font:10px var(--mono)}
+.tag{padding:3px 7px;border:1px solid var(--border);border-radius:999px;background:var(--subtle);color:var(--muted);font:700 9px var(--mono)}
+.tag.target{color:var(--yellow);background:var(--yellow-bg);border-color:#d4a72c}.tag.done{color:var(--green);background:var(--green-bg);border-color:#4ac26b}.tag.error{color:var(--red);background:var(--red-bg);border-color:#ff8182}
+.empty{padding:40px 20px;color:var(--muted);font-size:12px;text-align:center}.footer-note{padding:4px;color:var(--muted);font-size:10px;text-align:center}
+.result-export{padding-top:4px}.result-export-btn{width:100%;min-height:42px;padding:9px 12px;border:1px solid var(--blue);border-radius:8px;background:#fff;color:var(--blue);font-size:11px;font-weight:700;cursor:pointer}.result-export-btn:disabled{color:var(--dim);border-color:var(--border);opacity:.55;cursor:not-allowed}.result-export-status{display:none;margin-top:7px;color:var(--muted);font-size:10px;line-height:1.4;text-align:center}.result-export-status.show{display:block}.result-export-status.error{color:var(--red)}
+.full-reset{padding-top:4px}.full-reset-btn{width:100%;min-height:42px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--red);font-size:11px;font-weight:700;cursor:pointer}.full-reset-btn:disabled{color:var(--dim);opacity:.55;cursor:not-allowed}
+.modal-bg{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(31,35,40,.4)}.modal-bg.show{display:flex}
+.modal{width:min(100%,350px);max-height:calc(100dvh - 44px);overflow-y:auto;padding:24px;background:#fff;border:1px solid var(--border);border-top:4px solid #bf8700;border-radius:12px;box-shadow:0 8px 24px rgba(140,149,159,.25);text-align:center}
+.warn{font-size:34px}.modal h2{margin:10px 0 6px;font-size:18px}.modal p{color:var(--muted);font-size:13px;line-height:1.55}
+.confirm-modal{border-top-color:var(--border)}.confirm-icon{font-size:28px}.confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px}.btn-danger{background:var(--red);color:#fff}.btn-warning{background:#1f883d;color:#fff}
+.target-code{margin:14px 0;padding:10px;border:1px solid #d4a72c;border-radius:8px;background:var(--yellow-bg);color:var(--yellow);font:700 15px var(--mono)}
+.capture-section{margin-top:14px;text-align:left}
+.section-label{display:block;margin-bottom:6px;color:var(--muted);font-size:11px;font-weight:700}
+.brand-input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);font:600 15px var(--sans)}
+.brand-input:focus{border-color:#54aeff;outline:0;box-shadow:0 0 0 3px rgba(9,105,218,.18)}
+.lock-warning{margin-top:14px;padding:9px 10px;border-radius:7px;background:var(--yellow-bg);color:var(--yellow);font-size:11px;line-height:1.5;text-align:left}
+.actions{display:flex;flex-direction:column;gap:8px;margin-top:16px}.btn{padding:13px 14px;border-radius:6px;border:1px solid rgba(31,35,40,.15);font-size:14px;font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.55;cursor:not-allowed}.btn-primary{background:#1f883d;color:#fff;box-shadow:0 1px 0 rgba(31,35,40,.1)}.btn-primary:hover:not(:disabled){background:#1a7f37}.btn-secondary{background:var(--subtle);color:var(--text);border-color:var(--border)}
+.camera-input{display:none}.preview{display:none;margin-top:14px}.preview.show{display:block}.preview img{width:100%;max-height:220px;object-fit:cover;border:1px solid var(--border);border-radius:8px}
+.preview-actions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}.save-status{display:none;margin-top:14px;padding:9px;border-radius:6px;background:var(--subtle);color:var(--muted);font-size:12px;line-height:1.4}.save-status.show{display:block}.save-status.error{background:var(--red-bg);color:var(--red)}
+@media (prefers-reduced-motion:no-preference){.modal{animation:modal-in .14s ease-out}@keyframes modal-in{from{transform:translateY(8px);opacity:.7}to{transform:none;opacity:1}}}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="header">
+    <div><div class="brand-name">브랜드/사진 스캐너</div><div class="brand-sub">MARKET IN U · SUPABASE TEST</div></div>
+    <div class="status" id="connectionStatus">연결 중</div>
+  </header>
+
+  <div class="connection" id="connectionError">
+    <span id="connectionErrorText">행거 진행 상태를 불러오지 못했습니다.</span>
+    <button class="retry-btn" id="retryBtn" type="button">다시 연결</button>
+  </div>
+
+  <section class="hanger-strip" aria-label="현재 행거 진행 상황">
+    <div class="hanger-badge" id="hangerBadge">행거 준비 중</div>
+    <div class="hanger-progress">현재 <strong><span id="currentHangerCount">0</span>건</strong> · 누적 <strong><span id="cumulativeCount">0</span>건</strong></div>
+  </section>
+
+  <section class="stats" aria-label="행거 작업 통계">
+    <div class="stat"><div class="stat-label">TOTAL</div><div class="stat-value" id="totalCount">0</div></div>
+    <div class="stat"><div class="stat-label">NEED</div><div class="stat-value" id="needCount">0</div></div>
+    <div class="stat"><div class="stat-label">DONE</div><div class="stat-value" id="doneCount">0</div></div>
+  </section>
+
+  <section class="scan-card">
+    <div class="scan-title">바코드를 스캔해주세요</div>
+    <input id="scanInput" class="scan-input" lang="en" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" inputmode="none" placeholder="연결 중" disabled>
+    <div class="hint" id="scanHint">테스트 Supabase에 연결하고 있습니다.</div>
+  </section>
+
+  <section class="hanger-actions" aria-label="행거 작업 제어">
+    <button class="hanger-action" id="deleteScanBtn" type="button" disabled>↶ 삭제</button>
+    <button class="hanger-action reset" id="resetHangerBtn" type="button" disabled>현재 행거 초기화</button>
+    <button class="hanger-action complete" id="completeHangerBtn" type="button" disabled>행거 완료 →</button>
+  </section>
+  <div class="hanger-message" id="hangerMessage" aria-live="polite"></div>
+
+  <section class="list">
+    <div class="list-head"><span>최근 스캔</span><span id="lastCode">-</span></div>
+    <div id="rows"><div class="empty">아직 스캔 기록이 없습니다.</div></div>
+  </section>
+  <section class="result-export" aria-label="작업 결과 다운로드">
+    <button class="result-export-btn" id="exportResultBtn" type="button" disabled>결과 엑셀 다운로드</button>
+    <div class="result-export-status" id="exportResultStatus" aria-live="polite"></div>
+  </section>
+  <div class="footer-note" id="footerNote">독립 테스트 서버 연결 · 운영 DB는 조회만 함</div>
+  <section class="full-reset" aria-label="전체 작업 초기화">
+    <button class="full-reset-btn" id="fullResetBtn" type="button" disabled>전체 초기화</button>
+  </section>
+</main>
+
+<div class="modal-bg" id="captureModal" role="dialog" aria-modal="true" aria-labelledby="captureTitle">
+  <div class="modal">
+    <div class="warn" aria-hidden="true">⚠️</div>
+    <h2 id="captureTitle">입력이 필요합니다</h2>
+    <p id="captureDesc">-</p>
+    <div class="target-code" id="modalBarcode">-</div>
+
+    <div class="capture-section" id="brandSection">
+      <label class="section-label" for="brandInput">브랜드</label>
+      <input id="brandInput" class="brand-input" type="text" placeholder="브랜드명을 입력하세요" autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+
+    <div class="capture-section" id="photoSection">
+      <label class="section-label">사진</label>
+      <div id="beforePhoto">
+        <button class="btn btn-secondary" id="cameraBtn" type="button">📷 사진 촬영</button>
+      </div>
+      <input id="cameraInput" class="camera-input" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment">
+      <div class="preview" id="previewBox">
+        <img id="previewImg" alt="촬영 미리보기">
+        <div class="preview-actions">
+          <button class="btn btn-secondary" id="retakeBtn" type="button">다시 촬영</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="save-status" id="saveStatus" aria-live="polite"></div>
+    <div class="actions">
+      <button class="btn btn-primary" id="saveBtn" type="button" disabled>저장</button>
+      <button class="btn btn-secondary" id="laterBtn" type="button">나중에</button>
+    </div>
+    <p class="lock-warning">⚠️ 지금 저장하지 않고 "나중에"를 누르면 이 기기에서 <strong id="lockWarningBarcode">이 바코드</strong>를 다시 스캔할 수 없습니다. 다른 기기로 다시 스캔하거나 관리자에게 문의해주세요.</p>
+  </div>
+</div>
+
+<div class="modal-bg" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+  <div class="modal confirm-modal">
+    <div class="confirm-icon" aria-hidden="true">↪</div>
+    <h2 id="confirmTitle">확인</h2>
+    <p id="confirmMessage"></p>
+    <div class="confirm-actions">
+      <button class="btn btn-secondary" id="confirmCancelBtn" type="button">취소</button>
+      <button class="btn btn-warning" id="confirmActionBtn" type="button">확인</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3/+esm';
+
+const TEST_SUPABASE_URL = 'https://ozvuistaledjcvjcccma.supabase.co';
+const TEST_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96dnVpc3RhbGVkamN2amNjY21hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NjA0MjcsImV4cCI6MjEwMjIzNjQyN30.OQ2_hZP6YsRIMMVwLDg61KWgMfCC62XJ8D-KvlhOFzQ';
+
+// 운영(마켓인유 허브) Supabase — 이 화면에서는 inventory_items 를 읽기 전용으로만 조회한다.
+// miu-hub/receiving/js/supabase-client.js 와 동일한 값(anon key, 이미 공개된 클라이언트 키).
+const PROD_SUPABASE_URL = 'https://yqnocnzjrcsrwrvsvsyg.supabase.co';
+const PROD_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlxbm9jbnpqcmNzcndydnN2c3lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNjExNzgsImV4cCI6MjA5MTgzNzE3OH0.u172XxuUcRF7WhT0UmLq-xQjoeDjBt95Qgbstln8mMs';
+
+const STORAGE_BUCKET = 'item-photos';
+const EXCELJS_MODULE_URL = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/+esm';
+const PAGE_SIZE = 1000;
+const DEVICE_STORAGE_KEY = 'item-scanner-device-id';
+const DEVICE_ID = getOrCreateDeviceId();
+const INSTANCE_ID = createUuid();
+const HANGER_SYNC_CHANNEL_NAME = `item-scanner-hanger-${DEVICE_ID}`;
+const HANGER_SYNC_STORAGE_KEY = `${HANGER_SYNC_CHANNEL_NAME}-event`;
+const hangerSyncChannel = typeof BroadcastChannel === 'function' ? new BroadcastChannel(HANGER_SYNC_CHANNEL_NAME) : null;
+
+const supabase = createClient(TEST_SUPABASE_URL, TEST_SUPABASE_ANON_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  global: { headers: { 'x-device-id': DEVICE_ID } }
+});
+
+// 읽기 전용: 이 클라이언트로는 .select() 이외의 쓰기 호출을 절대 추가하지 않는다.
+const prodSupabase = createClient(PROD_SUPABASE_URL, PROD_SUPABASE_ANON_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+});
+
+const $ = id => document.getElementById(id);
+const scanInput = $('scanInput');
+const captureModal = $('captureModal');
+const captureTitle = $('captureTitle');
+const captureDesc = $('captureDesc');
+const modalBarcode = $('modalBarcode');
+const brandSection = $('brandSection');
+const brandInput = $('brandInput');
+const photoSection = $('photoSection');
+const cameraInput = $('cameraInput');
+const cameraBtn = $('cameraBtn');
+const laterBtn = $('laterBtn');
+const previewBox = $('previewBox');
+const previewImg = $('previewImg');
+const retakeBtn = $('retakeBtn');
+const saveBtn = $('saveBtn');
+const beforePhoto = $('beforePhoto');
+const rows = $('rows');
+const saveStatus = $('saveStatus');
+const lockWarningBarcode = $('lockWarningBarcode');
+const connectionStatus = $('connectionStatus');
+const connectionError = $('connectionError');
+const connectionErrorText = $('connectionErrorText');
+const retryBtn = $('retryBtn');
+const deleteScanBtn = $('deleteScanBtn');
+const resetHangerBtn = $('resetHangerBtn');
+const completeHangerBtn = $('completeHangerBtn');
+const fullResetBtn = $('fullResetBtn');
+const exportResultBtn = $('exportResultBtn');
+const exportResultStatus = $('exportResultStatus');
+const hangerMessage = $('hangerMessage');
+const confirmModal = $('confirmModal');
+const confirmTitle = $('confirmTitle');
+const confirmMessage = $('confirmMessage');
+const confirmCancelBtn = $('confirmCancelBtn');
+const confirmActionBtn = $('confirmActionBtn');
+
+let logs = [];
+let activeHanger = null;
+let currentScanEntry = null;
+let currentHangerScanId = null;
+let currentFile = null;
+let previewUrl = null;
+let hangerReady = false;
+let isSaving = false;
+let isRecordingScan = false;
+let isHangerBusy = false;
+let isSyncingHanger = false;
+let isExporting = false;
+let pendingHangerSync = false;
+let nextHangerNumber = 1;
+let currentHangerCount = 0;
+let cumulativeCount = 0;
+let currentNeedCount = 0;
+let currentDoneCount = 0;
+let confirmResolver = null;
+let excelJsPromise = null;
+
+const HANGUL_INITIAL_KEYS = ['r','R','s','e','E','f','a','q','Q','t','T','d','w','W','c','z','x','v','g'];
+const HANGUL_MEDIAL_KEYS = ['k','o','i','O','j','p','u','P','h','hk','ho','hl','y','n','nj','np','nl','b','m','ml','l'];
+const HANGUL_FINAL_KEYS = ['','r','R','rt','s','sw','sg','e','f','fr','fa','fq','ft','fx','fv','fg','a','q','qt','t','T','d','w','c','z','x','v','g'];
+const HANGUL_JAMO_KEYS = new Map(Object.entries({
+  'ㄱ':'r','ㄲ':'R','ㄳ':'rt','ㄴ':'s','ㄵ':'sw','ㄶ':'sg','ㄷ':'e','ㄸ':'E','ㄹ':'f','ㄺ':'fr','ㄻ':'fa','ㄼ':'fq','ㄽ':'ft','ㄾ':'fx','ㄿ':'fv','ㅀ':'fg','ㅁ':'a','ㅂ':'q','ㅃ':'Q','ㅄ':'qt','ㅅ':'t','ㅆ':'T','ㅇ':'d','ㅈ':'w','ㅉ':'W','ㅊ':'c','ㅋ':'z','ㅌ':'x','ㅍ':'v','ㅎ':'g',
+  'ㅏ':'k','ㅐ':'o','ㅑ':'i','ㅒ':'O','ㅓ':'j','ㅔ':'p','ㅕ':'u','ㅖ':'P','ㅗ':'h','ㅘ':'hk','ㅙ':'ho','ㅚ':'hl','ㅛ':'y','ㅜ':'n','ㅝ':'nj','ㅞ':'np','ㅟ':'nl','ㅠ':'b','ㅡ':'m','ㅢ':'ml','ㅣ':'l'
+}));
+
+function hangulKeyboardToLatin(value){
+  let result = '';
+  for(const char of String(value || '')){
+    const code = char.charCodeAt(0);
+    if(code >= 0xac00 && code <= 0xd7a3){
+      const offset = code - 0xac00;
+      result += HANGUL_INITIAL_KEYS[Math.floor(offset / 588)];
+      result += HANGUL_MEDIAL_KEYS[Math.floor((offset % 588) / 28)];
+      result += HANGUL_FINAL_KEYS[offset % 28];
+    }else{
+      result += HANGUL_JAMO_KEYS.get(char) || char;
+    }
+  }
+  return result;
+}
+
+function normalizeBarcode(value){ return hangulKeyboardToLatin(value).trim().replace(/\s+/g, '').toUpperCase(); }
+function formatTime(value=new Date()){ return new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date(value)); }
+function formatKstDateTime(value){ return value ? new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).format(new Date(value)) : ''; }
+function formatKstFileDate(value=new Date()){
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(value)).filter(part=>part.type!=='literal').map(part=>[part.type,part.value]));
+  return `${parts.year}.${parts.month}.${parts.day}`;
+}
+function toKstExcelDate(value){ return value ? new Date(new Date(value).getTime() + 9 * 60 * 60 * 1000) : null; }
+function vibrate(pattern){ if(navigator.vibrate) navigator.vibrate(pattern); }
+function appReady(){ return hangerReady && !isHangerBusy && !isRecordingScan && !isSyncingHanger && !isExporting; }
+function refocus(){ if(appReady() && !captureModal.classList.contains('show') && !confirmModal.classList.contains('show')) setTimeout(()=>scanInput.focus(),80); }
+
+function createUuid(){
+  if(crypto.randomUUID) return crypto.randomUUID();
+  return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g,char=>(Number(char)^crypto.getRandomValues(new Uint8Array(1))[0]&(15>>Number(char)/4)).toString(16));
+}
+
+function getOrCreateDeviceId(){
+  try{
+    const stored = localStorage.getItem(DEVICE_STORAGE_KEY);
+    if(stored && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(stored)) return stored;
+    const created = createUuid();
+    localStorage.setItem(DEVICE_STORAGE_KEY,created);
+    return created;
+  }catch(_error){
+    return createUuid();
+  }
+}
+
+function isDuplicateScanError(error){
+  return error?.code === '23505'
+    && `${error.message || ''} ${error.details || ''}`.includes('hanger_scans_device_barcode_key');
+}
+
+function createHangerSyncEvent(type){
+  return {type,deviceId:DEVICE_ID,sourceId:INSTANCE_ID,createdAt:Date.now()};
+}
+
+function broadcastHangerChange(type){
+  const event = createHangerSyncEvent(type);
+  if(hangerSyncChannel){
+    hangerSyncChannel.postMessage(event);
+    return;
+  }
+  try{
+    localStorage.setItem(HANGER_SYNC_STORAGE_KEY,JSON.stringify(event));
+    localStorage.removeItem(HANGER_SYNC_STORAGE_KEY);
+  }catch(_error){ /* 탭 동기화가 불가능해도 DB 검증으로 복구 */ }
+}
+
+function shouldAcceptHangerSync(event){
+  return event?.deviceId === DEVICE_ID && event?.sourceId !== INSTANCE_ID;
+}
+
+function canSynchronizeHangerNow(){
+  return !isRecordingScan && !isHangerBusy && !isSaving
+    && !captureModal.classList.contains('show')
+    && !confirmModal.classList.contains('show');
+}
+
+function playWarningTone(){
+  try{
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if(!AudioContext) return;
+    const context = new AudioContext();
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.value = 880;
+    gain.gain.setValueAtTime(.08, context.currentTime);
+    gain.gain.exponentialRampToValueAtTime(.001, context.currentTime + .16);
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start();
+    oscillator.stop(context.currentTime + .16);
+    oscillator.addEventListener('ended',()=>context.close().catch(()=>{}),{once:true});
+  }catch(_error){ /* 브라우저 정책상 차단되면 진동만 사용 */ }
+}
+
+async function loadAppState(){
+  hangerReady = false;
+  scanInput.disabled = true;
+  scanInput.placeholder = '연결 중';
+  connectionStatus.textContent = '연결 중';
+  connectionStatus.className = 'status';
+  connectionError.classList.remove('show');
+  retryBtn.disabled = true;
+  setHangerMessage('',false);
+  render();
+
+  try{
+    await loadHangerState();
+    hangerReady = true;
+    scanInput.disabled = false;
+    scanInput.placeholder = 'SCAN BARCODE';
+    connectionStatus.textContent = 'ONLINE';
+    connectionStatus.className = 'status online';
+    $('scanHint').innerHTML = '스캔 시 운영 재고와 실시간 대조해 브랜드·사진 필요 여부를 판정합니다.';
+    $('footerNote').textContent = '테스트 Supabase(기록) + 운영 Supabase(조회) 연결됨 · 운영 DB에는 쓰지 않음';
+    render();
+    refocus();
+  }catch(error){
+    console.error('Failed to load hanger state', error);
+    activeHanger = null;
+    connectionStatus.textContent = 'ERROR';
+    connectionStatus.className = 'status error';
+    connectionErrorText.textContent = '행거 진행 상태를 불러오지 못했습니다. 네트워크를 확인한 뒤 다시 연결해주세요.';
+    connectionError.classList.add('show');
+    $('scanHint').textContent = '진행 상태 연결 전에는 누락 방지를 위해 스캔할 수 없습니다.';
+    render();
+  }finally{
+    retryBtn.disabled = false;
+  }
+}
+
+async function checkInventoryStatus(barcode){
+  const { data, error } = await prodSupabase
+    .from('inventory_items')
+    .select('brand,photo_url')
+    .eq('barcode', barcode);
+  if(error) throw error;
+  if(!data.length) return { found:false, brandNeeded:false, photoNeeded:false };
+  const brandFilled = data.some(row => row.brand);
+  const photoFilled = data.some(row => row.photo_url);
+  return { found:true, brandNeeded:!brandFilled, photoNeeded:!photoFilled };
+}
+
+async function loadActiveHanger(){
+  const { data: existing, error: existingError } = await supabase
+    .from('scan_hangers')
+    .select('id,hanger_number,status,created_at')
+    .eq('device_id',DEVICE_ID)
+    .eq('status','active')
+    .order('hanger_number',{ascending:false})
+    .limit(1)
+    .maybeSingle();
+  if(existingError) throw existingError;
+  if(existing){
+    nextHangerNumber = existing.hanger_number;
+    return existing;
+  }
+
+  const { data: latest, error: latestError } = await supabase
+    .from('scan_hangers')
+    .select('hanger_number')
+    .eq('device_id',DEVICE_ID)
+    .order('hanger_number',{ascending:false})
+    .limit(1)
+    .maybeSingle();
+  if(latestError) throw latestError;
+  nextHangerNumber = (latest?.hanger_number || 0)+1;
+  return null;
+}
+
+async function loadHangerState(){
+  activeHanger = await loadActiveHanger();
+  const { count: totalCount, error: totalError } = await supabase
+    .from('hanger_scans')
+    .select('*',{count:'exact',head:true})
+    .eq('device_id',DEVICE_ID);
+  if(totalError) throw totalError;
+  cumulativeCount = totalCount || 0;
+
+  if(!activeHanger){
+    logs = [];
+    currentHangerCount = 0;
+    currentNeedCount = 0;
+    currentDoneCount = 0;
+    return;
+  }
+
+  const currentFilter = query=>query.eq('device_id',DEVICE_ID).eq('hanger_id',activeHanger.id);
+  const [recent,current,need] = await Promise.all([
+    currentFilter(supabase.from('hanger_scans').select('id,barcode,brand_needed,photo_needed,brand_captured,photo_captured,scanned_at').order('id',{ascending:false}).limit(30)),
+    currentFilter(supabase.from('hanger_scans').select('*',{count:'exact',head:true})),
+    currentFilter(supabase.from('hanger_scans').select('*',{count:'exact',head:true}))
+      .or('and(brand_needed.eq.true,brand_captured.eq.false),and(photo_needed.eq.true,photo_captured.eq.false)')
+  ]);
+  for(const result of [recent,current,need]) if(result.error) throw result.error;
+  logs = recent.data.map(item=>({
+    id:item.id,
+    barcode:item.barcode,
+    brandNeeded:item.brand_needed,
+    photoNeeded:item.photo_needed,
+    brandCaptured:item.brand_captured,
+    photoCaptured:item.photo_captured,
+    error:false,
+    time:formatTime(item.scanned_at)
+  }));
+  currentHangerCount = current.count || 0;
+  currentNeedCount = need.count || 0;
+  currentDoneCount = Math.max(0,currentHangerCount - currentNeedCount);
+}
+
+async function synchronizeHangerState({message='',onlyWhenChanged=false,force=false}={}){
+  if(isSyncingHanger) return;
+  if(!force && !canSynchronizeHangerNow()){
+    pendingHangerSync = true;
+    return;
+  }
+
+  isSyncingHanger = true;
+  pendingHangerSync = false;
+  hangerReady = false;
+  scanInput.disabled = true;
+  renderControls();
+  const previousHangerId = activeHanger?.id || null;
+  const previousHangerNumber = activeHanger?.hanger_number || nextHangerNumber;
+  try{
+    await loadHangerState();
+    hangerReady = true;
+    const changed = previousHangerId !== activeHanger?.id || previousHangerNumber !== (activeHanger?.hanger_number || nextHangerNumber);
+    if(message && (!onlyWhenChanged || changed)) setHangerMessage(message,false);
+  }catch(error){
+    activeHanger = null;
+    hangerReady = false;
+    console.error('Failed to synchronize hanger state',error);
+    connectionErrorText.textContent = '행거 정보를 다시 연결하지 못했습니다. 네트워크를 확인한 뒤 다시 연결해주세요.';
+    connectionError.classList.add('show');
+    setHangerMessage('행거 연결을 확인할 수 없어 스캔을 잠갔습니다.',true);
+  }finally{
+    isSyncingHanger = false;
+    scanInput.disabled = !appReady();
+    render();
+    refocus();
+  }
+}
+
+async function flushPendingHangerSync(){
+  if(!pendingHangerSync || !canSynchronizeHangerNow()) return;
+  await synchronizeHangerState({message:'다른 창에서 변경된 행거 정보를 반영했습니다.',onlyWhenChanged:true});
+}
+
+scanInput.addEventListener('keydown', event=>{
+  if(event.key !== 'Enter' || !appReady() || captureModal.classList.contains('show')) return;
+  event.preventDefault();
+  const barcode = normalizeBarcode(scanInput.value);
+  scanInput.value = '';
+  if(barcode) handleScan(barcode);
+});
+
+async function insertHangerScan(barcode,brandNeeded,photoNeeded){
+  const previousHangerId = activeHanger?.id || null;
+  const { data, error } = await supabase.rpc('record_hanger_scan',{
+    p_device_id:DEVICE_ID,
+    p_barcode:barcode,
+    p_brand_needed:brandNeeded,
+    p_photo_needed:photoNeeded
+  });
+  if(error) return {data:null,error,recoveredHanger:false};
+
+  activeHanger = {
+    id:data.hanger_id,
+    hanger_number:data.hanger_number,
+    status:data.hanger_status,
+    created_at:data.hanger_created_at
+  };
+  nextHangerNumber = data.hanger_number;
+  return {
+    data,
+    error:null,
+    recoveredHanger:Boolean(previousHangerId && previousHangerId !== data.hanger_id)
+  };
+}
+
+async function handleScan(barcode){
+  if(isRecordingScan) return;
+  isRecordingScan = true;
+  scanInput.disabled = true;
+  setHangerMessage('',false);
+
+  try{
+    const status = await checkInventoryStatus(barcode);
+    if(!status.found){
+      await showNotFoundWarning(barcode);
+      return;
+    }
+
+    const { data:savedScan, error, recoveredHanger } = await insertHangerScan(barcode,status.brandNeeded,status.photoNeeded);
+    if(isDuplicateScanError(error)){
+      await showDuplicateWarning(barcode,'같은 기기의 이전 행거 또는 현재 행거에서 이미 스캔했습니다.');
+      return;
+    }
+    if(error) throw error;
+
+    const entry = {
+      id:savedScan.id,
+      barcode,
+      brandNeeded:savedScan.brand_needed,
+      photoNeeded:savedScan.photo_needed,
+      brandCaptured:savedScan.brand_captured,
+      photoCaptured:savedScan.photo_captured,
+      error:false,
+      time:formatTime(savedScan.scanned_at)
+    };
+    logs.unshift(entry);
+    logs = logs.slice(0,30);
+    currentHangerCount += 1;
+    cumulativeCount += 1;
+    if(entry.brandNeeded || entry.photoNeeded) currentNeedCount += 1; else currentDoneCount += 1;
+    render();
+    if(recoveredHanger) setHangerMessage('행거 정보를 다시 연결하고 스캔을 정상 저장했습니다.',false);
+
+    if(entry.brandNeeded || entry.photoNeeded){
+      currentScanEntry = entry;
+      currentHangerScanId = savedScan.id;
+      vibrate([180,80,180]);
+      playWarningTone();
+      openCaptureModal(entry);
+    }else{
+      vibrate(35);
+      setHangerMessage(`${barcode}: 브랜드와 사진정보 다 들어가있습니다.`,false);
+    }
+  }catch(error){
+    console.error('Failed to record hanger scan',error);
+    if(isDuplicateScanError(error)){
+      await showDuplicateWarning(barcode,'같은 기기의 이전 행거 또는 현재 행거에서 이미 스캔했습니다.');
+    }else{
+      setHangerMessage(`스캔 처리 실패: ${error.message || '다시 시도해주세요.'}`,true);
+    }
+    vibrate([180,80,180]);
+  }finally{
+    isRecordingScan = false;
+    scanInput.disabled = !appReady() || captureModal.classList.contains('show');
+    renderControls();
+    refocus();
+    await flushPendingHangerSync();
+  }
+}
+
+async function showNotFoundWarning(barcode){
+  setHangerMessage(`${barcode}: 운영 재고에서 찾을 수 없습니다.`,true);
+  vibrate([180,80,180]);
+  playWarningTone();
+  await requestConfirmation({
+    title:'등록되지 않은 바코드입니다',
+    message:`${barcode}은(는) 운영 재고(inventory_items)에서 찾을 수 없습니다. 입고 여부를 확인해주세요. 이 스캔은 기록되지 않았습니다.`,
+    actionLabel:'확인',
+    danger:true,
+    showCancel:false
+  });
+}
+
+async function showDuplicateWarning(barcode,reason){
+  setHangerMessage(`${barcode} 중복 스캔이 차단되었습니다.`,true);
+  vibrate([180,80,180]);
+  playWarningTone();
+  await requestConfirmation({
+    title:'중복 바코드입니다',
+    message:`${barcode}은(는) ${reason} 다시 기록하지 않았습니다.`,
+    actionLabel:'확인',
+    danger:true,
+    showCancel:false
+  });
+}
+
+cameraBtn.addEventListener('click',()=>cameraInput.click());
+retakeBtn.addEventListener('click',()=>{ if(!isSaving) cameraInput.click(); });
+retryBtn.addEventListener('click',loadAppState);
+deleteScanBtn.addEventListener('click',deleteLastScan);
+resetHangerBtn.addEventListener('click',resetCurrentHanger);
+completeHangerBtn.addEventListener('click',completeCurrentHanger);
+fullResetBtn.addEventListener('click',resetAllHistory);
+exportResultBtn.addEventListener('click',downloadResultsExcel);
+confirmCancelBtn.addEventListener('click',()=>resolveConfirmation(false));
+confirmActionBtn.addEventListener('click',()=>resolveConfirmation(true));
+brandInput.addEventListener('input',updateSaveButtonState);
+
+laterBtn.addEventListener('click',async()=>{
+  if(isSaving || !currentScanEntry) return;
+  const confirmed = await requestConfirmation({
+    title:'나중에 입력할까요?',
+    message:`${currentScanEntry.barcode}: 지금 입력하지 않으면 이 기기에서 같은 바코드를 다시 스캔할 수 없습니다. 정말 나중으로 미룰까요?`,
+    actionLabel:'그래도 나중에',
+    danger:true
+  });
+  if(confirmed) closeCaptureModal();
+});
+
+function requestConfirmation({title,message,actionLabel='확인',danger=false,showCancel=true}){
+  if(confirmResolver) return Promise.resolve(false);
+  confirmTitle.textContent = title;
+  confirmMessage.textContent = message;
+  confirmActionBtn.textContent = actionLabel;
+  confirmActionBtn.className = `btn ${danger?'btn-danger':'btn-warning'}`;
+  confirmCancelBtn.hidden = !showCancel;
+  confirmModal.classList.add('show');
+  scanInput.disabled = true;
+  renderControls();
+  return new Promise(resolve=>{ confirmResolver = resolve; });
+}
+
+function resolveConfirmation(confirmed){
+  if(!confirmResolver) return;
+  const resolve = confirmResolver;
+  confirmResolver = null;
+  confirmModal.classList.remove('show');
+  confirmCancelBtn.hidden = false;
+  scanInput.disabled = !appReady();
+  renderControls();
+  resolve(confirmed);
+  refocus();
+  setTimeout(()=>flushPendingHangerSync(),0);
+}
+
+async function runHangerAction(action){
+  if(isHangerBusy || !hangerReady || captureModal.classList.contains('show')) return;
+  isHangerBusy = true;
+  scanInput.disabled = true;
+  renderControls();
+  try{
+    await action();
+  }catch(error){
+    console.error('Hanger action failed',error);
+    setHangerMessage(error.message || '행거 작업 처리에 실패했습니다.',true);
+  }finally{
+    isHangerBusy = false;
+    scanInput.disabled = !appReady();
+    render();
+    refocus();
+    await flushPendingHangerSync();
+  }
+}
+
+async function deleteLastScan(){
+  const last = logs[0];
+  if(!last || !activeHanger) return;
+  const capturedNote = (last.brandCaptured || last.photoCaptured) ? ' 이미 저장된 브랜드/사진 캡처 기록은 유지되고 행거 집계에서만 빠집니다.' : '';
+  const confirmed = await requestConfirmation({
+    title:'최근 스캔 삭제',
+    message:`${last.barcode}을(를) 현재 행거에서 삭제할까요?${capturedNote}`,
+    actionLabel:'삭제',
+    danger:true
+  });
+  if(!confirmed) return;
+  await runHangerAction(async()=>{
+    const { error } = await supabase
+      .from('hanger_scans')
+      .delete()
+      .eq('id',last.id)
+      .eq('device_id',DEVICE_ID)
+      .eq('hanger_id',activeHanger.id);
+    if(error) throw error;
+    logs.shift();
+    currentHangerCount = Math.max(0,currentHangerCount-1);
+    cumulativeCount = Math.max(0,cumulativeCount-1);
+    const wasComplete = !(last.brandNeeded && !last.brandCaptured) && !(last.photoNeeded && !last.photoCaptured);
+    if(wasComplete) currentDoneCount = Math.max(0,currentDoneCount-1);
+    else currentNeedCount = Math.max(0,currentNeedCount-1);
+    setHangerMessage('최근 스캔 1건을 행거에서 삭제했습니다.',false);
+    broadcastHangerChange('scan-deleted');
+  });
+}
+
+async function resetCurrentHanger(){
+  if(!activeHanger || currentHangerCount === 0) return;
+  const savedNote = currentDoneCount > 0 ? ' 이미 저장된 브랜드/사진 캡처 기록은 유지됩니다.' : '';
+  const confirmed = await requestConfirmation({
+    title:'현재 행거 초기화',
+    message:`${activeHanger.hanger_number}번 행거의 스캔 ${currentHangerCount}건을 모두 초기화할까요?${savedNote}`,
+    actionLabel:'초기화',
+    danger:true
+  });
+  if(!confirmed) return;
+  await runHangerAction(async()=>{
+    const removedCount = currentHangerCount;
+    const { error } = await supabase
+      .from('hanger_scans')
+      .delete()
+      .eq('device_id',DEVICE_ID)
+      .eq('hanger_id',activeHanger.id);
+    if(error) throw error;
+    logs = [];
+    currentHangerCount = 0;
+    currentNeedCount = 0;
+    currentDoneCount = 0;
+    cumulativeCount = Math.max(0,cumulativeCount-removedCount);
+    setHangerMessage(`${activeHanger.hanger_number}번 행거를 초기화했습니다.`,false);
+    broadcastHangerChange('hanger-reset');
+  });
+}
+
+async function resetAllHistory(){
+  if(cumulativeCount === 0) return;
+  const confirmed = await requestConfirmation({
+    title:'전체 초기화',
+    message:`지금까지 스캔한 바코드 ${cumulativeCount}건과 모든 행거 기록을 삭제할까요? 저장된 브랜드/사진 캡처 기록은 유지되며 1번 행거부터 다시 시작합니다.`,
+    actionLabel:'전체 초기화',
+    danger:true
+  });
+  if(!confirmed) return;
+  await runHangerAction(async()=>{
+    hangerReady = false;
+    activeHanger = null;
+    scanInput.disabled = true;
+    renderControls();
+    try{
+      const { error } = await supabase
+        .from('scan_hangers')
+        .delete()
+        .eq('device_id',DEVICE_ID);
+      if(error) throw error;
+
+      await loadHangerState();
+      hangerReady = true;
+      connectionError.classList.remove('show');
+      setHangerMessage('전체 스캔 기록을 초기화하고 1번 행거를 시작합니다.',false);
+      broadcastHangerChange('full-reset');
+    }catch(error){
+      activeHanger = null;
+      hangerReady = false;
+      connectionErrorText.textContent = '전체 초기화 후 새 행거를 연결하지 못했습니다. 다시 연결해주세요.';
+      connectionError.classList.add('show');
+      throw new Error('전체 초기화 후 행거 연결이 완료되지 않아 스캔을 잠갔습니다.');
+    }
+  });
+}
+
+async function completeCurrentHanger(){
+  if(!activeHanger || currentHangerCount === 0) return;
+  const confirmed = await requestConfirmation({
+    title:`${activeHanger.hanger_number}번 행거 완료`,
+    message:`현재 행거 ${currentHangerCount}건을 완료하고 다음 행거로 넘어갈까요?`,
+    actionLabel:'완료 후 다음 행거'
+  });
+  if(!confirmed) return;
+  await runHangerAction(async()=>{
+    const completedNumber = activeHanger.hanger_number;
+    const completedAt = new Date().toISOString();
+    const { error } = await supabase
+      .from('scan_hangers')
+      .update({status:'completed',completed_at:completedAt})
+      .eq('id',activeHanger.id)
+      .eq('device_id',DEVICE_ID)
+      .eq('status','active');
+    if(error) throw error;
+    hangerReady = false;
+    await loadHangerState();
+    hangerReady = true;
+    setHangerMessage(`${completedNumber}번 행거 완료 · ${nextHangerNumber}번 행거를 시작합니다.`,false);
+    broadcastHangerChange('hanger-completed');
+  });
+}
+
+cameraInput.addEventListener('change',event=>{
+  const file = event.target.files?.[0];
+  if(!file) return;
+  const mimeType = resolveMimeType(file);
+  if(!mimeType){
+    setSaveStatus('지원하지 않는 이미지 형식입니다.',true);
+    cameraInput.value = '';
+    return;
+  }
+  releasePreviewUrl();
+  currentFile = file;
+  previewUrl = URL.createObjectURL(file);
+  previewImg.src = previewUrl;
+  beforePhoto.style.display = 'none';
+  previewBox.classList.add('show');
+  setSaveStatus('',false);
+  updateSaveButtonState();
+});
+
+saveBtn.addEventListener('click',saveCapture);
+
+function captureModalCopy(entry){
+  if(entry.brandNeeded && entry.photoNeeded) return {title:'브랜드와 사진이 모두 필요합니다',desc:'브랜드를 입력하고 사진을 촬영한 뒤 저장해주세요.'};
+  if(entry.brandNeeded) return {title:'브랜드 입력이 필요합니다',desc:'브랜드 정보만 비어 있습니다.'};
+  return {title:'사진 촬영이 필요합니다',desc:'상품 사진만 비어 있습니다.'};
+}
+
+function openCaptureModal(entry){
+  const copy = captureModalCopy(entry);
+  captureTitle.textContent = copy.title;
+  captureDesc.textContent = copy.desc;
+  modalBarcode.textContent = entry.barcode;
+  lockWarningBarcode.textContent = entry.barcode;
+  brandSection.style.display = entry.brandNeeded ? 'block' : 'none';
+  photoSection.style.display = entry.photoNeeded ? 'block' : 'none';
+  brandInput.value = '';
+  beforePhoto.style.display = '';
+  previewBox.classList.remove('show');
+  releasePreviewUrl();
+  previewImg.removeAttribute('src');
+  cameraInput.value = '';
+  currentFile = null;
+  setSaveStatus('',false);
+  updateSaveButtonState();
+  captureModal.classList.add('show');
+  renderControls();
+  if(entry.brandNeeded) setTimeout(()=>brandInput.focus(),80);
+}
+
+function canSave(){
+  if(!currentScanEntry) return false;
+  const brandOk = !currentScanEntry.brandNeeded || brandInput.value.trim().length > 0;
+  const photoOk = !currentScanEntry.photoNeeded || Boolean(currentFile);
+  return brandOk && photoOk;
+}
+
+function updateSaveButtonState(){
+  saveBtn.disabled = isSaving || !canSave();
+}
+
+async function saveCapture(){
+  if(isSaving || !currentScanEntry || !canSave()) return;
+  isSaving = true;
+  setModalButtonsDisabled(true);
+  setSaveStatus('테스트 서버에 저장하고 있습니다.',false);
+
+  try{
+    let storagePath = null;
+    if(currentScanEntry.photoNeeded){
+      const mimeType = resolveMimeType(currentFile);
+      const extension = extensionForMimeType(mimeType);
+      const uniqueId = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      storagePath = `${currentScanEntry.barcode}/${new Date().toISOString().replace(/[:.]/g,'-')}-${uniqueId}.${extension}`;
+      const { error: uploadError } = await supabase.storage
+        .from(STORAGE_BUCKET)
+        .upload(storagePath,currentFile,{cacheControl:'3600',contentType:mimeType,upsert:false});
+      if(uploadError) throw new Error(`사진 업로드 실패: ${uploadError.message}`);
+    }
+
+    const brandValue = currentScanEntry.brandNeeded ? brandInput.value.trim() : null;
+
+    const { data, error } = await supabase.rpc('save_item_capture',{
+      p_device_id:DEVICE_ID,
+      p_hanger_scan_id:currentHangerScanId,
+      p_barcode:currentScanEntry.barcode,
+      p_brand:brandValue,
+      p_storage_path:storagePath
+    });
+    if(error) throw new Error(`저장 실패: ${error.message}`);
+
+    currentScanEntry.brandCaptured = data.brand_captured;
+    currentScanEntry.photoCaptured = data.photo_captured;
+    const match = logs.find(item=>item.id===currentHangerScanId);
+    if(match){
+      match.brandCaptured = data.brand_captured;
+      match.photoCaptured = data.photo_captured;
+    }
+    currentNeedCount = Math.max(0,currentNeedCount-1);
+    currentDoneCount += 1;
+    render();
+    setSaveStatus('저장 완료',false);
+    vibrate([60,40,60]);
+    setTimeout(()=>closeCaptureModal(),350);
+  }catch(error){
+    console.error('Failed to save capture',error);
+    const match = logs.find(item=>item.id===currentHangerScanId);
+    if(match) match.error = true;
+    render();
+    setSaveStatus(error.message || '저장에 실패했습니다. 다시 시도해주세요.',true);
+  }finally{
+    isSaving = false;
+    setModalButtonsDisabled(false);
+  }
+}
+
+async function fetchPagedRows(queryFactory){
+  const allRows = [];
+  for(let from = 0; ; from += PAGE_SIZE){
+    const { data, error } = await queryFactory(from,from + PAGE_SIZE - 1);
+    if(error) throw error;
+    allRows.push(...data);
+    if(data.length < PAGE_SIZE) break;
+  }
+  return allRows;
+}
+
+async function loadExcelJs(){
+  if(!excelJsPromise) excelJsPromise = import(EXCELJS_MODULE_URL);
+  const module = await excelJsPromise;
+  const ExcelJS = module.default || module;
+  if(!ExcelJS.Workbook) throw new Error('엑셀 생성 모듈을 불러오지 못했습니다.');
+  return ExcelJS;
+}
+
+function publicPhotoUrl(storagePath){
+  if(!storagePath) return '';
+  return supabase.storage.from(STORAGE_BUCKET).getPublicUrl(storagePath).data.publicUrl;
+}
+
+const EXCEL_BODY_FONT = {name:'Malgun Gothic',size:10,bold:false,color:{argb:'FF000000'}};
+const EXCEL_HEADER_FONT = {name:'Malgun Gothic',size:10,bold:true,color:{argb:'FF000000'}};
+
+function applyWorksheetTypography(worksheet,boldAddresses=[]){
+  const boldCells = new Set(boldAddresses);
+  worksheet.eachRow({includeEmpty:true},row=>{
+    row.eachCell({includeEmpty:true},cell=>{
+      cell.font = {...(boldCells.has(cell.address) ? EXCEL_HEADER_FONT : EXCEL_BODY_FONT),underline:Boolean(cell.hyperlink)};
+    });
+  });
+}
+
+function styleWorksheetHeader(worksheet){
+  applyWorksheetTypography(worksheet);
+  const header = worksheet.getRow(1);
+  header.height = 20;
+  header.font = EXCEL_HEADER_FONT;
+  header.alignment = {vertical:'middle',horizontal:'center'};
+  header.eachCell(cell=>{
+    cell.border = {bottom:{style:'thin',color:{argb:'FFBFBFBF'}}};
+  });
+  worksheet.views = [{state:'frozen',ySplit:1}];
+  worksheet.autoFilter = {from:'A1',to:worksheet.getRow(1).getCell(worksheet.columnCount).address};
+}
+
+function writeHyperlink(cell,url){
+  if(!url) return;
+  cell.value = {text:'원본 열기',hyperlink:url};
+  cell.font = {...EXCEL_BODY_FONT,underline:true};
+}
+
+async function buildResultsWorkbook({hangers,scans,captures}){
+  const ExcelJS = await loadExcelJs();
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = '브랜드/사진 스캐너';
+  workbook.created = new Date();
+
+  const hangerById = new Map(hangers.map(item=>[item.id,item]));
+  const captureByScanId = new Map();
+  for(const capture of captures){
+    if(capture.hanger_scan_id) captureByScanId.set(capture.hanger_scan_id,capture);
+  }
+
+  const summary = workbook.addWorksheet('요약');
+  const scanSheet = workbook.addWorksheet('전체 스캔',{properties:{defaultRowHeight:19}});
+  scanSheet.columns = [
+    {header:'순번',key:'number',width:8},
+    {header:'행거 번호',key:'hangerNumber',width:11},
+    {header:'행거 상태',key:'hangerStatus',width:12},
+    {header:'바코드',key:'barcode',width:20},
+    {header:'브랜드 필요',key:'brandNeeded',width:11},
+    {header:'사진 필요',key:'photoNeeded',width:11},
+    {header:'브랜드 저장됨',key:'brandCaptured',width:12},
+    {header:'사진 저장됨',key:'photoCaptured',width:12},
+    {header:'입력한 브랜드',key:'brandValue',width:18},
+    {header:'스캔 시간 (KST)',key:'scannedAt',width:21},
+    {header:'행거 완료 (KST)',key:'hangerCompletedAt',width:21},
+    {header:'원본 이미지',key:'originalImage',width:14},
+    {header:'Storage 경로',key:'storagePath',width:42}
+  ];
+
+  scans.forEach((scan,index)=>{
+    const hanger = hangerById.get(scan.hanger_id) || {};
+    const capture = captureByScanId.get(scan.id) || null;
+    const row = scanSheet.addRow({
+      number:index + 1,
+      hangerNumber:hanger.hanger_number ?? null,
+      hangerStatus:hanger.status === 'completed' ? '완료' : '진행 중',
+      barcode:scan.barcode,
+      brandNeeded:scan.brand_needed ? 'Y' : 'N',
+      photoNeeded:scan.photo_needed ? 'Y' : 'N',
+      brandCaptured:scan.brand_captured ? 'Y' : 'N',
+      photoCaptured:scan.photo_captured ? 'Y' : 'N',
+      brandValue:capture?.brand ?? null,
+      scannedAt:toKstExcelDate(scan.scanned_at),
+      hangerCompletedAt:toKstExcelDate(hanger.completed_at),
+      storagePath:capture?.storage_path ?? null
+    });
+    for(const column of [10,11]) row.getCell(column).numFmt = 'yyyy-mm-dd hh:mm:ss';
+    writeHyperlink(row.getCell(12),publicPhotoUrl(capture?.storage_path));
+  });
+  styleWorksheetHeader(scanSheet);
+
+  const captureSheet = workbook.addWorksheet('캡처 결과',{properties:{defaultRowHeight:19}});
+  captureSheet.columns = [
+    {header:'캡처 ID',key:'captureId',width:10},
+    {header:'바코드',key:'barcode',width:20},
+    {header:'입력한 브랜드',key:'brand',width:18},
+    {header:'캡처 시간 (KST)',key:'createdAt',width:23},
+    {header:'행거 번호',key:'hangerNumber',width:11},
+    {header:'스캔 시간 (KST)',key:'scannedAt',width:21},
+    {header:'원본 이미지',key:'originalImage',width:14},
+    {header:'Storage 경로',key:'storagePath',width:42}
+  ];
+
+  captures.forEach(capture=>{
+    const scan = scans.find(item=>item.id === capture.hanger_scan_id);
+    const hanger = scan ? hangerById.get(scan.hanger_id) || {} : {};
+    const row = captureSheet.addRow({
+      captureId:capture.id,
+      barcode:capture.barcode,
+      brand:capture.brand ?? null,
+      createdAt:toKstExcelDate(capture.created_at),
+      hangerNumber:hanger.hanger_number ?? null,
+      scannedAt:toKstExcelDate(scan?.scanned_at),
+      storagePath:capture.storage_path
+    });
+    for(const column of [4,6]) row.getCell(column).numFmt = 'yyyy-mm-dd hh:mm:ss';
+    writeHyperlink(row.getCell(7),publicPhotoUrl(capture.storage_path));
+  });
+  styleWorksheetHeader(captureSheet);
+
+  summary.getCell('A1').value = '브랜드/사진 스캔 결과';
+  summary.getCell('A1').alignment = {vertical:'middle'};
+  summary.getRow(1).height = 20;
+  summary.getColumn('A').width = 24;
+  summary.getColumn('B').width = 24;
+  const maxScanRow = Math.max(2,scans.length + 1);
+  summary.getCell('A3').value = '전체 스캔';
+  summary.getCell('B3').value = {formula:`COUNTA('전체 스캔'!A2:A${maxScanRow})`,result:scans.length};
+  summary.getCell('A4').value = '브랜드 필요';
+  summary.getCell('B4').value = {formula:`COUNTIF('전체 스캔'!E2:E${maxScanRow},"Y")`,result:scans.filter(item=>item.brand_needed).length};
+  summary.getCell('A5').value = '사진 필요';
+  summary.getCell('B5').value = {formula:`COUNTIF('전체 스캔'!F2:F${maxScanRow},"Y")`,result:scans.filter(item=>item.photo_needed).length};
+  summary.getCell('A6').value = '캡처 완료';
+  summary.getCell('B6').value = {formula:`COUNTA('캡처 결과'!A2:A${Math.max(2,captures.length + 1)})`,result:captures.length};
+  summary.getCell('A8').value = '다운로드 시간 (KST)';
+  summary.getCell('B8').value = toKstExcelDate(new Date());
+  summary.getCell('B8').numFmt = 'yyyy-mm-dd hh:mm:ss';
+  summary.getCell('A10').value = '원본 이미지는 각 결과 시트의 “원본 열기” 링크로 확인할 수 있습니다.';
+  summary.mergeCells('A10:D10');
+  applyWorksheetTypography(summary,['A1','A3','A4','A5','A6','A8']);
+  summary.views = [{state:'frozen',ySplit:1}];
+  return workbook;
+}
+
+async function downloadResultsExcel(){
+  if(isExporting || cumulativeCount === 0) return;
+  isExporting = true;
+  scanInput.disabled = true;
+  setExportStatus('결과 데이터를 불러오고 있습니다.',false);
+  renderControls();
+  try{
+    const [hangers,scans,allCaptures] = await Promise.all([
+      fetchPagedRows((from,to)=>supabase.from('scan_hangers').select('id,hanger_number,status,created_at,completed_at,completed_at_kst').eq('device_id',DEVICE_ID).order('hanger_number',{ascending:true}).range(from,to)),
+      fetchPagedRows((from,to)=>supabase.from('hanger_scans').select('id,hanger_id,device_id,barcode,brand_needed,photo_needed,brand_captured,photo_captured,scanned_at,scanned_at_kst').eq('device_id',DEVICE_ID).order('id',{ascending:true}).range(from,to)),
+      fetchPagedRows((from,to)=>supabase.from('item_captures').select('id,barcode,brand,storage_path,created_at,created_at_kst,hanger_scan_id,device_id').eq('device_id',DEVICE_ID).order('id',{ascending:true}).range(from,to))
+    ]);
+    if(!scans.length) throw new Error('다운로드할 스캔 기록이 없습니다.');
+    const captures = allCaptures;
+    setExportStatus('엑셀 파일을 생성하고 있습니다.',false);
+    const workbook = await buildResultsWorkbook({hangers,scans,captures});
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const fileDate = formatKstFileDate();
+    link.href = url;
+    link.download = `브랜드사진_작업_결과_${fileDate}.xlsx`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),30000);
+    setExportStatus(`엑셀 다운로드 완료 · 스캔 ${scans.length.toLocaleString()}건`,false);
+  }catch(error){
+    console.error('Failed to export results',error);
+    setExportStatus(error.message || '엑셀 파일 생성에 실패했습니다.',true);
+  }finally{
+    isExporting = false;
+    scanInput.disabled = !appReady();
+    renderControls();
+    refocus();
+  }
+}
+
+function setExportStatus(message,isError){
+  exportResultStatus.textContent = message;
+  exportResultStatus.className = `result-export-status${message?' show':''}${isError?' error':''}`;
+}
+
+function resolveMimeType(file){
+  const allowed = new Set(['image/jpeg','image/png','image/webp','image/heic','image/heif']);
+  if(allowed.has(file.type)) return file.type;
+  const ext = file.name.split('.').pop()?.toLowerCase();
+  return ({jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',heic:'image/heic',heif:'image/heif'})[ext] || null;
+}
+function extensionForMimeType(mimeType){ return ({'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/heic':'heic','image/heif':'heif'})[mimeType] || 'jpg'; }
+function setModalButtonsDisabled(disabled){
+  saveBtn.disabled = disabled || !canSave();
+  retakeBtn.disabled = disabled;
+  laterBtn.disabled = disabled;
+  cameraBtn.disabled = disabled;
+  brandInput.disabled = disabled;
+  saveBtn.textContent = disabled ? '저장 중…' : '저장';
+  renderControls();
+}
+function setSaveStatus(message,isError){ saveStatus.textContent=message;saveStatus.className=`save-status${message?' show':''}${isError?' error':''}`; }
+function setHangerMessage(message,isError){ hangerMessage.textContent=message;hangerMessage.className=`hanger-message${message?' show':''}${isError?' error':''}`; }
+function releasePreviewUrl(){ if(previewUrl){ URL.revokeObjectURL(previewUrl);previewUrl=null; } }
+
+function closeCaptureModal(){
+  if(isSaving) return;
+  captureModal.classList.remove('show');
+  beforePhoto.style.display = '';
+  previewBox.classList.remove('show');
+  releasePreviewUrl();
+  previewImg.removeAttribute('src');
+  cameraInput.value = '';
+  brandInput.value = '';
+  currentScanEntry = null;
+  currentHangerScanId = null;
+  currentFile = null;
+  setSaveStatus('',false);
+  scanInput.disabled = !appReady();
+  renderControls();
+  refocus();
+  setTimeout(()=>flushPendingHangerSync(),0);
+}
+
+function isResumable(item){
+  return (item.brandNeeded && !item.brandCaptured) || (item.photoNeeded && !item.photoCaptured);
+}
+
+function resumeCapture(id){
+  if(!appReady() || captureModal.classList.contains('show') || confirmModal.classList.contains('show')) return;
+  const entry = logs.find(item=>item.id===id);
+  if(!entry || !isResumable(entry)) return;
+  currentScanEntry = entry;
+  currentHangerScanId = entry.id;
+  vibrate(35);
+  openCaptureModal(entry);
+}
+
+rows.addEventListener('click',event=>{
+  const rowEl = event.target.closest('.row[data-log-id]');
+  if(!rowEl) return;
+  resumeCapture(Number(rowEl.dataset.logId));
+});
+
+function scanStatusLabel(item){
+  if(item.error) return {label:'저장오류',cls:'error'};
+  const incomplete = (item.brandNeeded && !item.brandCaptured) || (item.photoNeeded && !item.photoCaptured);
+  if(!item.brandNeeded && !item.photoNeeded) return {label:'정보완비',cls:'done'};
+  if(!incomplete) return {label:'입력완료',cls:'done'};
+  if(item.brandNeeded && item.photoNeeded) return {label:'브랜드+사진 필요',cls:'target'};
+  if(item.brandNeeded) return {label:'브랜드 필요',cls:'target'};
+  return {label:'사진 필요',cls:'target'};
+}
+
+function render(){
+  $('hangerBadge').textContent = `${activeHanger?.hanger_number || nextHangerNumber}번 행거`;
+  $('currentHangerCount').textContent = currentHangerCount.toLocaleString();
+  $('cumulativeCount').textContent = cumulativeCount.toLocaleString();
+  $('totalCount').textContent = cumulativeCount.toLocaleString();
+  $('needCount').textContent = currentNeedCount.toLocaleString();
+  $('doneCount').textContent = currentDoneCount.toLocaleString();
+  $('lastCode').textContent = logs[0]?.barcode || '-';
+  if(!logs.length){
+    rows.innerHTML='<div class="empty">현재 행거에 아직 스캔 기록이 없습니다.</div>';
+  }else{
+    rows.innerHTML = logs.slice(0,30).map(item=>{
+      const status = scanStatusLabel(item);
+      const resumable = isResumable(item);
+      return `<div class="row${resumable?' resumable':''}"${resumable?` data-log-id="${item.id}"`:''}><div><div class="code">${escapeHtml(item.barcode)}</div><div class="time">${item.time}</div></div><div class="tag ${status.cls}">${status.label}</div></div>`;
+    }).join('');
+  }
+  renderControls();
+}
+
+function renderControls(){
+  const locked = !hangerReady || isHangerBusy || isRecordingScan || isSaving || isSyncingHanger || isExporting || captureModal.classList.contains('show') || confirmModal.classList.contains('show');
+  deleteScanBtn.disabled = locked || currentHangerCount === 0;
+  resetHangerBtn.disabled = locked || currentHangerCount === 0;
+  completeHangerBtn.disabled = locked || currentHangerCount === 0;
+  exportResultBtn.disabled = locked || cumulativeCount === 0;
+  fullResetBtn.disabled = locked || cumulativeCount === 0;
+}
+function escapeHtml(value){ return value.replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char])); }
+
+function receiveHangerSync(event){
+  if(!shouldAcceptHangerSync(event)) return;
+  pendingHangerSync = true;
+  flushPendingHangerSync();
+}
+
+if(hangerSyncChannel){
+  hangerSyncChannel.addEventListener('message',event=>receiveHangerSync(event.data));
+}else{
+  window.addEventListener('storage',event=>{
+    if(event.key !== HANGER_SYNC_STORAGE_KEY || !event.newValue) return;
+    try{ receiveHangerSync(JSON.parse(event.newValue)); }catch(_error){ /* 잘못된 동기화 이벤트 무시 */ }
+  });
+}
+
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden) return;
+  synchronizeHangerState({message:'변경된 행거 정보를 다시 연결했습니다.',onlyWhenChanged:true});
+});
+window.addEventListener('beforeunload',()=>{
+  releasePreviewUrl();
+  hangerSyncChannel?.close();
+});
+loadAppState();
+</script>
+</body>
+</html>
