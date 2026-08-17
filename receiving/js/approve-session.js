@@ -3,20 +3,23 @@ const STATUS_LABEL = { pending: "대기중", approved: "승인됨", processed: "
 let SESS = null;
 let HANGERS = [];
 let TOTAL = 0;
+let HANDLERS = [];
 
 async function load() {
   if (!SESSION_ID) { showError("세션 ID 없음"); return; }
   try {
-    const [{ data: sess, error: se }, { data: hangers, error: he }] = await Promise.all([
+    const [{ data: sess, error: se }, { data: hangers, error: he }, { data: handlers }] = await Promise.all([
       sb.from("inventory_sessions").select("*").eq("id", SESSION_ID).single(),
       sb.from("inventory_hangers").select("*, inventory_items(*)").eq("session_id", SESSION_ID).order("created_at", { ascending: true }),
+      sb.from("handlers").select("name").eq("is_active", true).order("name"),
     ]);
     if (se) throw se;
     if (he) throw he;
 
-    SESS    = sess;
-    HANGERS = hangers || [];
-    TOTAL   = HANGERS.reduce((s, h) => s + (h.inventory_items || []).length, 0);
+    SESS     = sess;
+    HANGERS  = hangers || [];
+    TOTAL    = HANGERS.reduce((s, h) => s + (h.inventory_items || []).length, 0);
+    HANDLERS = handlers || [];
 
     const suggested = await getSuggestedFromDb(sess.barcode_prefix);
     render(suggested);
@@ -26,18 +29,9 @@ async function load() {
 }
 
 async function getSuggestedFromDb(prefix) {
-  const { data } = await sb
-    .from("inventory_sessions")
-    .select("start_barcode_num, inventory_hangers(inventory_items(id))")
-    .eq("barcode_prefix", prefix)
-    .not("start_barcode_num", "is", null)
-    .order("start_barcode_num", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!data?.start_barcode_num) return null;
-  const cnt = (data.inventory_hangers || [])
-    .reduce((s, h) => s + (h.inventory_items || []).length, 0);
-  return data.start_barcode_num + cnt;
+  const { data: maxNum, error } = await sb.rpc("max_barcode_num", { p_prefix: prefix });
+  if (error) { console.warn("바코드 최댓값 조회 실패:", error.message); return null; }
+  return maxNum != null ? maxNum + 1 : null;
 }
 
 function render(suggested) {
@@ -86,7 +80,10 @@ function render(suggested) {
         </div>
         <div class="form-group">
           <label>승인자 이름</label>
-          <input type="text" id="approved-by" placeholder="담당자 이름">
+          <select id="approved-by">
+            <option value="">승인자를 선택하세요</option>
+            ${HANDLERS.map(h => `<option value="${escapeHtml(h.name)}">${escapeHtml(h.name)}</option>`).join("")}
+          </select>
         </div>
         <button id="confirm-btn" class="btn btn-success btn-block">✓ 승인하기</button>
       </div>
@@ -171,8 +168,9 @@ function render(suggested) {
 
 async function confirmApprove() {
   const start_barcode_num = parseInt(document.getElementById("start-barcode").value.trim(), 10);
-  const approved_by = document.getElementById("approved-by").value.trim();
+  const approved_by = document.getElementById("approved-by").value;
   if (!start_barcode_num) { showError("시작 바코드 번호 입력"); return; }
+  if (!approved_by) { showError("승인자 이름을 선택하세요"); return; }
   const unsubmitted = HANGERS.filter(h => !h.submitted_at);
   if (unsubmitted.length > 0) {
     showError(`미제출 행거가 있습니다: 행거 ${unsubmitted.map(h => escapeHtml(h.hanger_number)).join(", ")}`);
@@ -212,27 +210,15 @@ async function loadExcelSuggest() {
   res.style.display = "none";
   try {
     const prefix = SESS.barcode_prefix;
-    const { data, error } = await sb
-      .from("inventory_items")
-      .select("barcode")
-      .like("barcode", `${prefix}%`)
-      .not("barcode", "is", null)
-      .order("barcode", { ascending: false })
-      .limit(1);
+    const { data: maxNum, error } = await sb.rpc("max_barcode_num", { p_prefix: prefix });
     if (error) throw error;
 
-    let suggested = null;
-    let maxFound = null;
-    if (data && data.length > 0 && data[0].barcode) {
-      const num = parseInt(data[0].barcode.slice(prefix.length), 10);
-      if (!isNaN(num)) { maxFound = num; suggested = num + 1; }
-    }
-
-    if (!suggested) {
+    if (maxNum == null) {
       res.textContent = "DB에 기존 바코드 없음 — 직접 입력하세요";
     } else {
+      const suggested = maxNum + 1;
       document.getElementById("start-barcode").value = suggested;
-      res.textContent = `✓ DB 기준: ${prefix}${maxFound} 다음 → ${prefix}${suggested}`;
+      res.textContent = `✓ DB 기준: ${prefix}${maxNum} 다음 → ${prefix}${suggested}`;
       res.style.color = "var(--status-success)";
     }
     res.style.display = "block";

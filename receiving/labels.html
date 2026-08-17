@@ -36,6 +36,12 @@ body {
 }
 .screen-header h1 { font-size: 15px; font-weight: 700; }
 .screen-header .sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+.back-link {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; flex-shrink: 0;
+  color: #94a3b8; text-decoration: none; border-radius: 6px;
+}
+.back-link:hover { background: #334155; color: #e2e8f0; }
 .btn-group { display: flex; gap: 8px; margin-left: auto; align-items: center; }
 .team-btn {
   background: #1e3a5f; color: #93c5fd; border: 1px solid #3b82f6;
@@ -141,6 +147,9 @@ body {
 <body>
 
 <div class="screen-header">
+  <a href="index.html" class="back-link" aria-label="입고관리로 돌아가기">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
+  </a>
   <div>
     <h1 id="header-title">라벨 로드 중…</h1>
     <div class="sub" id="header-sub"></div>

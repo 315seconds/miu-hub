@@ -122,7 +122,7 @@ function generateZpl(items) {
     if (item.isSeparator) {
       const hnum = sanitizeZpl(item.hangerNumber);
       if (item.operatorName) {
-        const label = `${sanitizeZpl(item.operatorName)} · ${hnum}번 행거`;
+        const label = `${item.prefix ? sanitizeZpl(item.prefix) + " · " : ""}${sanitizeZpl(item.operatorName)} · ${hnum}번 행거`;
         const boxH = Math.round(ZPL.LH * 0.5);
         const { gfa, h } = nameToGFA(label, boxH, boxH);
         const y = Math.max(0, Math.floor((ZPL.LH - h) / 2));
@@ -238,7 +238,8 @@ async function buildItemsFromSession(sessionId) {
           barcode: it.barcode || "",
           hangerNumber: hanger.hanger_number,
           hangerId: hanger.id,
-          submittedBy: hanger.submitted_by || "",
+          operatorName: hanger.submitted_by || sess.created_by || "담당자 미입력",
+          barcodePrefix: sess.barcode_prefix,
           printedAt: hanger.printed_at || null,
         });
       }
@@ -254,16 +255,53 @@ async function buildItemsFromSession(sessionId) {
     it.displayName = buildDisplayName(it.brand, it.category, it.product_name || "", it.barcode);
   });
 
-  const result = [];
-  let curHanger = null;
-  for (const it of allItems) {
-    if (it.hangerNumber !== curHanger) {
-      curHanger = it.hangerNumber;
-      result.push({ isSeparator: true, hangerNumber: curHanger });
-    }
-    result.push(it);
-  }
+  // 담당자별로 묶어서 정렬 — 각자 본인이 작업한 행거 라벨만 모아서 붙이러 갈 수 있도록
+  const { items: result } = groupItemsForPrint(allItems, { includePrefix: false });
   return { items: result, sess };
+}
+
+// 아이템 목록을 담당자(operatorName) → 행거번호 순으로 묶어 구분지와 함께 재구성.
+// includePrefix: true면 접두사까지 그룹 키에 포함 (여러 세션을 합칠 때, 같은 사람이 같은
+// 행거번호를 다른 접두사 세션에서 맡아도 서로 섞이지 않도록 함)
+function groupItemsForPrint(items, { includePrefix = false } = {}) {
+  const groups = new Map();
+  for (const it of items) {
+    const prefix = it.barcodePrefix || "";
+    const key = includePrefix
+      ? `${prefix}__${it.operatorName}__${it.hangerNumber}`
+      : `${it.operatorName}__${it.hangerNumber}`;
+    if (!groups.has(key)) {
+      groups.set(key, { prefix, operatorName: it.operatorName, hangerNumber: it.hangerNumber, items: [], hangerIds: new Set() });
+    }
+    const g = groups.get(key);
+    g.items.push(it);
+    if (it.hangerId) g.hangerIds.add(it.hangerId);
+  }
+
+  const sortedGroups = [...groups.values()].sort((a, b) => {
+    if (includePrefix) {
+      const byPrefix = a.prefix.localeCompare(b.prefix, "ko");
+      if (byPrefix !== 0) return byPrefix;
+    }
+    const byName = a.operatorName.localeCompare(b.operatorName, "ko");
+    if (byName !== 0) return byName;
+    return String(a.hangerNumber).localeCompare(String(b.hangerNumber), "ko", { numeric: true });
+  });
+
+  const result = [];
+  const hangerIds = new Set();
+  for (const g of sortedGroups) {
+    if (!g.items.length) continue;
+    result.push({
+      isSeparator: true,
+      prefix: includePrefix ? g.prefix : "",
+      operatorName: g.operatorName,
+      hangerNumber: g.hangerNumber,
+    });
+    result.push(...g.items);
+    g.hangerIds.forEach(id => hangerIds.add(id));
+  }
+  return { items: result, hangerIds: [...hangerIds] };
 }
 
 // 바코드 목록 기반 아이템 구성
@@ -295,51 +333,30 @@ function localDateStr(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-// 특정 날짜(KST)에 승인된 모든 세션을 담당자(행거 submitted_by, 없으면 세션 created_by)→행거번호 순으로
-// 그룹핑해 아이템 목록 구성. 세션별 바코드 자동할당 로직은 buildItemsFromSession을 그대로 재사용한다.
+// 특정 날짜(KST)에 승인된 모든 세션을 접두사→담당자→행거번호 순으로 그룹핑해 아이템 목록 구성.
+// 세션별 바코드 자동할당 로직은 buildItemsFromSession을 그대로 재사용한다.
 async function buildItemsFromDaily(dateStr, includePrinted) {
   const { data: sessRows, error: sessErr } = await sb
     .from("inventory_sessions")
-    .select("id,created_by")
+    .select("id")
     .eq("session_date", dateStr)
     .in("status", ["approved", "processed"])
     .not("start_barcode_num", "is", null);
   if (sessErr) throw new Error(sessErr.message);
   if (!sessRows || !sessRows.length) return { items: [], hangerIds: [] };
 
-  const sessionResults = await Promise.all(
-    sessRows.map(s => buildItemsFromSession(s.id).then(r => ({ items: r.items, createdBy: s.created_by })))
-  );
+  const sessionResults = await Promise.all(sessRows.map(s => buildItemsFromSession(s.id)));
 
-  const groups = new Map();
+  const allItems = [];
   for (const r of sessionResults) {
     for (const it of r.items) {
       if (it.isSeparator) continue;
       if (!includePrinted && it.printedAt) continue;
-      const operatorName = it.submittedBy || r.createdBy || "담당자 미입력";
-      const key = `${operatorName}__${it.hangerNumber}`;
-      if (!groups.has(key)) groups.set(key, { operatorName, hangerNumber: it.hangerNumber, items: [], hangerIds: new Set() });
-      const g = groups.get(key);
-      g.items.push(it);
-      if (it.hangerId) g.hangerIds.add(it.hangerId);
+      allItems.push(it);
     }
   }
 
-  const sortedGroups = [...groups.values()].sort((a, b) => {
-    const byName = a.operatorName.localeCompare(b.operatorName, "ko");
-    if (byName !== 0) return byName;
-    return String(a.hangerNumber).localeCompare(String(b.hangerNumber), "ko", { numeric: true });
-  });
-
-  const items = [];
-  const hangerIds = new Set();
-  for (const g of sortedGroups) {
-    if (!g.items.length) continue;
-    items.push({ isSeparator: true, operatorName: g.operatorName, hangerNumber: g.hangerNumber });
-    items.push(...g.items);
-    g.hangerIds.forEach(id => hangerIds.add(id));
-  }
-  return { items, hangerIds: [...hangerIds] };
+  return groupItemsForPrint(allItems, { includePrefix: true });
 }
 
 async function markHangersPrinted(hangerIds) {
@@ -353,7 +370,7 @@ function renderPreview(items) {
   grid.innerHTML = items.map((item, idx) => {
     if (item.isSeparator) {
       if (item.operatorName) {
-        const text = `${item.operatorName} · ${item.hangerNumber}번 행거`;
+        const text = `${item.prefix ? item.prefix + " · " : ""}${item.operatorName} · ${item.hangerNumber}번 행거`;
         return `<div class="label-separator"><div class="sep-num sep-num-op">${escapeHtml(text)}</div></div>`;
       }
       return `<div class="label-separator"><div class="sep-num">${escapeHtml(String(item.hangerNumber))}</div></div>`;

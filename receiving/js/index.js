@@ -24,6 +24,8 @@ async function cleanupOldPendingSessions(today) {
   }
 }
 
+const DONE_LIMIT = 10;
+
 async function load() {
   try {
     const today = todayKST();
@@ -31,27 +33,34 @@ async function load() {
 
     await cleanupOldPendingSessions(today);
 
-    const { data: sessions, error } = await sb
-      .from("inventory_sessions")
-      .select("*, inventory_hangers(inventory_items(id))")
-      .order("created_at", { ascending: false })
-      .limit(30);
-    if (error) throw error;
+    const [pendingRes, doneRes] = await Promise.all([
+      sb.from("inventory_sessions")
+        .select("*, inventory_hangers(inventory_items(id))")
+        .eq("status", "pending")
+        .order("created_at", { ascending: false }),
+      sb.from("inventory_sessions")
+        .select("*, inventory_hangers(inventory_items(id))")
+        .in("status", ["approved", "processed"])
+        .order("created_at", { ascending: false })
+        .limit(DONE_LIMIT),
+    ]);
+    if (pendingRes.error) throw pendingRes.error;
+    if (doneRes.error) throw doneRes.error;
 
-    sessions.forEach(s => {
+    const addTotal = s => {
       s.total_items = (s.inventory_hangers || [])
         .reduce((sum, h) => sum + (h.inventory_items || []).length, 0);
-    });
-    render(sessions);
+    };
+    (pendingRes.data || []).forEach(addTotal);
+    (doneRes.data || []).forEach(addTotal);
+
+    render(pendingRes.data || [], doneRes.data || []);
   } catch (e) {
     showError("세션 목록 로드 실패: " + e.message);
   }
 }
 
-function render(sessions) {
-  const pending = sessions.filter(s => s.status === "pending");
-  const done    = sessions.filter(s => s.status === "approved" || s.status === "processed");
-
+function render(pending, done) {
   const ps = document.getElementById("pending-section");
   if (pending.length === 0) {
     ps.innerHTML = `
@@ -87,7 +96,7 @@ function render(sessions) {
   if (done.length > 0) {
     const labels = { approved: "승인됨", processed: "처리완료", expired: "만료됨" };
     ds.innerHTML = `<hr class="divider">
-      <div class="muted text-sm mb8">완료된 세션 ${done.length}건</div>` +
+      <div class="muted text-sm mb8">최근 완료된 세션 ${done.length}건</div>` +
       done.map(s => `
         <a href="session.html?id=${encodeURIComponent(s.id)}" style="text-decoration:none">
           <div class="card" style="cursor:pointer; padding:12px 14px">
@@ -97,7 +106,10 @@ function render(sessions) {
               ${s.total_items ? `<span class="muted text-sm" style="margin-left:auto">${s.total_items}벌</span>` : ""}
             </div>
           </div>
-        </a>`).join("");
+        </a>`).join("") +
+      (done.length === DONE_LIMIT
+        ? `<a href="logs.html" class="btn btn-outline btn-block mt8" style="text-decoration:none">전체 입고 로그 보기 →</a>`
+        : "");
   } else {
     ds.innerHTML = "";
   }
@@ -115,6 +127,18 @@ document.getElementById("pending-section").addEventListener("click", async e => 
   load();
 });
 
+async function loadHandlers() {
+  const sel = document.getElementById("created-by");
+  const { data, error } = await sb.from("handlers").select("name").eq("is_active", true).order("name");
+  if (error || !data?.length) {
+    sel.innerHTML = '<option value="">담당자 정보 로드 실패</option>';
+    return;
+  }
+  sel.innerHTML = '<option value="">담당자를 선택하세요</option>' +
+    data.map(h => `<option value="${escapeHtml(h.name)}">${escapeHtml(h.name)}</option>`).join("");
+}
+loadHandlers();
+
 document.getElementById("toggle-create").addEventListener("click", () => {
   const f = document.getElementById("create-form");
   f.style.display = f.style.display === "none" ? "block" : "none";
@@ -122,11 +146,13 @@ document.getElementById("toggle-create").addEventListener("click", () => {
 
 document.getElementById("create-btn").addEventListener("click", async () => {
   clearError();
+  const created_by = document.getElementById("created-by").value;
+  if (!created_by) { showError("담당자 이름을 선택하세요"); return; }
   const body = {
     session_date:   document.getElementById("session-date").value,
     barcode_prefix: document.getElementById("barcode-prefix").value.trim().toUpperCase() || "C",
     location:       document.getElementById("location").value,
-    created_by:     document.getElementById("created-by").value.trim(),
+    created_by,
     status:         "pending",
   };
   try {

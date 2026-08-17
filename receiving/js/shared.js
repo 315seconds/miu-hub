@@ -1,5 +1,10 @@
 // shared.js — bottom nav + common helpers
 
+// 이 기기에서 마지막으로 선택한 담당자 이름 — "내 행거" 판별에 사용 (실제 권한 통제 아님, UI 가드용)
+const MY_NAME_KEY = "miu-my-name";
+function getMyName() { return localStorage.getItem(MY_NAME_KEY) || ""; }
+function setMyName(name) { if (name) localStorage.setItem(MY_NAME_KEY, name); }
+
 const BOTTOM_NAV_TABS = [
   { id: 'hub',      href: '../',               label: '허브',    svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>' },
   { id: 'sessions', href: 'session-list.html', label: '신규입고', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>' },

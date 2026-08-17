@@ -72,11 +72,24 @@ body {
   margin-top: 3px;
 }
 
+.page-body {
+  padding: 4px 20px 20px;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--fg-tertiary);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  margin: 20px 2px 8px;
+}
+.section:first-child .section-label { margin-top: 4px; }
+
 .grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  padding: 20px;
 }
 
 .tile {
@@ -119,6 +132,7 @@ body {
 .tile-inventory  { border-left: 3px solid #06b6d4; }
 .tile-lookup     { border-left: 3px solid #6366f1; }
 .tile-scanner    { border-left: 3px solid #ec4899; }
+.tile-reprint    { border-left: 3px solid #64748b; }
 
 .footer {
   text-align: center;
@@ -136,79 +150,108 @@ body {
   <div class="header-sub" id="today-label"></div>
 </div>
 
-<div class="grid">
-  <!-- 브랜드/사진 소급백필 임시 타일: 작업 끝나면 이 블록만 삭제하면 됨 -->
-  <a href="item-scanner/" class="tile tile-scanner">
-    <div class="tile-icon">📷</div>
-    <div>
-      <div class="tile-label">브랜드/사진 스캐너(임시)</div>
-      <div class="tile-desc">바코드 스캔 → 브랜드·사진 현장 입력</div>
-    </div>
-  </a>
+<div class="page-body">
 
-  <a href="receiving/" class="tile tile-receiving">
-    <div class="tile-icon">📦</div>
-    <div>
-      <div class="tile-label">신규입고</div>
-      <div class="tile-desc">바코드 등록 · 세션 관리 · 라벨 출력</div>
-    </div>
-  </a>
+  <div class="section">
+    <div class="section-label">정기작업</div>
+    <div class="grid">
+      <a href="receiving/" class="tile tile-receiving">
+        <div class="tile-icon">📦</div>
+        <div>
+          <div class="tile-label">신규입고</div>
+          <div class="tile-desc">바코드 등록 · 세션 관리 · 라벨 출력</div>
+        </div>
+      </a>
 
-  <a href="move/" class="tile tile-move">
-    <div class="tile-icon">🔄</div>
-    <div>
-      <div class="tile-label">물류이동</div>
-      <div class="tile-desc">매장간 이동 · 이동 승인</div>
-    </div>
-  </a>
+      <a href="move/" class="tile tile-move">
+        <div class="tile-icon">🔄</div>
+        <div>
+          <div class="tile-label">물류이동</div>
+          <div class="tile-desc">매장간 이동 · 이동 승인</div>
+        </div>
+      </a>
 
-  <a href="longterm/" class="tile tile-longterm">
-    <div class="tile-icon">🏷</div>
-    <div>
-      <div class="tile-label">장기재고 처리</div>
-      <div class="tile-desc">가격수정 · 이동복사 · 키오스크 반영</div>
-    </div>
-  </a>
+      <a href="longterm/" class="tile tile-longterm">
+        <div class="tile-icon">🏷</div>
+        <div>
+          <div class="tile-label">장기재고 처리</div>
+          <div class="tile-desc">가격수정 · 이동복사 · 키오스크 반영</div>
+        </div>
+      </a>
 
-  <a href="longterm/index.html?direct=1" class="tile tile-price">
-    <div class="tile-icon">💰</div>
-    <div>
-      <div class="tile-label">가격수정</div>
-      <div class="tile-desc">기준일 없이 바로 스캔 → 가격수정</div>
+      <a href="longterm/index.html?direct=1" class="tile tile-price">
+        <div class="tile-icon">💰</div>
+        <div>
+          <div class="tile-label">가격수정</div>
+          <div class="tile-desc">기준일 없이 바로 스캔 → 가격수정</div>
+        </div>
+      </a>
     </div>
-  </a>
+  </div>
 
-  <a href="receiving/items.html" class="tile tile-lookup">
-    <div class="tile-icon">📇</div>
-    <div>
-      <div class="tile-label">통합 물건 조회</div>
-      <div class="tile-desc">입고·이동·판매·가격수정 이력 조회</div>
-    </div>
-  </a>
+  <div class="section">
+    <div class="section-label">조회 및 출력</div>
+    <div class="grid">
+      <a href="receiving/reprint.html" class="tile tile-reprint">
+        <div class="tile-icon">🖨</div>
+        <div>
+          <div class="tile-label">바코드 재출력</div>
+          <div class="tile-desc">분실·훼손 등 기존 바코드 라벨 다시 인쇄</div>
+        </div>
+      </a>
 
-  <a href="dashboard/" class="tile tile-dashboard">
-    <div class="tile-icon">📊</div>
-    <div>
-      <div class="tile-label">매장 현황판</div>
-      <div class="tile-desc">재고 현황 · 나이별 분포 · 월매출</div>
+      <a href="receiving/items.html" class="tile tile-lookup">
+        <div class="tile-icon">📇</div>
+        <div>
+          <div class="tile-label">통합 물건 조회</div>
+          <div class="tile-desc">입고·이동·판매·가격수정 이력 조회</div>
+        </div>
+      </a>
     </div>
-  </a>
+  </div>
 
-  <a href="report/" class="tile tile-report">
-    <div class="tile-icon">📈</div>
-    <div>
-      <div class="tile-label">매출리포트</div>
-      <div class="tile-desc">월별 리포트 · 팝업 아카이브</div>
-    </div>
-  </a>
+  <div class="section">
+    <div class="section-label">분석도구</div>
+    <div class="grid">
+      <a href="dashboard/" class="tile tile-dashboard">
+        <div class="tile-icon">📊</div>
+        <div>
+          <div class="tile-label">매장 현황판</div>
+          <div class="tile-desc">재고 현황 · 나이별 분포 · 월매출</div>
+        </div>
+      </a>
 
-  <a href="inventory-check/" class="tile tile-inventory">
-    <div class="tile-icon">🔍</div>
-    <div>
-      <div class="tile-label">재고조사</div>
-      <div class="tile-desc">행거별 스캔 · CSV 다운로드</div>
+      <a href="report/" class="tile tile-report">
+        <div class="tile-icon">📈</div>
+        <div>
+          <div class="tile-label">매출리포트</div>
+          <div class="tile-desc">월별 리포트 · 팝업 아카이브</div>
+        </div>
+      </a>
     </div>
-  </a>
+  </div>
+
+  <div class="section">
+    <div class="section-label">비정기작업</div>
+    <div class="grid">
+      <!-- 브랜드/사진 소급백필 임시 타일: 작업 끝나면 이 블록만 삭제하면 됨 -->
+      <a href="item-scanner/" class="tile tile-scanner">
+        <div class="tile-icon">📷</div>
+        <div>
+          <div class="tile-label">브랜드/사진 스캐너(임시)</div>
+          <div class="tile-desc">바코드 스캔 → 브랜드·사진 현장 입력</div>
+        </div>
+      </a>
+
+      <a href="inventory-check/" class="tile tile-inventory">
+        <div class="tile-icon">🔍</div>
+        <div>
+          <div class="tile-label">재고조사</div>
+          <div class="tile-desc">행거별 스캔 · CSV 다운로드</div>
+        </div>
+      </a>
+    </div>
+  </div>
 
 </div>
 

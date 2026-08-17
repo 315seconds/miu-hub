@@ -1,22 +1,18 @@
 const SESSION_ID = getParam("id");
 const STATUS_LABEL = { pending: "대기중", approved: "승인됨", processed: "처리완료" };
+let HANDLERS = [];
 
 async function load() {
   if (!SESSION_ID) { showError("세션 ID 없음"); return; }
   try {
-    const { data: sess, error: se } = await sb
-      .from("inventory_sessions")
-      .select("*")
-      .eq("id", SESSION_ID)
-      .single();
+    const [{ data: sess, error: se }, { data: hangers, error: he }, { data: handlers }] = await Promise.all([
+      sb.from("inventory_sessions").select("*").eq("id", SESSION_ID).single(),
+      sb.from("inventory_hangers").select("*, inventory_items(*)").eq("session_id", SESSION_ID).order("created_at", { ascending: false }),
+      sb.from("handlers").select("name").eq("is_active", true).order("name"),
+    ]);
     if (se) throw se;
-
-    const { data: hangers, error: he } = await sb
-      .from("inventory_hangers")
-      .select("*, inventory_items(*)")
-      .eq("session_id", SESSION_ID)
-      .order("created_at", { ascending: false });
     if (he) throw he;
+    HANDLERS = handlers || [];
 
     const total = hangers.reduce((s, h) => s + (h.inventory_items || []).length, 0);
     render({ session: sess, hangers, total });
@@ -68,16 +64,21 @@ function render({ session: sess, hangers, total }) {
           </div>
         </div>
         <div class="form-group mt8">
-          <label>담당자 이름 (선택)</label>
-          <input type="text" id="submitted-by" placeholder="본인 이름">
+          <label>담당자 (선택)</label>
+          <select id="submitted-by">
+            <option value="">담당자를 선택하세요</option>
+            ${HANDLERS.map(h => `<option value="${escapeHtml(h.name)}"${h.name === getMyName() ? " selected" : ""}>${escapeHtml(h.name)}</option>`).join("")}
+          </select>
         </div>
         <button id="add-hanger-btn" class="btn btn-success btn-block">행거 추가 →</button>
       </div>`;
   }
 
   if (hangers.length > 0) {
+    const myName = getMyName();
     html += hangers.map(h => {
       const items = h.inventory_items || [];
+      const isMine = !h.submitted_by || h.submitted_by === myName;
       return `
         <div class="card">
           <div class="flex" style="align-items:center; margin-bottom:8px">
@@ -85,10 +86,12 @@ function render({ session: sess, hangers, total }) {
             <span style="font-weight:600; color:var(--fg-secondary)">${escapeHtml(h.category)}</span>
             ${sess.location === "온라인" ? '<span class="tag-online" style="margin-left:8px">온라인</span>' : ""}
             <span class="muted text-sm" style="margin-left:auto">${items.length}벌</span>
-            ${sess.status === "pending" ? `
+            ${sess.status === "pending" && isMine ? `
               <a href="hanger.html?id=${encodeURIComponent(h.id)}" class="btn btn-outline btn-sm" style="margin-left:8px">편집</a>
               <button class="del-hanger-btn btn btn-sm" data-id="${escapeHtml(h.id)}" data-num="${escapeHtml(h.hanger_number)}"
                 style="margin-left:6px; background:none; border:1px solid #ef4444; border-radius:6px; color:#ef4444; font-size:12px; padding:4px 8px; cursor:pointer">삭제</button>
+            ` : sess.status === "pending" ? `
+              <span class="muted text-xs" style="margin-left:8px">🔒 ${escapeHtml(h.submitted_by)}만 편집 가능</span>
             ` : ""}
           </div>
           ${items.length > 0 ? `
@@ -131,12 +134,22 @@ async function addHanger() {
   const submitted_by  = document.getElementById("submitted-by").value.trim();
   if (!hanger_number || !category) { showError("행거 번호와 카테고리를 입력하세요"); return; }
   try {
+    const { data: dup, error: dupErr } = await sb
+      .from("inventory_hangers")
+      .select("id")
+      .eq("session_id", SESSION_ID)
+      .eq("hanger_number", hanger_number)
+      .maybeSingle();
+    if (dupErr) throw dupErr;
+    if (dup) { showError(`행거 ${hanger_number}은(는) 이미 이 세션에 있습니다.`); return; }
+
     const { data, error } = await sb
       .from("inventory_hangers")
       .insert({ session_id: SESSION_ID, hanger_number, category, submitted_by })
       .select()
       .single();
     if (error) throw error;
+    setMyName(submitted_by);
     location.href = "hanger.html?id=" + encodeURIComponent(data.id);
   } catch (e) {
     showError("행거 추가 실패: " + e.message);

@@ -39,6 +39,8 @@ async function load() {
 function render(items) {
   itemCount = items.length;
   const isPending = SESSION.status === "pending";
+  const isMine   = !HANGER.submitted_by || HANGER.submitted_by === getMyName();
+  const canEdit  = isPending && isMine;
 
   const backWrap = document.getElementById("back-btn-wrap");
   const titleEl  = document.getElementById("page-title");
@@ -59,6 +61,10 @@ function render(items) {
   if (!isPending) {
     html += `<div class="card card-success" style="margin-bottom:16px">
       <span class="success">✓ 이 세션은 승인되었습니다. 편집 불가.</span>
+    </div>`;
+  } else if (!isMine) {
+    html += `<div class="card" style="border-color:#334155; background:#0f172a; margin-bottom:16px">
+      <span style="color:#94a3b8">🔒 ${escapeHtml(HANGER.submitted_by)}만 편집할 수 있는 행거입니다.</span>
     </div>`;
   } else {
     html += `
@@ -97,11 +103,11 @@ function render(items) {
     </div>
     <div class="card" id="item-list">
       ${items.length === 0 ? '<div class="empty" id="empty-msg">아직 아이템이 없습니다</div>' :
-        items.map((item, i) => itemRowHtml(item, i + 1, isPending)).join("")}
+        items.map((item, i) => itemRowHtml(item, i + 1, canEdit)).join("")}
     </div>
   `;
 
-  if (isPending) {
+  if (canEdit) {
     html += `<div class="mt16">
       <button id="submit-btn" class="btn btn-success btn-block">행거 제출하기</button>
     </div>`;
@@ -111,7 +117,7 @@ function render(items) {
   document.getElementById("item-list").addEventListener("click", e => {
     if (e.target.classList.contains("photo-preview")) viewPhoto(e.target.src);
   });
-  if (isPending) bindHandlers();
+  if (canEdit) bindHandlers();
 }
 
 function bulkPhotoLabel() {
