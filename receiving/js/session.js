@@ -64,7 +64,7 @@ function render({ session: sess, hangers, total }) {
           </div>
         </div>
         <div class="form-group mt8">
-          <label>담당자 (선택)</label>
+          <label>담당자</label>
           <select id="submitted-by">
             <option value="">담당자를 선택하세요</option>
             ${HANDLERS.map(h => `<option value="${escapeHtml(h.name)}"${h.name === getMyName() ? " selected" : ""}>${escapeHtml(h.name)}</option>`).join("")}
@@ -131,8 +131,9 @@ async function deleteHanger(id, num, btn) {
 async function addHanger() {
   const hanger_number = document.getElementById("hanger-number").value.trim();
   const category      = document.getElementById("hanger-category").value.trim();
-  const submitted_by  = document.getElementById("submitted-by").value.trim();
+  const submitted_by  = document.getElementById("submitted-by").value;
   if (!hanger_number || !category) { showError("행거 번호와 카테고리를 입력하세요"); return; }
+  if (!submitted_by) { showError("담당자를 선택하세요"); return; }
   try {
     const { data: dup, error: dupErr } = await sb
       .from("inventory_hangers")
