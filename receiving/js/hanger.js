@@ -76,7 +76,8 @@ function render(items) {
         <div style="position:relative; margin-bottom:10px">
           <input type="text" id="brand-input" placeholder="브랜드명" autocomplete="off">
           <div id="brand-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:#1e293b; border:1px solid #334155; border-radius:8px; margin-top:4px; z-index:100; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.4)"></div>
-        </div>`}
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" id="no-brand-btn" style="margin-bottom:10px">브랜드 없음 (Vintage)</button>`}
         <div class="add-row">
           <input type="number" id="price-input" placeholder="가격 입력" inputmode="decimal" autocomplete="off">
           <input type="number" id="count-input" value="1" min="1" max="50" inputmode="numeric" title="수량">
@@ -157,6 +158,12 @@ function bindHandlers() {
   document.getElementById("brand-input")?.addEventListener("input", onBrandInput);
   document.getElementById("brand-input")?.addEventListener("blur", () => {
     setTimeout(hideBrandDropdown, 150);
+  });
+  document.getElementById("no-brand-btn")?.addEventListener("click", () => {
+    const brandEl = document.getElementById("brand-input");
+    brandEl.value = "Vintage";
+    hideBrandDropdown();
+    document.getElementById("price-input").focus();
   });
 
   document.getElementById("submit-btn").addEventListener("click", submitHanger);
