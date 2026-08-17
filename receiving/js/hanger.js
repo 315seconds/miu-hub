@@ -67,32 +67,37 @@ function render(items) {
       <span style="color:#94a3b8">🔒 ${escapeHtml(HANGER.submitted_by)}만 편집할 수 있는 행거입니다.</span>
     </div>`;
   } else {
+    // C 카테고리(균일가 저가 상품, 6,800/9,800원)는 브랜드·사진 데이터를 안 받음 — 가격+수량만 빠르게 입력
+    const isBulkC = (HANGER.category || "").trim().toUpperCase() === "C";
     html += `
       <div class="card">
+        ${isBulkC ? "" : `
         <div id="brand-chips" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px"></div>
         <div style="position:relative; margin-bottom:10px">
           <input type="text" id="brand-input" placeholder="브랜드명" autocomplete="off">
           <div id="brand-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:#1e293b; border:1px solid #334155; border-radius:8px; margin-top:4px; z-index:100; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.4)"></div>
-        </div>
+        </div>`}
         <div class="add-row">
           <input type="number" id="price-input" placeholder="가격 입력" inputmode="decimal" autocomplete="off">
           <input type="number" id="count-input" value="1" min="1" max="50" inputmode="numeric" title="수량">
           <button id="add-btn">+</button>
         </div>
+        ${isBulkC ? "" : `
         <div class="flex mt8">
           <button type="button" class="btn btn-outline btn-sm" id="ref-btn">📊 가격 참조</button>
         </div>
         <div id="price-ref-panel" class="price-ref-panel">
           <div id="price-ref-content" class="text-xs muted">브랜드 입력 후 조회</div>
-        </div>
+        </div>`}
         <div class="text-xs muted mt8" style="text-align:center; line-height:1.7">
           가격 입력 후 <strong>+</strong> 또는 <strong>엔터</strong>로 추가
           &nbsp;·&nbsp; 1000 미만은 자동 ×1000
         </div>
       </div>
 
+      ${isBulkC ? "" : `
       <a id="bulk-photo-btn" href="bulk-photo.html?id=${encodeURIComponent(HANGER_ID)}"
-         class="btn btn-outline btn-block" style="margin-bottom:12px">${bulkPhotoLabel()}</a>
+         class="btn btn-outline btn-block" style="margin-bottom:12px">${bulkPhotoLabel()}</a>`}
     `;
   }
 
@@ -148,9 +153,9 @@ function bindHandlers() {
   document.getElementById("add-btn").addEventListener("click", addItem);
   priceEl.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); addItem(); } });
 
-  document.getElementById("ref-btn").addEventListener("click", togglePriceRef);
-  document.getElementById("brand-input").addEventListener("input", onBrandInput);
-  document.getElementById("brand-input").addEventListener("blur", () => {
+  document.getElementById("ref-btn")?.addEventListener("click", togglePriceRef);
+  document.getElementById("brand-input")?.addEventListener("input", onBrandInput);
+  document.getElementById("brand-input")?.addEventListener("blur", () => {
     setTimeout(hideBrandDropdown, 150);
   });
 
@@ -283,7 +288,7 @@ async function addItem() {
   if (price < 1000) price = Math.round(price * 1000);
   price = Math.round(price);
 
-  const brand = brandEl.value.trim();
+  const brand = brandEl ? brandEl.value.trim() : "";
   const addBtn = document.getElementById("add-btn");
   addBtn.disabled = true; addBtn.textContent = "…";
 
@@ -307,7 +312,8 @@ async function addItem() {
       sessionBrands.unshift(brand);
       renderBrandChips();
     }
-    priceEl.value = ""; countEl.value = "1"; brandEl.value = "";
+    priceEl.value = ""; countEl.value = "1";
+    if (brandEl) brandEl.value = "";
     hideBrandDropdown();
     priceEl.focus();
   } catch (e) {
