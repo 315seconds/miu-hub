@@ -6,6 +6,7 @@
 <title>라벨 출력</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="js/BrowserPrint.min.js" onerror="console.warn('BrowserPrint SDK 없음')"></script>
 <script src="js/BrowserPrint-Zebra.min.js" onerror="console.warn('BrowserPrint-Zebra SDK 없음')"></script>
 <script src="js/supabase-client.js"></script>
@@ -158,6 +159,7 @@ body {
     <input type="date" id="daily-date">
     <label class="daily-toggle"><input type="checkbox" id="daily-include-printed"> 출력완료건 포함</label>
     <button class="zpl-btn" id="daily-reload-btn">🔄 조회</button>
+    <button class="zpl-btn" id="daily-kiosk-btn">📥 키오스크 업로드 파일</button>
   </div>
   <div class="btn-group">
     <button class="team-btn active" data-team="online">온라인</button>
