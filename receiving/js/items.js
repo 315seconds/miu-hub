@@ -151,6 +151,8 @@ async function fetchItemData(bc) {
     price:     invItem.price,
     brand:     invItem.brand,
     photo_url: invItem.photo_url || null,
+    color:     invItem.color || null,
+    pattern:   invItem.pattern || null,
     category,
     location,
     status:    sold ? 'sold' : 'active',
@@ -528,6 +530,7 @@ function renderItemCard(item, clickable = false) {
         <div class="text-sm muted" style="margin-top:3px">
           ${escapeHtml(item.category || '—')}${item.location ? ' · ' + escapeHtml(item.location) : ''}
         </div>
+        ${(item.color || item.pattern) ? `<div class="text-sm muted" style="margin-top:2px">${[item.color, item.pattern].filter(Boolean).map(escapeHtml).join(' · ')}</div>` : ''}
       </div>
     </div>
   </div>`;
