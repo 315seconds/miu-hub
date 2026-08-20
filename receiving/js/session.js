@@ -53,15 +53,9 @@ function render({ session: sess, hangers, total }) {
     html += `
       <div id="add-hanger" class="card mt16">
         <h2>행거 추가</h2>
-        <div class="flex mb8">
-          <div class="form-group flex-1" style="margin-bottom:0">
-            <label>행거 번호</label>
-            <input type="text" id="hanger-number" placeholder="1, 2, A1 ..." autofocus>
-          </div>
-          <div class="form-group flex-1" style="margin-bottom:0">
-            <label>카테고리</label>
-            <input type="text" id="hanger-category" placeholder="자켓, 스웨터, 청바지 ...">
-          </div>
+        <div class="form-group">
+          <label>행거 번호</label>
+          <input type="text" id="hanger-number" placeholder="1, 2, A1 ..." autofocus>
         </div>
         <div class="form-group mt8">
           <label>담당자</label>
@@ -79,11 +73,12 @@ function render({ session: sess, hangers, total }) {
     html += hangers.map(h => {
       const items = h.inventory_items || [];
       const isMine = !h.submitted_by || h.submitted_by === myName;
+      const cats = [...new Set(items.map(it => it.category).filter(Boolean))];
       return `
         <div class="card">
           <div class="flex" style="align-items:center; margin-bottom:8px">
             <span style="font-size:17px; font-weight:700; margin-right:8px">행거 ${escapeHtml(h.hanger_number)}</span>
-            <span style="font-weight:600; color:var(--fg-secondary)">${escapeHtml(h.category)}</span>
+            <span style="font-weight:600; color:var(--fg-secondary)">${cats.length ? escapeHtml(cats.join(" · ")) : '<span class="muted">카테고리 미정</span>'}</span>
             ${sess.location === "온라인" ? '<span class="tag-online" style="margin-left:8px">온라인</span>' : ""}
             <span class="muted text-sm" style="margin-left:auto">${items.length}벌</span>
             ${sess.status === "pending" && isMine ? `
@@ -130,9 +125,8 @@ async function deleteHanger(id, num, btn) {
 
 async function addHanger() {
   const hanger_number = document.getElementById("hanger-number").value.trim();
-  const category      = document.getElementById("hanger-category").value.trim();
   const submitted_by  = document.getElementById("submitted-by").value;
-  if (!hanger_number || !category) { showError("행거 번호와 카테고리를 입력하세요"); return; }
+  if (!hanger_number) { showError("행거 번호를 입력하세요"); return; }
   if (!submitted_by) { showError("담당자를 선택하세요"); return; }
   try {
     const { data: dup, error: dupErr } = await sb
@@ -146,7 +140,8 @@ async function addHanger() {
 
     const { data, error } = await sb
       .from("inventory_hangers")
-      .insert({ session_id: SESSION_ID, hanger_number, category, submitted_by })
+      // category는 DB상 NOT NULL이라 빈 문자열로 채움 — 실제 카테고리는 item 단위로만 관리됨
+      .insert({ session_id: SESSION_ID, hanger_number, category: "", submitted_by })
       .select()
       .single();
     if (error) throw error;

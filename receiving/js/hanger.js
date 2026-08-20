@@ -1,12 +1,26 @@
 const HANGER_ID = getParam("id");
+const CATEGORIES = [
+  "자켓", "바람막이", "플리스", "PK셔츠", "셔츠", "스웻셔츠", "반팔티", "긴팔티", "스웨터",
+  "하와이안셔츠", "타이다이", "원피스", "스커트", "반바지", "긴바지", "트랙팬츠", "블라우스",
+  "신발", "가방", "패션잡화", "ETC", "패브릭", "셋업", "모자", "C",
+];
+function categoryLabel(c) { return c === "C" ? "C(균일가)" : c; }
+
 let SESSION = null;
 let HANGER  = null;
+let CURRENT_ITEMS = [];
+let currentCategory = "";
 let itemCount = 0;
 let unphotographedCount = 0;
 let refVisible = false;
 let refDebounceTimer = null;
 let sessionBrands = [];
+let todayBrands = [];
 let brandDropdownTimer = null;
+
+function localDateStr(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 
 async function load() {
   if (!HANGER_ID) { showError("행거 ID 없음"); return; }
@@ -28,9 +42,11 @@ async function load() {
     HANGER  = hanger;
     SESSION = hanger.inventory_sessions || {};
     const loaded = items || [];
+    CURRENT_ITEMS = loaded;
+    currentCategory = loaded.length ? (loaded[loaded.length - 1].category || "") : "";
     unphotographedCount = loaded.filter(it => !it.photo_url).length;
     render(loaded);
-    if (SESSION.status === "pending") loadSessionBrands();
+    if (SESSION.status === "pending") { loadSessionBrands(); loadTodayBrands(); }
   } catch (e) {
     showError("행거 로드 실패: " + e.message);
   }
@@ -50,10 +66,11 @@ function render(items) {
     </a>`;
   if (titleEl) titleEl.textContent = `행거 ${HANGER.hanger_number}`;
 
+  const usedCategories = [...new Set(items.map(it => it.category).filter(Boolean))];
   let html = `
     <div class="flex mb16" style="gap:8px; flex-wrap:wrap">
       <span class="${SESSION.location === "온라인" ? "tag-online" : "tag-offline"}">${SESSION.location === "온라인" ? "온라인" : "공동물류"}</span>
-      <span class="tag-offline">${escapeHtml(HANGER.category)}</span>
+      ${usedCategories.length ? `<span class="tag-offline">${escapeHtml(usedCategories.join(" · "))}</span>` : ""}
       ${HANGER.submitted_by ? `<span class="muted text-xs" style="align-self:center">· ${escapeHtml(HANGER.submitted_by)}</span>` : ""}
     </div>
   `;
@@ -68,11 +85,18 @@ function render(items) {
     </div>`;
   } else {
     // C 카테고리(균일가 저가 상품, 6,800/9,800원)는 브랜드·사진 데이터를 안 받음 — 가격+수량만 빠르게 입력
-    const isBulkC = (HANGER.category || "").trim().toUpperCase() === "C";
+    const isBulkC = currentCategory.trim().toUpperCase() === "C";
     html += `
       <div class="card">
+        <div class="form-group" style="margin-bottom:10px">
+          <label>카테고리</label>
+          <select id="category-select">
+            <option value="">카테고리 선택</option>
+            ${CATEGORIES.map(c => `<option value="${escapeHtml(c)}"${c === currentCategory ? " selected" : ""}>${escapeHtml(categoryLabel(c))}</option>`).join("")}
+          </select>
+        </div>
         ${isBulkC ? "" : `
-        <div id="brand-chips" style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px"></div>
+        <div id="brand-chips" style="display:flex; flex-wrap:nowrap; gap:6px; margin-bottom:8px; overflow-x:auto; padding-bottom:2px"></div>
         <div style="position:relative; margin-bottom:10px">
           <input type="text" id="brand-input" placeholder="브랜드명" autocomplete="off">
           <div id="brand-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:#1e293b; border:1px solid #334155; border-radius:8px; margin-top:4px; z-index:100; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.4)"></div>
@@ -138,11 +162,12 @@ function updateBulkPhotoBtn() {
 }
 
 function itemRowHtml(item, num, canDel) {
+  const meta = [item.brand, item.category ? categoryLabel(item.category) : ""].filter(Boolean).join(" · ");
   return `<div class="item-row" id="item-${escapeHtml(item.id)}" data-has-photo="${item.photo_url ? '1' : '0'}">
     <span class="item-num">${num}</span>
     <div class="item-info">
       <div class="item-price">₩${(item.price || 0).toLocaleString()}</div>
-      ${item.brand ? `<div class="item-brand">${escapeHtml(item.brand)}</div>` : ""}
+      ${meta ? `<div class="item-brand">${escapeHtml(meta)}</div>` : ""}
       ${item.photo_url ? `<img src="${escapeHtml(item.photo_url)}" class="photo-preview" alt="사진">` : ""}
     </div>
     ${canDel ? `<button class="del-btn" data-id="${escapeHtml(item.id)}">×</button>` : ""}
@@ -154,6 +179,10 @@ function bindHandlers() {
   document.getElementById("add-btn").addEventListener("click", addItem);
   priceEl.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); addItem(); } });
 
+  document.getElementById("category-select")?.addEventListener("change", e => {
+    currentCategory = e.target.value;
+    render(CURRENT_ITEMS);
+  });
   document.getElementById("ref-btn")?.addEventListener("click", togglePriceRef);
   document.getElementById("brand-input")?.addEventListener("input", onBrandInput);
   document.getElementById("brand-input")?.addEventListener("blur", () => {
@@ -187,11 +216,22 @@ async function loadSessionBrands() {
   } catch (_) {}
 }
 
+async function loadTodayBrands() {
+  try {
+    const { data } = await sb
+      .from("inventory_items")
+      .select("brand, inventory_sessions!inner(session_date)")
+      .eq("inventory_sessions.session_date", localDateStr())
+      .not("brand", "is", null);
+    todayBrands = [...new Set((data || []).map(it => it.brand).filter(Boolean))];
+  } catch (_) {}
+}
+
 function renderBrandChips() {
   const el = document.getElementById("brand-chips");
   if (!el) return;
-  el.innerHTML = sessionBrands.map(b =>
-    `<button type="button" style="background:#0f172a; border:1px solid #334155; border-radius:99px; padding:4px 12px; font-size:12px; color:#94a3b8; cursor:pointer; white-space:nowrap" data-brand="${escapeHtml(b)}">${escapeHtml(b)}</button>`
+  el.innerHTML = sessionBrands.slice(0, 20).map(b =>
+    `<button type="button" style="background:#0f172a; border:1px solid #334155; border-radius:99px; padding:4px 12px; font-size:12px; color:#94a3b8; cursor:pointer; white-space:nowrap; flex-shrink:0" data-brand="${escapeHtml(b)}">${escapeHtml(b)}</button>`
   ).join("");
   el.querySelectorAll("button").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -213,13 +253,24 @@ function onBrandInput() {
 }
 
 async function showBrandDropdown(q) {
-  const { data } = await sb
-    .from("brand_master")
-    .select("name")
-    .ilike("name", `%${q}%`)
-    .order("name")
-    .limit(8);
-  const brands = (data || []).map(it => it.name).filter(Boolean);
+  const [{ data: prefixData }, { data: containsData }] = await Promise.all([
+    sb.from("brand_master").select("name").ilike("name", `${q}%`).order("name").limit(8),
+    sb.from("brand_master").select("name").ilike("name", `%${q}%`).order("name").limit(8),
+  ]);
+  const lowerQ = q.toLowerCase();
+  const masterPrefix = (prefixData || []).map(it => it.name).filter(Boolean);
+  const masterContains = (containsData || []).map(it => it.name).filter(Boolean);
+  const todayPrefix = todayBrands.filter(b => b.toLowerCase().startsWith(lowerQ));
+  const todayContains = todayBrands.filter(b => b.toLowerCase().includes(lowerQ) && !b.toLowerCase().startsWith(lowerQ));
+
+  const seen = new Set();
+  const brands = [];
+  for (const b of [...masterPrefix, ...todayPrefix, ...masterContains, ...todayContains]) {
+    if (seen.has(b)) continue;
+    seen.add(b);
+    brands.push(b);
+    if (brands.length >= 8) break;
+  }
   const dd = document.getElementById("brand-dropdown");
   if (!dd) return;
   if (brands.length === 0) { hideBrandDropdown(); return; }
@@ -260,16 +311,16 @@ async function loadPriceRef() {
   try {
     const { data, error } = await sb
       .from("inventory_items")
-      .select("price, inventory_hangers!inner(category)")
+      .select("price")
       .ilike("brand", brand)
-      .eq("inventory_hangers.category", HANGER.category)
+      .eq("category", currentCategory)
       .not("price", "is", null)
       .gt("price", 0)
       .order("created_at", { ascending: false })
       .limit(10);
     if (error) throw error;
     if (!data || data.length === 0) {
-      content.textContent = `${brand} ${HANGER.category} 입고 내역 없음`;
+      content.textContent = `${brand} ${currentCategory} 입고 내역 없음`;
       return;
     }
     const avg = Math.round(data.reduce((s, it) => s + it.price, 0) / data.length);
@@ -289,6 +340,7 @@ async function addItem() {
   const countEl = document.getElementById("count-input");
   const priceRaw = priceEl.value.trim();
   const count    = Math.max(1, parseInt(countEl.value || "1", 10) || 1);
+  if (!currentCategory) { showError("카테고리를 선택하세요"); return; }
   if (!priceRaw) { priceEl.focus(); return; }
 
   let price = parseFloat(priceRaw);
@@ -304,7 +356,7 @@ async function addItem() {
       hanger_id: HANGER_ID, session_id: SESSION.id, price, brand: brand || null,
       order_index: itemCount + i,
       location: SESSION.location || null,
-      category: HANGER.category || null,
+      category: currentCategory || null,
     }));
     const { data: newItems, error } = await sb.from("inventory_items").insert(rows).select();
     if (error) throw error;
@@ -319,6 +371,7 @@ async function addItem() {
       sessionBrands.unshift(brand);
       renderBrandChips();
     }
+    if (brand && !todayBrands.includes(brand)) todayBrands.unshift(brand);
     priceEl.value = ""; countEl.value = "1";
     if (brandEl) brandEl.value = "";
     hideBrandDropdown();
@@ -331,6 +384,7 @@ async function addItem() {
 }
 
 function prependItem(item) {
+  CURRENT_ITEMS.push(item);
   itemCount++;
   unphotographedCount++;
   document.getElementById("item-count").textContent = itemCount + "개";
@@ -358,6 +412,7 @@ async function deleteItem(itemId, btn) {
   try {
     const { error } = await sb.from("inventory_items").delete().eq("id", itemId);
     if (error) throw error;
+    CURRENT_ITEMS = CURRENT_ITEMS.filter(it => it.id !== itemId);
     row?.remove();
     itemCount = Math.max(0, itemCount - 1);
     if (!hadPhoto) unphotographedCount = Math.max(0, unphotographedCount - 1);

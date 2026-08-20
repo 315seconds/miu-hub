@@ -227,9 +227,9 @@ async function buildItemsFromSession(sessionId) {
 
     // 행거 순서(hanger_number 오름차순) 그대로 순회 → 바코드 자동할당이 행거 순서를 따르도록 보장
     for (const hanger of hangers) {
-      let category = hanger.category || "";
-      if (sess.location === "온라인" && !category.startsWith("온")) category = "온" + category;
       for (const it of (itemsByHanger[hanger.id] || [])) {
+        let category = it.category || "";
+        if (sess.location === "온라인" && !category.startsWith("온")) category = "온" + category;
         allItems.push({
           price: isFinite(Number(it.price)) ? Number(it.price) : 0,
           brand: it.brand || "",

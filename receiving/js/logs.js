@@ -54,7 +54,7 @@ async function loadLog() {
   try {
     const { data: sessions, error } = await sb
       .from("inventory_sessions")
-      .select("*, inventory_hangers(category, inventory_items(id))")
+      .select("*, inventory_hangers(inventory_items(id, category))")
       .gte("session_date", from)
       .lte("session_date", to)
       .order("session_date", { ascending: false });
@@ -88,10 +88,11 @@ function renderLog(sessions) {
     const loc = s.location || "미지정";
     if (!locationMap[loc]) locationMap[loc] = { total: 0, cats: {} };
     (s.inventory_hangers || []).forEach(h => {
-      const cnt = (h.inventory_items || []).length;
-      const cat = h.category || "미분류";
-      locationMap[loc].total += cnt;
-      locationMap[loc].cats[cat] = (locationMap[loc].cats[cat] || 0) + cnt;
+      (h.inventory_items || []).forEach(it => {
+        const cat = it.category || "미분류";
+        locationMap[loc].total += 1;
+        locationMap[loc].cats[cat] = (locationMap[loc].cats[cat] || 0) + 1;
+      });
     });
   });
 
@@ -184,13 +185,12 @@ async function toggleSession(sessionId) {
   try {
     const { data: hangers, error } = await sb
       .from("inventory_hangers")
-      .select("hanger_number, category, inventory_items(barcode, price, brand)")
+      .select("hanger_number, inventory_items(barcode, price, brand, category)")
       .eq("session_id", sessionId)
       .order("created_at", { ascending: true });
     if (error) throw error;
     const mapped = (hangers || []).map(h => ({
       hanger_number: h.hanger_number,
-      category:      h.category,
       items:         h.inventory_items || [],
     }));
     itemCache[sessionId] = mapped;
@@ -205,14 +205,15 @@ function renderSessionItems(sessionId, hangers) {
   if (!hangers.length) { body.innerHTML = '<div style="color:#475569; font-size:13px; padding:8px 0">행거 없음</div>'; return; }
   let html = "";
   hangers.forEach(h => {
+    const cats = [...new Set(h.items.map(it => it.category).filter(Boolean))];
     html += `<div style="font-size:11px; font-weight:700; color:#64748b; margin:10px 0 6px; text-transform:uppercase">
-      행거 ${escapeHtml(h.hanger_number)} · ${escapeHtml(h.category)} · ${h.items.length}벌
+      행거 ${escapeHtml(h.hanger_number)} · ${escapeHtml(cats.join(" · ") || "미분류")} · ${h.items.length}벌
     </div>`;
     h.items.forEach((item, i) => {
       html += `<div class="log-item-row">
         <span class="log-item-num">${i + 1}</span>
         <span class="log-item-bc">${escapeHtml(item.barcode || "—")}</span>
-        <span class="log-item-name">${item.brand ? escapeHtml(item.brand) + " " : ""}${escapeHtml(h.category)}</span>
+        <span class="log-item-name">${item.brand ? escapeHtml(item.brand) + " " : ""}${escapeHtml(item.category || "")}</span>
         <span class="log-item-price">₩${(item.price || 0).toLocaleString()}</span>
       </div>`;
     });
@@ -239,7 +240,7 @@ function downloadCSV(sessionId) {
   const rows = [["행거번호", "카테고리", "바코드", "브랜드", "가격"]];
   hangers.forEach(h => {
     h.items.forEach(item => {
-      rows.push([h.hanger_number, h.category, item.barcode || "", item.brand || "", item.price || 0]);
+      rows.push([h.hanger_number, item.category || "", item.barcode || "", item.brand || "", item.price || 0]);
     });
   });
 

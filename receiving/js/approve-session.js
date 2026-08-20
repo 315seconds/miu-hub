@@ -136,11 +136,12 @@ function render(suggested) {
   } else {
     html += HANGERS.map(h => {
       const items = h.inventory_items || [];
+      const cats = [...new Set(items.map(it => it.category).filter(Boolean))];
       return `
         <div class="card">
           <div class="flex" style="align-items:center; margin-bottom:10px">
             <strong style="font-size:16px">행거 ${escapeHtml(h.hanger_number)}</strong>
-            <span class="muted" style="margin-left:8px">${escapeHtml(h.category)}</span>
+            <span class="muted" style="margin-left:8px">${cats.length ? escapeHtml(cats.join(" · ")) : "카테고리 미정"}</span>
             <span class="muted text-sm" style="margin-left:auto">${items.length}벌</span>
             ${h.submitted_at
               ? `<span style="margin-left:8px; font-size:11px; color:var(--status-success)">✓ 제출</span>`
