@@ -8,6 +8,9 @@ const ZPL_CONFIGS = {
 };
 let ZPL = ZPL_CONFIGS.online;
 
+// 온라인 입고라도 옷이 아닌 잡화는 카테고리에 "온" 접두사를 붙이지 않음
+const NON_CLOTHING_CATEGORIES = new Set(["신발", "가방", "패션잡화", "ETC", "패브릭", "모자"]);
+
 // ZPL ^FD 필드에 ^ 문자가 들어가면 명령어로 해석되므로 제거
 function sanitizeZpl(s) {
   return String(s == null ? "" : s).replace(/\^/g, "");
@@ -202,8 +205,6 @@ async function buildItemsFromSession(sessionId) {
   if (hangerErr) throw new Error(hangerErr.message);
   if (!sessRows || !sessRows.length) throw new Error("세션을 찾을 수 없습니다.");
   const sess = sessRows[0];
-  const prefix = sess.barcode_prefix;
-  const startNum = sess.start_barcode_num;
   const hangers = hangerRows || [];
   // hanger_number는 TEXT 컬럼이라 DB 정렬은 사전식("1","10","11","2"...)이 됨 — 숫자 자연 정렬로 보정
   hangers.sort((a, b) => String(a.hanger_number).localeCompare(String(b.hanger_number), "ko", { numeric: true }));
@@ -229,7 +230,8 @@ async function buildItemsFromSession(sessionId) {
     for (const hanger of hangers) {
       for (const it of (itemsByHanger[hanger.id] || [])) {
         let category = it.category || "";
-        if (sess.location === "온라인" && !category.startsWith("온")) category = "온" + category;
+        // 온라인 입고라도 옷이 아닌 잡화는 카테고리에 "온" 접두사를 붙이지 않음
+        if (sess.location === "온라인" && !NON_CLOTHING_CATEGORIES.has(category)) category = "온" + category;
         allItems.push({
           price: isFinite(Number(it.price)) ? Number(it.price) : 0,
           brand: it.brand || "",
@@ -246,9 +248,13 @@ async function buildItemsFromSession(sessionId) {
     }
   }
 
-  // 바코드가 모두 없을 때만 자동 할당 (부분 할당 상태는 건드리지 않음)
-  if (startNum && allItems.length && allItems.every(it => !it.barcode)) {
-    allItems.forEach((it, i) => { it.barcode = `${prefix}${startNum + i}`; });
+  // 바코드가 하나라도 배정 안 된 상태 = 입고처리 크론이 아직 다 안 돌았음(진행 중 포함).
+  // 예전엔 여기서 클라이언트가 순서를 추측해서 임시 바코드를 붙였는데,
+  // 이 추측 순서가 실제 크론의 배정 순서와 달라질 수 있어(예: 행거번호 "4-1" 같은
+  // 비숫자 케이스 정렬 차이) 라벨이 엉뚱한 바코드로 인쇄되는 사고가 있었음.
+  // 그래서 추측 대신 명시적으로 막고 재시도를 유도한다.
+  if (allItems.some(it => !it.barcode)) {
+    throw new Error("바코드가 아직 배정되지 않았습니다. 입고처리(약 2분 주기)가 끝난 후 다시 시도하세요.");
   }
 
   allItems.forEach(it => {
