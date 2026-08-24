@@ -64,6 +64,13 @@ button{touch-action:manipulation}
 .bulk-photo-trigger{display:none}.bulk-photo-trigger.show{display:block}
 .bulk-photo-btn{width:100%;min-height:46px;padding:10px 12px;border:1px solid var(--blue);border-radius:8px;background:#fff;color:var(--blue);font-size:13px;font-weight:750;cursor:pointer}
 .bulk-photo-btn:disabled{opacity:.45;cursor:not-allowed}
+.hanger-nav-group{display:flex;align-items:center;gap:6px}
+.hanger-nav{flex:0 0 auto;width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);font-size:13px;line-height:1;cursor:pointer}
+.hanger-nav:disabled{opacity:.35;cursor:not-allowed}
+.viewing-banner{display:none;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border:1px solid #d4a72c;border-radius:8px;background:var(--yellow-bg);color:var(--yellow);font-size:12px;line-height:1.4}
+.viewing-banner.show{display:flex}
+.viewing-return-btn{flex:0 0 auto;padding:6px 9px;border:1px solid #d4a72c;border-radius:6px;background:#fff;color:var(--yellow);font-size:11px;font-weight:700;cursor:pointer}
+.row-brand{margin-top:2px;color:var(--muted);font-size:11px}
 .modal-bg{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(31,35,40,.4)}.modal-bg.show{display:flex}
 .modal{width:min(100%,350px);max-height:calc(100dvh - 44px);overflow-y:auto;padding:24px;background:#fff;border:1px solid var(--border);border-top:4px solid #bf8700;border-radius:12px;box-shadow:0 8px 24px rgba(140,149,159,.25);text-align:center}
 .warn{font-size:34px}.modal h2{margin:10px 0 6px;font-size:18px}.modal p{color:var(--muted);font-size:13px;line-height:1.55}
@@ -101,9 +108,18 @@ button{touch-action:manipulation}
   </div>
 
   <section class="hanger-strip" aria-label="현재 행거 진행 상황">
-    <div class="hanger-badge" id="hangerBadge">행거 준비 중</div>
+    <div class="hanger-nav-group">
+      <button class="hanger-nav" id="prevHangerBtn" type="button" aria-label="이전 행거" disabled>‹</button>
+      <div class="hanger-badge" id="hangerBadge">행거 준비 중</div>
+      <button class="hanger-nav" id="nextHangerBtn" type="button" aria-label="다음 행거" disabled>›</button>
+    </div>
     <div class="hanger-progress">현재 <strong><span id="currentHangerCount">0</span>건</strong> · 누적 <strong><span id="cumulativeCount">0</span>건</strong></div>
   </section>
+
+  <div class="viewing-banner" id="viewingBanner">
+    <span id="viewingBannerText">지난 행거를 보고 있습니다.</span>
+    <button class="viewing-return-btn" id="returnToActiveBtn" type="button">현재 행거로 →</button>
+  </div>
 
   <section class="stats" aria-label="행거 작업 통계">
     <div class="stat"><div class="stat-label">TOTAL</div><div class="stat-value" id="totalCount">0</div></div>
@@ -126,6 +142,10 @@ button{touch-action:manipulation}
 
   <section class="bulk-photo-trigger" id="bulkPhotoSection" aria-label="일괄 사진촬영">
     <button class="bulk-photo-btn" id="bulkPhotoBtn" type="button" disabled>📷 일괄 사진촬영 (<span id="bulkPhotoNeedCount">0</span>건)</button>
+  </section>
+
+  <section class="bulk-photo-trigger" id="bulkBrandSection" aria-label="일괄 브랜드입력">
+    <button class="bulk-photo-btn" id="bulkBrandBtn" type="button" disabled>🏷️ 일괄 브랜드입력 (<span id="bulkBrandNeedCount">0</span>건)</button>
   </section>
 
   <section class="list">
@@ -208,6 +228,27 @@ button{touch-action:manipulation}
     <div class="actions">
       <button class="btn btn-secondary" id="bulkSkipBtn" type="button">건너뜀 →</button>
       <button class="btn btn-secondary" id="bulkCloseBtn" type="button">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="bulkBrandModal" role="dialog" aria-modal="true" aria-labelledby="bulkBrandTitle">
+  <div class="modal">
+    <h2 id="bulkBrandTitle">일괄 브랜드입력</h2>
+    <p>순서대로 입력하면 스캔한 순서대로 자동으로 브랜드가 붙습니다.</p>
+    <div class="target-code" id="bulkBrandBarcode">-</div>
+    <div class="hint" id="bulkBrandCounter">1 / 1</div>
+
+    <div class="capture-section">
+      <input id="bulkBrandInput" class="brand-input" type="text" placeholder="브랜드명을 입력하세요" autocomplete="off" autocorrect="off" spellcheck="false" list="brandList">
+      <button class="no-brand-btn" id="bulkNoBrandBtn" type="button">브랜드 없음 (VINTAGE)</button>
+    </div>
+
+    <div class="save-status" id="bulkBrandStatus" aria-live="polite"></div>
+    <div class="actions">
+      <button class="btn btn-primary" id="bulkBrandSaveBtn" type="button" disabled>저장하고 다음 →</button>
+      <button class="btn btn-secondary" id="bulkBrandSkipBtn" type="button">건너뜀 →</button>
+      <button class="btn btn-secondary" id="bulkBrandCloseBtn" type="button">닫기</button>
     </div>
   </div>
 </div>
@@ -295,6 +336,23 @@ const bulkCameraInput = $('bulkCameraInput');
 const bulkStatus = $('bulkStatus');
 const bulkSkipBtn = $('bulkSkipBtn');
 const bulkCloseBtn = $('bulkCloseBtn');
+const prevHangerBtn = $('prevHangerBtn');
+const nextHangerBtn = $('nextHangerBtn');
+const viewingBanner = $('viewingBanner');
+const viewingBannerText = $('viewingBannerText');
+const returnToActiveBtn = $('returnToActiveBtn');
+const bulkBrandSection = $('bulkBrandSection');
+const bulkBrandBtn = $('bulkBrandBtn');
+const bulkBrandNeedCount = $('bulkBrandNeedCount');
+const bulkBrandModal = $('bulkBrandModal');
+const bulkBrandBarcode = $('bulkBrandBarcode');
+const bulkBrandCounter = $('bulkBrandCounter');
+const bulkBrandInput = $('bulkBrandInput');
+const bulkNoBrandBtn = $('bulkNoBrandBtn');
+const bulkBrandStatus = $('bulkBrandStatus');
+const bulkBrandSaveBtn = $('bulkBrandSaveBtn');
+const bulkBrandSkipBtn = $('bulkBrandSkipBtn');
+const bulkBrandCloseBtn = $('bulkBrandCloseBtn');
 
 let logs = [];
 let activeHanger = null;
@@ -320,6 +378,12 @@ let appMode = getStoredMode();
 let bulkQueue = [];
 let bulkIndex = 0;
 let isBulkSaving = false;
+let allHangers = [];
+let viewingHangerId = null;
+let viewingHangerNumber = null;
+let bulkBrandQueue = [];
+let bulkBrandIndex = 0;
+let isBulkBrandSaving = false;
 
 const HANGUL_INITIAL_KEYS = ['r','R','s','e','E','f','a','q','Q','t','T','d','w','W','c','z','x','v','g'];
 const HANGUL_MEDIAL_KEYS = ['k','o','i','O','j','p','u','P','h','hk','ho','hl','y','n','nj','np','nl','b','m','ml','l'];
@@ -354,8 +418,10 @@ function formatKstFileDate(value=new Date()){
 }
 function toKstExcelDate(value){ return value ? new Date(new Date(value).getTime() + 9 * 60 * 60 * 1000) : null; }
 function vibrate(pattern){ if(navigator.vibrate) navigator.vibrate(pattern); }
-function appReady(){ return hangerReady && !isHangerBusy && !isRecordingScan && !isSyncingHanger && !isExporting; }
-function refocus(){ if(appReady() && !captureModal.classList.contains('show') && !bulkModal.classList.contains('show') && !confirmModal.classList.contains('show')) setTimeout(()=>scanInput.focus(),80); }
+function coreReady(){ return hangerReady && !isHangerBusy && !isRecordingScan && !isSyncingHanger && !isExporting; }
+function appReady(){ return coreReady() && viewingHangerId === null; }
+function anyModalOpen(){ return captureModal.classList.contains('show') || bulkModal.classList.contains('show') || bulkBrandModal.classList.contains('show') || confirmModal.classList.contains('show'); }
+function refocus(){ if(appReady() && !anyModalOpen()) setTimeout(()=>scanInput.focus(),80); }
 
 function getStoredMode(){
   try{
@@ -373,6 +439,7 @@ function applyMode(){
   modeBackfillBtn.setAttribute('aria-selected',String(appMode==='backfill'));
   modeLogisticsBtn.setAttribute('aria-selected',String(appMode==='logistics'));
   bulkPhotoSection.classList.toggle('show',appMode==='logistics');
+  bulkBrandSection.classList.toggle('show',appMode==='logistics');
   renderControls();
 }
 function setMode(mode){
@@ -426,9 +493,8 @@ function shouldAcceptHangerSync(event){
 
 function canSynchronizeHangerNow(){
   return !isRecordingScan && !isHangerBusy && !isSaving
-    && !captureModal.classList.contains('show')
-    && !bulkModal.classList.contains('show')
-    && !confirmModal.classList.contains('show');
+    && viewingHangerId === null
+    && !anyModalOpen();
 }
 
 function playWarningTone(){
@@ -534,8 +600,64 @@ async function loadActiveHanger(){
   return null;
 }
 
+async function fetchAllHangers(){
+  const { data, error } = await supabase
+    .from('scan_hangers')
+    .select('id,hanger_number,status,created_at')
+    .eq('device_id',DEVICE_ID)
+    .order('hanger_number',{ascending:true});
+  if(error) throw error;
+  return data;
+}
+
+async function attachCaptureDetails(scans){
+  if(!scans.length) return scans;
+  const barcodes = [...new Set(scans.map(item=>item.barcode))];
+  const { data, error } = await supabase
+    .from('item_captures')
+    .select('barcode,brand,storage_path')
+    .eq('device_id',DEVICE_ID)
+    .in('barcode',barcodes);
+  if(error) throw error;
+  const byBarcode = new Map(data.map(row=>[row.barcode,row]));
+  for(const item of scans){
+    const capture = byBarcode.get(item.barcode);
+    item.brand = capture?.brand ?? null;
+    item.storagePath = capture?.storage_path ?? null;
+  }
+  return scans;
+}
+
+async function loadHangerScans(hangerId){
+  const filter = query=>query.eq('device_id',DEVICE_ID).eq('hanger_id',hangerId);
+  const [recent,current,need] = await Promise.all([
+    filter(supabase.from('hanger_scans').select('id,barcode,brand_needed,photo_needed,brand_captured,photo_captured,scanned_at').order('id',{ascending:false})),
+    filter(supabase.from('hanger_scans').select('*',{count:'exact',head:true})),
+    filter(supabase.from('hanger_scans').select('*',{count:'exact',head:true}))
+      .or('and(brand_needed.eq.true,brand_captured.eq.false),and(photo_needed.eq.true,photo_captured.eq.false)')
+  ]);
+  for(const result of [recent,current,need]) if(result.error) throw result.error;
+  const scans = recent.data.map(item=>({
+    id:item.id,
+    barcode:item.barcode,
+    brandNeeded:item.brand_needed,
+    photoNeeded:item.photo_needed,
+    brandCaptured:item.brand_captured,
+    photoCaptured:item.photo_captured,
+    brand:null,
+    storagePath:null,
+    error:false,
+    time:formatTime(item.scanned_at)
+  }));
+  await attachCaptureDetails(scans);
+  return { scans, count: current.count || 0, needCount: need.count || 0 };
+}
+
 async function loadHangerState(){
+  viewingHangerId = null;
+  viewingHangerNumber = null;
   activeHanger = await loadActiveHanger();
+  allHangers = await fetchAllHangers();
   const { count: totalCount, error: totalError } = await supabase
     .from('hanger_scans')
     .select('*',{count:'exact',head:true})
@@ -551,27 +673,66 @@ async function loadHangerState(){
     return;
   }
 
-  const currentFilter = query=>query.eq('device_id',DEVICE_ID).eq('hanger_id',activeHanger.id);
-  const [recent,current,need] = await Promise.all([
-    currentFilter(supabase.from('hanger_scans').select('id,barcode,brand_needed,photo_needed,brand_captured,photo_captured,scanned_at').order('id',{ascending:false})),
-    currentFilter(supabase.from('hanger_scans').select('*',{count:'exact',head:true})),
-    currentFilter(supabase.from('hanger_scans').select('*',{count:'exact',head:true}))
-      .or('and(brand_needed.eq.true,brand_captured.eq.false),and(photo_needed.eq.true,photo_captured.eq.false)')
-  ]);
-  for(const result of [recent,current,need]) if(result.error) throw result.error;
-  logs = recent.data.map(item=>({
-    id:item.id,
-    barcode:item.barcode,
-    brandNeeded:item.brand_needed,
-    photoNeeded:item.photo_needed,
-    brandCaptured:item.brand_captured,
-    photoCaptured:item.photo_captured,
-    error:false,
-    time:formatTime(item.scanned_at)
-  }));
-  currentHangerCount = current.count || 0;
-  currentNeedCount = need.count || 0;
+  const { scans, count, needCount } = await loadHangerScans(activeHanger.id);
+  logs = scans;
+  currentHangerCount = count;
+  currentNeedCount = needCount;
   currentDoneCount = Math.max(0,currentHangerCount - currentNeedCount);
+}
+
+async function viewHanger(hangerId,hangerNumber){
+  if(!coreReady() || anyModalOpen()) return;
+  isSyncingHanger = true;
+  scanInput.disabled = true;
+  renderControls();
+  try{
+    const { scans, count, needCount } = await loadHangerScans(hangerId);
+    logs = scans;
+    viewingHangerId = hangerId;
+    viewingHangerNumber = hangerNumber;
+    currentHangerCount = count;
+    currentNeedCount = needCount;
+    currentDoneCount = Math.max(0,count - needCount);
+  }catch(error){
+    console.error('Failed to load past hanger',error);
+    setHangerMessage('지난 행거를 불러오지 못했습니다.',true);
+  }finally{
+    isSyncingHanger = false;
+    scanInput.disabled = !appReady();
+    render();
+    refocus();
+  }
+}
+
+async function returnToActiveHanger(){
+  if(viewingHangerId === null || !coreReady() || anyModalOpen()) return;
+  viewingHangerId = null;
+  viewingHangerNumber = null;
+  await synchronizeHangerState({force:true});
+}
+
+function currentBrowsePosition(){
+  if(viewingHangerId !== null) return allHangers.findIndex(h=>h.id===viewingHangerId);
+  if(activeHanger) return allHangers.findIndex(h=>h.id===activeHanger.id);
+  return allHangers.length;
+}
+
+function canGoPrevHanger(){ return currentBrowsePosition() > 0; }
+function canGoNextHanger(){ return viewingHangerId !== null; }
+
+function goPrevHanger(){
+  if(!canGoPrevHanger() || !coreReady() || anyModalOpen()) return;
+  const idx = currentBrowsePosition();
+  const target = allHangers[idx-1];
+  if(target) viewHanger(target.id,target.hanger_number);
+}
+
+function goNextHanger(){
+  if(!canGoNextHanger() || !coreReady() || anyModalOpen()) return;
+  const idx = currentBrowsePosition();
+  const target = allHangers[idx+1];
+  if(target && (!activeHanger || target.id !== activeHanger.id)) viewHanger(target.id,target.hanger_number);
+  else returnToActiveHanger();
 }
 
 async function synchronizeHangerState({message='',onlyWhenChanged=false,force=false}={}){
@@ -614,7 +775,7 @@ async function flushPendingHangerSync(){
 }
 
 scanInput.addEventListener('keydown', event=>{
-  if(event.key !== 'Enter' || !appReady() || captureModal.classList.contains('show') || bulkModal.classList.contains('show')) return;
+  if(event.key !== 'Enter' || !appReady() || anyModalOpen()) return;
   event.preventDefault();
   const barcode = normalizeBarcode(scanInput.value);
   scanInput.value = '';
@@ -638,6 +799,9 @@ async function insertHangerScan(barcode,brandNeeded,photoNeeded){
     created_at:data.hanger_created_at
   };
   nextHangerNumber = data.hanger_number;
+  // record_hanger_scan은 필요하면 새 행거를 조용히 만들기 때문에, 이전/다음 행거 탐색이
+  // 참조하는 allHangers 목록도 여기서 같이 갱신해야 새로 생긴 행거를 놓치지 않는다.
+  if(!allHangers.some(h=>h.id===activeHanger.id)) allHangers.push({...activeHanger});
   return {
     data,
     error:null,
@@ -672,6 +836,8 @@ async function handleScan(barcode){
       photoNeeded:savedScan.photo_needed,
       brandCaptured:savedScan.brand_captured,
       photoCaptured:savedScan.photo_captured,
+      brand:null,
+      storagePath:null,
       error:false,
       time:formatTime(savedScan.scanned_at)
     };
@@ -700,7 +866,7 @@ async function handleScan(barcode){
     vibrate([180,80,180]);
   }finally{
     isRecordingScan = false;
-    scanInput.disabled = !appReady() || captureModal.classList.contains('show') || bulkModal.classList.contains('show');
+    scanInput.disabled = !appReady() || anyModalOpen();
     renderControls();
     refocus();
     await flushPendingHangerSync();
@@ -759,6 +925,23 @@ bulkSkipBtn.addEventListener('click',()=>{
 });
 bulkCloseBtn.addEventListener('click',()=>closeBulkModal({completed:false}));
 bulkCameraInput.addEventListener('change',onBulkCapture);
+prevHangerBtn.addEventListener('click',goPrevHanger);
+nextHangerBtn.addEventListener('click',goNextHanger);
+returnToActiveBtn.addEventListener('click',returnToActiveHanger);
+bulkBrandBtn.addEventListener('click',openBulkBrand);
+bulkBrandInput.addEventListener('input',updateBulkBrandSaveState);
+bulkNoBrandBtn.addEventListener('click',()=>{
+  bulkBrandInput.value = 'VINTAGE';
+  updateBulkBrandSaveState();
+});
+bulkBrandSaveBtn.addEventListener('click',saveBulkBrandStep);
+bulkBrandSkipBtn.addEventListener('click',()=>{
+  if(isBulkBrandSaving) return;
+  bulkBrandIndex += 1;
+  if(bulkBrandIndex >= bulkBrandQueue.length) closeBulkBrandModal({completed:true});
+  else renderBulkBrandStep();
+});
+bulkBrandCloseBtn.addEventListener('click',()=>closeBulkBrandModal({completed:false}));
 
 laterBtn.addEventListener('click',()=>{
   if(isSaving || !currentScanEntry) return;
@@ -792,7 +975,7 @@ function resolveConfirmation(confirmed){
 }
 
 async function runHangerAction(action){
-  if(isHangerBusy || !hangerReady || captureModal.classList.contains('show') || bulkModal.classList.contains('show')) return;
+  if(isHangerBusy || !hangerReady || anyModalOpen()) return;
   isHangerBusy = true;
   scanInput.disabled = true;
   renderControls();
@@ -818,7 +1001,7 @@ async function deleteLastScan(){
 
 async function deleteSingleScan(id){
   const item = logs.find(log=>log.id===id);
-  if(!item || !activeHanger) return;
+  if(!item || !activeHanger || viewingHangerId !== null) return;
   const capturedNote = (item.brandCaptured || item.photoCaptured) ? ' 이미 저장된 브랜드/사진 캡처 기록은 유지되고 행거 집계에서만 빠집니다.' : '';
   const confirmed = await requestConfirmation({
     title:'스캔 삭제',
@@ -965,7 +1148,8 @@ function captureModalCopy(entry){
   const needPhoto = photoStillNeeded(entry);
   if(needBrand && needPhoto) return {title:'브랜드와 사진이 모두 필요합니다',desc:'브랜드를 입력하고 사진을 촬영한 뒤 저장해주세요.'};
   if(needBrand) return {title:'브랜드 입력이 필요합니다',desc:'브랜드 정보만 비어 있습니다.'};
-  return {title:'사진 촬영이 필요합니다',desc:'상품 사진만 비어 있습니다.'};
+  if(needPhoto) return {title:'사진 촬영이 필요합니다',desc:'상품 사진만 비어 있습니다.'};
+  return {title:'입력 내용 수정',desc:'이미 입력된 브랜드/사진을 다시 확인하거나 바꿀 수 있습니다.'};
 }
 
 function openCaptureModal(entry){
@@ -973,26 +1157,32 @@ function openCaptureModal(entry){
   captureTitle.textContent = copy.title;
   captureDesc.textContent = copy.desc;
   modalBarcode.textContent = entry.barcode;
-  brandSection.style.display = brandStillNeeded(entry) ? 'block' : 'none';
-  photoSection.style.display = photoStillNeeded(entry) ? 'block' : 'none';
-  brandInput.value = '';
-  beforePhoto.style.display = '';
-  previewBox.classList.remove('show');
-  releasePreviewUrl();
-  previewImg.removeAttribute('src');
+  brandSection.style.display = entry.brandNeeded ? 'block' : 'none';
+  photoSection.style.display = entry.photoNeeded ? 'block' : 'none';
+  brandInput.value = entry.brand || '';
   cameraInput.value = '';
   currentFile = null;
+  releasePreviewUrl();
+  previewImg.removeAttribute('src');
+  if(entry.photoCaptured && entry.storagePath){
+    previewImg.src = publicPhotoUrl(entry.storagePath);
+    beforePhoto.style.display = 'none';
+    previewBox.classList.add('show');
+  }else{
+    beforePhoto.style.display = '';
+    previewBox.classList.remove('show');
+  }
   setSaveStatus('',false);
   updateSaveButtonState();
   captureModal.classList.add('show');
   renderControls();
-  if(brandStillNeeded(entry)) setTimeout(()=>brandInput.focus(),80);
+  if(entry.brandNeeded) setTimeout(()=>brandInput.focus(),80);
 }
 
 function canSave(){
   if(!currentScanEntry) return false;
-  const brandOk = !brandStillNeeded(currentScanEntry) || brandInput.value.trim().length > 0;
-  const photoOk = !photoStillNeeded(currentScanEntry) || Boolean(currentFile);
+  const brandOk = !currentScanEntry.brandNeeded || brandInput.value.trim().length > 0;
+  const photoOk = !currentScanEntry.photoNeeded || Boolean(currentFile) || currentScanEntry.photoCaptured;
   return brandOk && photoOk;
 }
 
@@ -1022,18 +1212,22 @@ async function saveItemCaptureMerged({hangerScanId,barcode,brand,storagePath}){
     p_storage_path:mergedStoragePath
   });
   if(error) throw new Error(`저장 실패: ${error.message}`);
-  return data;
+  return {data, brand:mergedBrand, storagePath:mergedStoragePath};
 }
 
-function applyCaptureResult(item,data){
+function applyCaptureResult(item,data,extra={}){
   const wasComplete = !isResumable(item);
   item.brandCaptured = data.brand_captured;
   item.photoCaptured = data.photo_captured;
+  if(extra.brand !== undefined) item.brand = extra.brand;
+  if(extra.storagePath !== undefined) item.storagePath = extra.storagePath;
   const match = logs.find(log=>log.id===item.id);
   if(match){
     match.brandCaptured = data.brand_captured;
     match.photoCaptured = data.photo_captured;
     match.error = false;
+    if(extra.brand !== undefined) match.brand = extra.brand;
+    if(extra.storagePath !== undefined) match.storagePath = extra.storagePath;
   }
   const isComplete = !isResumable(item);
   if(!wasComplete && isComplete){
@@ -1050,30 +1244,38 @@ async function saveCapture(){
 
   try{
     let storagePath = null;
-    if(photoStillNeeded(currentScanEntry)){
-      const mimeType = resolveMimeType(currentFile);
+    let oldStoragePath = null;
+    if(currentScanEntry.photoNeeded && currentFile){
+      const uploadFile = await compressImage(currentFile);
+      const mimeType = resolveMimeType(uploadFile);
       const extension = extensionForMimeType(mimeType);
       const uniqueId = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
       storagePath = `${currentScanEntry.barcode}/${new Date().toISOString().replace(/[:.]/g,'-')}-${uniqueId}.${extension}`;
       const { error: uploadError } = await supabase.storage
         .from(STORAGE_BUCKET)
-        .upload(storagePath,currentFile,{cacheControl:'3600',contentType:mimeType,upsert:false});
+        .upload(storagePath,uploadFile,{cacheControl:'3600',contentType:mimeType,upsert:false});
       if(uploadError) throw new Error(`사진 업로드 실패: ${uploadError.message}`);
+      if(currentScanEntry.photoCaptured && currentScanEntry.storagePath) oldStoragePath = currentScanEntry.storagePath;
     }
 
-    const brandValue = brandStillNeeded(currentScanEntry) ? brandInput.value.trim() : null;
+    const brandValue = currentScanEntry.brandNeeded ? brandInput.value.trim() : null;
 
-    const data = await saveItemCaptureMerged({
+    const result = await saveItemCaptureMerged({
       hangerScanId:currentHangerScanId,
       barcode:currentScanEntry.barcode,
       brand:brandValue,
       storagePath
     });
 
-    applyCaptureResult(currentScanEntry,data);
+    applyCaptureResult(currentScanEntry,result.data,{brand:result.brand,storagePath:result.storagePath});
     render();
     setSaveStatus('저장 완료',false);
     vibrate([60,40,60]);
+    if(oldStoragePath){
+      supabase.storage.from(STORAGE_BUCKET).remove([oldStoragePath])
+        .then(({error})=>{ if(error) console.warn('Failed to delete replaced photo',error); })
+        .catch(error=>console.warn('Failed to delete replaced photo',error));
+    }
     setTimeout(()=>closeCaptureModal(),350);
   }catch(error){
     console.error('Failed to save capture',error);
@@ -1137,21 +1339,23 @@ async function onBulkCapture(event){
   setBulkBusy(true);
   setBulkStatus('테스트 서버에 저장하고 있습니다.',false);
   try{
-    const extension = extensionForMimeType(mimeType);
+    const uploadFile = await compressImage(file);
+    const uploadMimeType = resolveMimeType(uploadFile);
+    const extension = extensionForMimeType(uploadMimeType);
     const uniqueId = crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const storagePath = `${item.barcode}/${new Date().toISOString().replace(/[:.]/g,'-')}-${uniqueId}.${extension}`;
     const { error: uploadError } = await supabase.storage
       .from(STORAGE_BUCKET)
-      .upload(storagePath,file,{cacheControl:'3600',contentType:mimeType,upsert:false});
+      .upload(storagePath,uploadFile,{cacheControl:'3600',contentType:uploadMimeType,upsert:false});
     if(uploadError) throw new Error(`사진 업로드 실패: ${uploadError.message}`);
 
-    const data = await saveItemCaptureMerged({
+    const result = await saveItemCaptureMerged({
       hangerScanId:item.id,
       barcode:item.barcode,
       brand:null,
       storagePath
     });
-    applyCaptureResult(item,data);
+    applyCaptureResult(item,result.data,{storagePath:result.storagePath});
     render();
     vibrate(35);
     bulkCameraInput.value = '';
@@ -1178,6 +1382,90 @@ function closeBulkModal({completed=false}={}){
   renderControls();
   refocus();
   if(completed) setHangerMessage('일괄 사진촬영을 완료했습니다.',false);
+  setTimeout(()=>flushPendingHangerSync(),0);
+}
+
+function buildBulkBrandQueue(){
+  // logs는 최신 스캔이 앞에 오므로(unshift), 입력은 스캔한 순서대로 진행하기 위해 뒤집는다.
+  return logs.filter(brandStillNeeded).slice().reverse();
+}
+
+function openBulkBrand(){
+  if(bulkBrandBtn.disabled) return;
+  bulkBrandQueue = buildBulkBrandQueue();
+  bulkBrandIndex = 0;
+  if(!bulkBrandQueue.length) return;
+  bulkBrandModal.classList.add('show');
+  scanInput.disabled = true;
+  renderControls();
+  renderBulkBrandStep();
+}
+
+function renderBulkBrandStep(){
+  const item = bulkBrandQueue[bulkBrandIndex];
+  bulkBrandBarcode.textContent = item.barcode;
+  bulkBrandCounter.textContent = `${bulkBrandIndex+1} / ${bulkBrandQueue.length}`;
+  bulkBrandInput.value = '';
+  setBulkBrandStatus('',false);
+  setBulkBrandBusy(false);
+  setTimeout(()=>bulkBrandInput.focus(),80);
+}
+
+function updateBulkBrandSaveState(){
+  bulkBrandSaveBtn.disabled = isBulkBrandSaving || bulkBrandInput.value.trim().length === 0;
+}
+
+function setBulkBrandBusy(busy){
+  isBulkBrandSaving = busy;
+  bulkBrandSkipBtn.disabled = busy;
+  bulkBrandCloseBtn.disabled = busy;
+  bulkBrandInput.disabled = busy;
+  bulkNoBrandBtn.disabled = busy;
+  bulkBrandSaveBtn.textContent = busy ? '저장 중…' : '저장하고 다음 →';
+  updateBulkBrandSaveState();
+}
+
+function setBulkBrandStatus(message,isError){ bulkBrandStatus.textContent=message;bulkBrandStatus.className=`save-status${message?' show':''}${isError?' error':''}`; }
+
+async function saveBulkBrandStep(){
+  if(isBulkBrandSaving) return;
+  const brand = bulkBrandInput.value.trim();
+  if(!brand) return;
+  const item = bulkBrandQueue[bulkBrandIndex];
+  setBulkBrandBusy(true);
+  setBulkBrandStatus('테스트 서버에 저장하고 있습니다.',false);
+  try{
+    const result = await saveItemCaptureMerged({
+      hangerScanId:item.id,
+      barcode:item.barcode,
+      brand,
+      storagePath:null
+    });
+    applyCaptureResult(item,result.data,{brand:result.brand});
+    render();
+    vibrate(35);
+    bulkBrandIndex += 1;
+    isBulkBrandSaving = false;
+    if(bulkBrandIndex >= bulkBrandQueue.length) closeBulkBrandModal({completed:true});
+    else renderBulkBrandStep();
+  }catch(error){
+    console.error('Failed to save bulk brand',error);
+    setBulkBrandStatus(error.message || '저장에 실패했습니다. 다시 시도해주세요.',true);
+    setBulkBrandBusy(false);
+  }
+}
+
+function closeBulkBrandModal({completed=false}={}){
+  if(isBulkBrandSaving) return;
+  bulkBrandModal.classList.remove('show');
+  bulkBrandQueue = [];
+  bulkBrandIndex = 0;
+  bulkBrandInput.value = '';
+  setBulkBrandStatus('',false);
+  scanInput.disabled = !appReady();
+  renderControls();
+  refocus();
+  if(completed) setHangerMessage('일괄 브랜드입력을 완료했습니다.',false);
   setTimeout(()=>flushPendingHangerSync(),0);
 }
 
@@ -1392,6 +1680,26 @@ function resolveMimeType(file){
   return ({jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',webp:'image/webp',heic:'image/heic',heif:'image/heif'})[ext] || null;
 }
 function extensionForMimeType(mimeType){ return ({'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/heic':'heic','image/heif':'heif'})[mimeType] || 'jpg'; }
+
+// 업로드 전 리사이즈(긴 변 1600px) + JPEG 재압축(85%) — 느린 회선에서 업로드 시간 단축용 (receiving/bulk-photo.js와 동일 패턴)
+async function compressImage(file,maxDim=1600,quality=0.85){
+  try{
+    const bitmap = await createImageBitmap(file,{imageOrientation:'from-image'});
+    const scale = Math.min(1,maxDim/Math.max(bitmap.width,bitmap.height));
+    const w = Math.round(bitmap.width*scale);
+    const h = Math.round(bitmap.height*scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(bitmap,0,0,w,h);
+    bitmap.close();
+    const blob = await new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',quality));
+    if(!blob) return file;
+    return new File([blob],'photo.jpg',{type:'image/jpeg'});
+  }catch(e){
+    console.warn('사진 압축 실패, 원본 업로드:',e.message);
+    return file;
+  }
+}
 function setModalButtonsDisabled(disabled){
   saveBtn.disabled = disabled || !canSave();
   retakeBtn.disabled = disabled;
@@ -1429,10 +1737,14 @@ function isResumable(item){
   return brandStillNeeded(item) || photoStillNeeded(item);
 }
 
+function isEditable(item){
+  return item.brandNeeded || item.photoNeeded;
+}
+
 function resumeCapture(id){
-  if(!appReady() || captureModal.classList.contains('show') || bulkModal.classList.contains('show') || confirmModal.classList.contains('show')) return;
+  if(!coreReady() || anyModalOpen()) return;
   const entry = logs.find(item=>item.id===id);
-  if(!entry || !isResumable(entry)) return;
+  if(!entry || !isEditable(entry)) return;
   currentScanEntry = entry;
   currentHangerScanId = entry.id;
   vibrate(35);
@@ -1461,7 +1773,12 @@ function scanStatusLabel(item){
 }
 
 function render(){
-  $('hangerBadge').textContent = `${activeHanger?.hanger_number || nextHangerNumber}번 행거`;
+  const browsing = viewingHangerId !== null;
+  $('hangerBadge').textContent = browsing
+    ? `${viewingHangerNumber}번 행거 (지난 행거)`
+    : `${activeHanger?.hanger_number || nextHangerNumber}번 행거`;
+  viewingBanner.classList.toggle('show',browsing);
+  if(browsing) viewingBannerText.textContent = `${viewingHangerNumber}번 행거를 보고 있습니다 · 새 스캔은 현재 행거로 돌아가야 가능합니다.`;
   $('currentHangerCount').textContent = currentHangerCount.toLocaleString();
   $('cumulativeCount').textContent = cumulativeCount.toLocaleString();
   $('totalCount').textContent = cumulativeCount.toLocaleString();
@@ -1469,27 +1786,35 @@ function render(){
   $('doneCount').textContent = currentDoneCount.toLocaleString();
   $('lastCode').textContent = logs[0]?.barcode || '-';
   if(!logs.length){
-    rows.innerHTML='<div class="empty">현재 행거에 아직 스캔 기록이 없습니다.</div>';
+    rows.innerHTML = `<div class="empty">${browsing?'이 행거에는 스캔 기록이 없습니다.':'현재 행거에 아직 스캔 기록이 없습니다.'}</div>`;
   }else{
     rows.innerHTML = logs.map(item=>{
       const status = scanStatusLabel(item);
-      const resumable = isResumable(item);
-      return `<div class="row${resumable?' resumable':''}"${resumable?` data-log-id="${item.id}"`:''}><div><div class="code">${escapeHtml(item.barcode)}</div><div class="time">${item.time}</div></div><div class="tag ${status.cls}">${status.label}</div><button class="row-delete" type="button" data-delete-id="${item.id}" aria-label="스캔 삭제">✕</button></div>`;
+      const editable = isEditable(item);
+      const brandHtml = item.brand ? `<div class="row-brand">${escapeHtml(item.brand)}</div>` : '';
+      const deleteHtml = browsing ? '' : `<button class="row-delete" type="button" data-delete-id="${item.id}" aria-label="스캔 삭제">✕</button>`;
+      return `<div class="row${editable?' resumable':''}"${editable?` data-log-id="${item.id}"`:''}><div><div class="code">${escapeHtml(item.barcode)}</div>${brandHtml}<div class="time">${item.time}</div></div><div class="tag ${status.cls}">${status.label}</div>${deleteHtml}</div>`;
     }).join('');
   }
   renderControls();
 }
 
 function renderControls(){
-  const locked = !hangerReady || isHangerBusy || isRecordingScan || isSaving || isSyncingHanger || isExporting || captureModal.classList.contains('show') || bulkModal.classList.contains('show') || confirmModal.classList.contains('show');
-  deleteScanBtn.disabled = locked || currentHangerCount === 0;
-  resetHangerBtn.disabled = locked || currentHangerCount === 0;
-  completeHangerBtn.disabled = locked || currentHangerCount === 0;
+  const browsing = viewingHangerId !== null;
+  const locked = !hangerReady || isHangerBusy || isRecordingScan || isSaving || isSyncingHanger || isExporting || anyModalOpen();
+  deleteScanBtn.disabled = locked || browsing || currentHangerCount === 0;
+  resetHangerBtn.disabled = locked || browsing || currentHangerCount === 0;
+  completeHangerBtn.disabled = locked || browsing || currentHangerCount === 0;
   exportResultBtn.disabled = locked || cumulativeCount === 0;
   fullResetBtn.disabled = locked || cumulativeCount === 0;
   const bulkPending = logs.filter(photoStillNeeded).length;
   bulkPhotoNeedCount.textContent = bulkPending;
-  bulkPhotoBtn.disabled = locked || bulkPending === 0;
+  bulkPhotoBtn.disabled = locked || browsing || bulkPending === 0;
+  const bulkBrandPending = logs.filter(brandStillNeeded).length;
+  bulkBrandNeedCount.textContent = bulkBrandPending;
+  bulkBrandBtn.disabled = locked || browsing || bulkBrandPending === 0;
+  prevHangerBtn.disabled = locked || !canGoPrevHanger();
+  nextHangerBtn.disabled = locked || !canGoNextHanger();
 }
 function escapeHtml(value){ return value.replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char])); }
 
