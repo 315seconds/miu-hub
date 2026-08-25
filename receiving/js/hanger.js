@@ -266,8 +266,9 @@ async function showBrandDropdown(q) {
   const seen = new Set();
   const brands = [];
   for (const b of [...masterPrefix, ...todayPrefix, ...masterContains, ...todayContains]) {
-    if (seen.has(b)) continue;
-    seen.add(b);
+    const key = b.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
     brands.push(b);
     if (brands.length >= 8) break;
   }
