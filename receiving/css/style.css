@@ -387,6 +387,13 @@ select { appearance: none; }
   display: flex; align-items: center; justify-content: center;
 }
 .del-btn:active { opacity: 0.6; }
+.edit-btn {
+  background: none; border: none; cursor: pointer;
+  color: var(--fg-tertiary); font-size: 15px; line-height: 1;
+  padding: 4px 8px; min-height: 36px; min-width: 36px;
+  display: flex; align-items: center; justify-content: center;
+}
+.edit-btn:active { opacity: 0.6; }
 
 /* ── 유틸 ── */
 .flex     { display: flex; gap: 8px; }

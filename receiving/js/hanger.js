@@ -170,8 +170,99 @@ function itemRowHtml(item, num, canDel) {
       ${meta ? `<div class="item-brand">${escapeHtml(meta)}</div>` : ""}
       ${item.photo_url ? `<img src="${escapeHtml(item.photo_url)}" class="photo-preview" alt="사진">` : ""}
     </div>
+    ${canDel ? `<button class="edit-btn" data-id="${escapeHtml(item.id)}">✎</button>` : ""}
     ${canDel ? `<button class="del-btn" data-id="${escapeHtml(item.id)}">×</button>` : ""}
   </div>`;
+}
+
+function openEditItemModal(item) {
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box";
+  overlay.innerHTML = `
+    <div style="background:#1e293b;border-radius:14px;padding:24px 20px;max-width:340px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.5)">
+      <div style="color:#f1f5f9;font-size:16px;font-weight:700;margin-bottom:16px">아이템 수정</div>
+      <div style="text-align:center; margin-bottom:16px">
+        <img id="edit-photo-preview" src="${escapeHtml(item.photo_url || "")}" style="max-width:140px; max-height:140px; border-radius:8px; border:1px solid #334155; object-fit:cover; ${item.photo_url ? "" : "display:none"}" alt="사진">
+        <div id="edit-photo-empty" style="${item.photo_url ? "display:none" : ""}; color:#64748b; font-size:13px; padding:24px 0">사진 없음</div>
+        <div>
+          <button type="button" id="edit-photo-btn" class="btn btn-outline btn-sm" style="margin-top:8px">${item.photo_url ? "📷 재촬영" : "📷 촬영"}</button>
+        </div>
+        <input type="file" accept="image/*" capture="environment" id="edit-photo-file" style="display:none">
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label>카테고리</label>
+        <select id="edit-category">
+          ${CATEGORIES.map(c => `<option value="${escapeHtml(c)}"${c === item.category ? " selected" : ""}>${escapeHtml(categoryLabel(c))}</option>`).join("")}
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:10px">
+        <label>브랜드</label>
+        <input type="text" id="edit-brand" value="${escapeHtml(item.brand || "")}" autocomplete="off">
+      </div>
+      <div class="form-group" style="margin-bottom:16px">
+        <label>가격</label>
+        <input type="number" id="edit-price" value="${item.price || 0}" inputmode="decimal">
+      </div>
+      <div style="display:flex;gap:8px">
+        <button id="_edit-cancel" style="flex:1;padding:11px;background:#334155;border:none;border-radius:8px;color:#94a3b8;font-size:14px;cursor:pointer">취소</button>
+        <button id="_edit-save" style="flex:1;padding:11px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">저장</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => overlay.remove();
+  overlay.querySelector("#_edit-cancel").addEventListener("click", close);
+  overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+
+  const photoBtn  = overlay.querySelector("#edit-photo-btn");
+  const photoFile = overlay.querySelector("#edit-photo-file");
+  photoBtn.addEventListener("click", () => photoFile.click());
+  photoFile.addEventListener("change", async e => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+    photoBtn.disabled = true; photoBtn.textContent = "⏳ 업로드 중…";
+    const hadPhoto = !!item.photo_url;
+    try {
+      const compressed = await compressImage(file);
+      const url = await sbUploadPhoto(HANGER_ID, compressed);
+      const { error } = await sb.from("inventory_items").update({ photo_url: url }).eq("id", item.id);
+      if (error) throw error;
+      item.photo_url = url;
+      if (!hadPhoto) unphotographedCount = Math.max(0, unphotographedCount - 1);
+      const img   = overlay.querySelector("#edit-photo-preview");
+      const empty = overlay.querySelector("#edit-photo-empty");
+      img.src = url; img.style.display = "";
+      empty.style.display = "none";
+      render(CURRENT_ITEMS);
+    } catch (err) {
+      showError("사진 업로드 실패: " + err.message);
+    } finally {
+      photoBtn.disabled = false;
+      photoBtn.textContent = item.photo_url ? "📷 재촬영" : "📷 촬영";
+    }
+  });
+
+  overlay.querySelector("#_edit-save").addEventListener("click", async () => {
+    const saveBtn = overlay.querySelector("#_edit-save");
+    const category = overlay.querySelector("#edit-category").value;
+    const brand = overlay.querySelector("#edit-brand").value.trim();
+    let price = parseFloat(overlay.querySelector("#edit-price").value || "0");
+    if (price < 1000) price = Math.round(price * 1000);
+    price = Math.round(price);
+
+    saveBtn.disabled = true; saveBtn.textContent = "저장 중…";
+    try {
+      const updates = { category: category || null, brand: brand || null, price };
+      const { error } = await sb.from("inventory_items").update(updates).eq("id", item.id);
+      if (error) throw error;
+      Object.assign(item, updates);
+      close();
+      render(CURRENT_ITEMS);
+    } catch (e) {
+      saveBtn.disabled = false; saveBtn.textContent = "저장";
+      showError("수정 실패: " + e.message);
+    }
+  });
 }
 
 function bindHandlers() {
@@ -198,6 +289,10 @@ function bindHandlers() {
   document.getElementById("submit-btn").addEventListener("click", submitHanger);
   document.getElementById("item-list").addEventListener("click", e => {
     if (e.target.classList.contains("del-btn")) deleteItem(e.target.dataset.id, e.target);
+    if (e.target.classList.contains("edit-btn")) {
+      const item = CURRENT_ITEMS.find(it => it.id === e.target.dataset.id);
+      if (item) openEditItemModal(item);
+    }
   });
 
   setTimeout(() => priceEl.focus(), 100);

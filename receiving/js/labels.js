@@ -243,6 +243,7 @@ async function buildItemsFromSession(sessionId) {
           operatorName: hanger.submitted_by || sess.created_by || "담당자 미입력",
           barcodePrefix: sess.barcode_prefix,
           printedAt: hanger.printed_at || null,
+          kioskExportedAt: hanger.kiosk_exported_at || null,
         });
       }
     }
@@ -368,6 +369,11 @@ async function buildItemsFromDaily(dateStr, includePrinted) {
 async function markHangersPrinted(hangerIds) {
   if (!hangerIds || !hangerIds.length) return;
   await sb.from("inventory_hangers").update({ printed_at: new Date().toISOString() }).in("id", hangerIds);
+}
+
+async function markHangersKioskExported(hangerIds) {
+  if (!hangerIds || !hangerIds.length) return;
+  await sb.from("inventory_hangers").update({ kiosk_exported_at: new Date().toISOString() }).in("id", hangerIds);
 }
 
 // HTML 라벨 미리보기 렌더 (SVG id는 index 기반으로 CSS selector 충돌 방지)
@@ -501,9 +507,10 @@ async function main() {
     document.getElementById("daily-reload-btn").onclick = loadDaily;
     document.getElementById("daily-include-printed").onchange = loadDaily;
     dateInput.onchange = loadDaily;
-    document.getElementById("daily-kiosk-btn").onclick = () => {
-      const labelItems = items.filter(it => !it.isSeparator);
-      if (!labelItems.length) { appAlert("다운로드할 항목이 없습니다."); return; }
+    document.getElementById("daily-kiosk-btn").onclick = async () => {
+      const includeKioskExported = document.getElementById("daily-include-kiosk-exported").checked;
+      const labelItems = items.filter(it => !it.isSeparator && (includeKioskExported || !it.kioskExportedAt));
+      if (!labelItems.length) { appAlert("다운로드할 항목이 없습니다. (이미 다운로드한 건만 있다면 '이미 다운로드한 건 포함' 체크)"); return; }
       const ws = XLSX.utils.aoa_to_sheet([
         ["상품명", "바코드", "판매단가"],
         ...labelItems.map(it => [it.displayName || "", it.barcode, it.price]),
@@ -511,6 +518,11 @@ async function main() {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
       XLSX.writeFile(wb, `kiosk_upload_${dateInput.value || localDateStr()}.xlsx`);
+
+      const kioskHangerIds = [...new Set(labelItems.map(it => it.hangerId).filter(Boolean))];
+      await markHangersKioskExported(kioskHangerIds);
+      const now = new Date().toISOString();
+      labelItems.forEach(it => { it.kioskExportedAt = now; });
     };
 
     document.querySelectorAll(".team-btn").forEach(btn => {
