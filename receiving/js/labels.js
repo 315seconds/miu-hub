@@ -9,7 +9,7 @@ const ZPL_CONFIGS = {
 let ZPL = ZPL_CONFIGS.online;
 
 // 온라인 입고라도 옷이 아닌 잡화는 카테고리에 "온" 접두사를 붙이지 않음
-const NON_CLOTHING_CATEGORIES = new Set(["신발", "가방", "패션잡화", "ETC", "패브릭", "모자"]);
+const NON_CLOTHING_CATEGORIES = new Set(["신발", "가방", "패션잡화", "넥타이", "벨트", "ETC", "패브릭", "모자"]);
 
 // ZPL ^FD 필드에 ^ 문자가 들어가면 명령어로 해석되므로 제거
 function sanitizeZpl(s) {
