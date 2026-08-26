@@ -89,11 +89,12 @@
     document.getElementById('today-label').textContent = getTodayLabel();
 
     async function loadStats() {
-      const today = new Date().toISOString().slice(0, 10);
-      const dayOfWeek = new Date().getDay();
+      const nowKST = new Date(Date.now() + 9 * 60 * 60 * 1000);
+      const today = nowKST.toISOString().slice(0, 10);
+      const dayOfWeek = nowKST.getUTCDay();
       const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-      const monday = new Date();
-      monday.setDate(monday.getDate() + daysToMonday);
+      const monday = new Date(nowKST);
+      monday.setUTCDate(monday.getUTCDate() + daysToMonday);
       const weekStart = monday.toISOString().slice(0, 10);
 
       const [pendingRes, todayRes, weekRes] = await Promise.allSettled([
