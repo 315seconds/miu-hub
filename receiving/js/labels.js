@@ -231,7 +231,9 @@ async function buildItemsFromSession(sessionId) {
       for (const it of (itemsByHanger[hanger.id] || [])) {
         let category = it.category || "";
         // 온라인 입고라도 옷이 아닌 잡화는 카테고리에 "온" 접두사를 붙이지 않음
-        if (sess.location === "온라인" && !NON_CLOTHING_CATEGORIES.has(category)) category = "온" + category;
+        // DB category는 익일 새벽 sync_stock_items.py가 엑셀 H열(이미 접두사 붙은 값)로
+        // 덮어쓰므로, 이미 "온"으로 시작하면 중복으로 또 붙이지 않는다.
+        if (sess.location === "온라인" && !category.startsWith("온") && !NON_CLOTHING_CATEGORIES.has(category)) category = "온" + category;
         allItems.push({
           price: isFinite(Number(it.price)) ? Number(it.price) : 0,
           brand: it.brand || "",
