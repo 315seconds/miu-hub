@@ -178,7 +178,7 @@ function generateZpl(items) {
     // ^BCN은 ^FB 중앙정렬 미지원 → 모듈 수 기반으로 X 직접 계산
     const bcLines = barcode
       ? [
-          `^FO${calcBarcodeX(barcode)},${yBc}^BY${ZPL.BC_BY}^BCN,${ZPL.H_BC},N,N,N^FD${barcode}^FS`,
+          `^FO${calcBarcodeX(barcode)},${yBc}^BY${ZPL.BC_BY}^BCN,${ZPL.H_BC},N,N,N,A^FD${barcode}^FS`,
           `^FO0,${yBcNum}^A0N,${ZPL.F_BCNUM},${ZPL.F_BCNUM}^FB${ZPL.LW},1,0,C^FD${barcode}^FS`,
         ]
       : [];
