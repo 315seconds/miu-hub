@@ -515,7 +515,7 @@ async function main() {
       if (!labelItems.length) { appAlert("다운로드할 항목이 없습니다. (이미 다운로드한 건만 있다면 '이미 다운로드한 건 포함' 체크)"); return; }
       const ws = XLSX.utils.aoa_to_sheet([
         ["상품명", "바코드", "판매단가"],
-        ...labelItems.map(it => [it.displayName || "", it.barcode, it.price]),
+        ...labelItems.map(it => [[it.barcode, it.brand, it.category].filter(Boolean).join(" "), it.barcode, it.price]),
       ]);
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
