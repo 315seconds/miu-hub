@@ -76,7 +76,7 @@ function render(suggested) {
         </div>
         <div class="form-group">
           <label>시작 바코드 번호</label>
-          <input type="number" id="start-barcode" value="${suggested || ""}" placeholder="예: 24578" inputmode="numeric">
+          <input type="text" id="start-barcode" value="${suggested || ""}" placeholder="예: 00001" inputmode="numeric" pattern="[0-9]+">
         </div>
         <div class="form-group">
           <label>승인자 이름</label>
@@ -97,7 +97,7 @@ function render(suggested) {
           시작 바코드: <strong class="success mono">
             ${escapeHtml(SESS.barcode_prefix)}${SESS.start_barcode_num}
           </strong>
-          ~ ${escapeHtml(SESS.barcode_prefix)}${SESS.start_barcode_num + TOTAL - 1}
+          ~ ${escapeHtml(SESS.barcode_prefix)}${String(parseInt(SESS.start_barcode_num, 10) + TOTAL - 1).padStart(String(SESS.start_barcode_num).length, "0")}
         </div>
         <button id="reopen-btn" class="btn btn-outline btn-sm mt8">승인 취소 (수정)</button>
       </div>
@@ -115,7 +115,7 @@ function render(suggested) {
         <div style="color:var(--w-violet-50); font-weight:700">✓ 처리 완료</div>
         <div class="text-sm muted mt8">
           바코드: <span class="mono">${escapeHtml(SESS.barcode_prefix)}${SESS.start_barcode_num}
-          ~ ${escapeHtml(SESS.barcode_prefix)}${SESS.start_barcode_num + TOTAL - 1}</span>
+          ~ ${escapeHtml(SESS.barcode_prefix)}${String(parseInt(SESS.start_barcode_num, 10) + TOTAL - 1).padStart(String(SESS.start_barcode_num).length, "0")}</span>
         </div>
       </div>
     `;
@@ -168,9 +168,9 @@ function render(suggested) {
 }
 
 async function confirmApprove() {
-  const start_barcode_num = parseInt(document.getElementById("start-barcode").value.trim(), 10);
+  const start_barcode_num = document.getElementById("start-barcode").value.trim();
   const approved_by = document.getElementById("approved-by").value;
-  if (!start_barcode_num) { showError("시작 바코드 번호 입력"); return; }
+  if (!start_barcode_num || !/^\d+$/.test(start_barcode_num)) { showError("시작 바코드 번호 입력"); return; }
   if (!approved_by) { showError("승인자 이름을 선택하세요"); return; }
   const unsubmitted = HANGERS.filter(h => !h.submitted_at);
   if (unsubmitted.length > 0) {

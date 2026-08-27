@@ -40,7 +40,7 @@ function render({ session: sess, hangers, total }) {
       <div class="mt8 muted">
         바코드: <strong style="color:var(--brand-primary)" class="mono">
           ${escapeHtml(sess.barcode_prefix)}${sess.start_barcode_num}
-          ~ ${escapeHtml(sess.barcode_prefix)}${sess.start_barcode_num + total - 1}
+          ~ ${escapeHtml(sess.barcode_prefix)}${String(parseInt(sess.start_barcode_num, 10) + total - 1).padStart(String(sess.start_barcode_num).length, "0")}
         </strong> (총 ${total}벌)
       </div>` : ""}
     </div>

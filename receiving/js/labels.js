@@ -552,7 +552,7 @@ async function main() {
       document.getElementById("header-sub").textContent =
         `총 ${labelCount}장` +
         (sess.start_barcode_num
-          ? ` · ${sess.barcode_prefix}${sess.start_barcode_num} ~ ${sess.barcode_prefix}${sess.start_barcode_num + labelCount - 1}`
+          ? ` · ${sess.barcode_prefix}${sess.start_barcode_num} ~ ${sess.barcode_prefix}${String(parseInt(sess.start_barcode_num, 10) + labelCount - 1).padStart(String(sess.start_barcode_num).length, "0")}`
           : "");
     } else if (barcodesParam) {
       const barcodes = barcodesParam.split(",").map(s => s.trim().toUpperCase()).filter(Boolean);
