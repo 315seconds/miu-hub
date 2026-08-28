@@ -29,9 +29,16 @@ async function load() {
 }
 
 async function getSuggestedFromDb(prefix) {
-  const { data: maxNum, error } = await sb.rpc("max_barcode_num", { p_prefix: prefix });
-  if (error) { console.warn("바코드 최댓값 조회 실패:", error.message); return null; }
-  return maxNum != null ? maxNum + 1 : null;
+  const [{ data: maxNum, error: rpcErr }, { data: samples }] = await Promise.all([
+    sb.rpc("max_barcode_num", { p_prefix: prefix }),
+    sb.from("inventory_items").select("barcode").like("barcode", prefix + "%").not("barcode", "is", null).order("barcode", { ascending: false }).limit(1),
+  ]);
+  if (rpcErr) { console.warn("바코드 최댓값 조회 실패:", rpcErr.message); return null; }
+  if (maxNum == null) return null;
+  const next = maxNum + 1;
+  const bcSample = samples?.[0]?.barcode;
+  const numWidth = (bcSample && bcSample.length > prefix.length) ? bcSample.length - prefix.length : String(next).length;
+  return String(next).padStart(numWidth, "0");
 }
 
 function render(suggested) {
@@ -65,7 +72,7 @@ function render(suggested) {
               ${escapeHtml(SESS.barcode_prefix)}${suggested}
             </div>
             <div class="text-xs muted mt8">
-              끝 바코드: ${escapeHtml(SESS.barcode_prefix)}${suggested + TOTAL - 1} (${TOTAL}벌)
+              끝 바코드: ${escapeHtml(SESS.barcode_prefix)}${String(parseInt(suggested, 10) + TOTAL - 1).padStart(suggested.length, "0")} (${TOTAL}벌)
             </div>` : `
             <div class="text-xs warn">⚠ DB에 기존 바코드 없음 — 시작 번호를 직접 입력하세요</div>`}
           <button type="button" class="btn btn-outline btn-sm mt8" id="excel-btn">📊 DB에서 재확인</button>
@@ -211,15 +218,21 @@ async function loadExcelSuggest() {
   res.style.display = "none";
   try {
     const prefix = SESS.barcode_prefix;
-    const { data: maxNum, error } = await sb.rpc("max_barcode_num", { p_prefix: prefix });
+    const [{ data: maxNum, error }, { data: samples }] = await Promise.all([
+      sb.rpc("max_barcode_num", { p_prefix: prefix }),
+      sb.from("inventory_items").select("barcode").like("barcode", prefix + "%").not("barcode", "is", null).order("barcode", { ascending: false }).limit(1),
+    ]);
     if (error) throw error;
 
     if (maxNum == null) {
       res.textContent = "DB에 기존 바코드 없음 — 직접 입력하세요";
     } else {
-      const suggested = maxNum + 1;
-      document.getElementById("start-barcode").value = suggested;
-      res.textContent = `✓ DB 기준: ${prefix}${maxNum} 다음 → ${prefix}${suggested}`;
+      const bcSample = samples?.[0]?.barcode;
+      const numWidth = (bcSample && bcSample.length > prefix.length) ? bcSample.length - prefix.length : String(maxNum + 1).length;
+      const maxStr = String(maxNum).padStart(numWidth, "0");
+      const nextStr = String(maxNum + 1).padStart(numWidth, "0");
+      document.getElementById("start-barcode").value = nextStr;
+      res.textContent = `✓ DB 기준: ${prefix}${maxStr} 다음 → ${prefix}${nextStr}`;
       res.style.color = "var(--status-success)";
     }
     res.style.display = "block";
