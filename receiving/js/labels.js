@@ -11,6 +11,9 @@ let ZPL = ZPL_CONFIGS.online;
 // 온라인 입고라도 옷이 아닌 잡화는 카테고리에 "온" 접두사를 붙이지 않음
 const NON_CLOTHING_CATEGORIES = new Set(["신발", "가방", "패션잡화", "넥타이", "벨트", "ETC", "패브릭", "모자"]);
 
+// 온라인 입고라도 특정 바코드 접두어 세션은 카테고리에 "온" 접두사를 붙이지 않음
+const NO_ON_BARCODE_PREFIXES = new Set(["WWA"]);
+
 // ZPL ^FD 필드에 ^ 문자가 들어가면 명령어로 해석되므로 제거
 function sanitizeZpl(s) {
   return String(s == null ? "" : s).replace(/\^/g, "");
@@ -233,7 +236,7 @@ async function buildItemsFromSession(sessionId) {
         // 온라인 입고라도 옷이 아닌 잡화는 카테고리에 "온" 접두사를 붙이지 않음
         // DB category는 익일 새벽 sync_stock_items.py가 엑셀 H열(이미 접두사 붙은 값)로
         // 덮어쓰므로, 이미 "온"으로 시작하면 중복으로 또 붙이지 않는다.
-        if (sess.location === "온라인" && !category.startsWith("온") && !NON_CLOTHING_CATEGORIES.has(category)) category = "온" + category;
+        if (sess.location === "온라인" && !category.startsWith("온") && !NON_CLOTHING_CATEGORIES.has(category) && !NO_ON_BARCODE_PREFIXES.has(sess.barcode_prefix)) category = "온" + category;
         allItems.push({
           price: isFinite(Number(it.price)) ? Number(it.price) : 0,
           brand: it.brand || "",
