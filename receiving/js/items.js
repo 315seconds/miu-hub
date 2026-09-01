@@ -32,7 +32,7 @@ function normalizeBarcode(input) {
 }
 
 // ── 탭 전환 ───────────────────────────────────────────────────────────────────
-const TABS = ['scan', 'manual'];
+const TABS = ['scan', 'manual', 'filter'];
 let currentTab = 'scan';
 
 document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -44,10 +44,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-btn').forEach(b =>
       b.classList.toggle('active', b.dataset.tab === currentTab)
     );
-    document.getElementById('scan-area').style.display = 'block';
+    const isFilter = currentTab === 'filter';
+    document.getElementById('scan-area').style.display = isFilter ? 'none' : 'block';
+    document.getElementById('result').style.display    = isFilter ? 'none' : 'block';
     if (currentTab === 'scan')   document.getElementById('barcode-input').focus();
     if (currentTab === 'manual') document.getElementById('manual-barcode').focus();
-
+    if (currentTab === 'filter') loadFilterOptions();
   });
 });
 
@@ -545,3 +547,100 @@ function renderItemCard(item, clickable = false) {
 }
 
 setTimeout(() => bi.focus(), 200);
+
+// ── 필터 검색 ─────────────────────────────────────────────────────────────────
+const FILTER_CATEGORIES = [
+  "자켓", "바람막이", "플리스", "PK셔츠", "셔츠", "스웻셔츠", "반팔티", "긴팔티", "나시티", "스웨터",
+  "하와이안셔츠", "타이다이", "원피스", "스커트", "반바지", "긴바지", "트랙팬츠", "블라우스",
+  "신발", "가방", "패션잡화", "넥타이", "벨트", "패브릭", "셋업", "모자", "C",
+];
+
+let filterOptionsLoaded = false;
+const FILTER_PAGE_SIZE = 50;
+let filterOffset = 0;
+
+async function loadFilterOptions() {
+  if (filterOptionsLoaded) return;
+  const loadEl   = document.getElementById('filter-loading');
+  const fieldsEl = document.getElementById('filter-fields');
+  try {
+    const [itemsRes, locsRes] = await Promise.all([
+      sb.from('inventory_items').select('color, pattern').limit(20000),
+      sb.from('locations').select('name').eq('is_active', true).order('created_at'),
+    ]);
+    if (itemsRes.error) throw itemsRes.error;
+    if (locsRes.error)  throw locsRes.error;
+    const uniq = f => [...new Set((itemsRes.data || []).map(r => r[f]).filter(v => v && v.trim()))].sort((a, b) => a.localeCompare(b, 'ko'));
+    const fill  = (id, vals, labelFn) => {
+      const sel = document.getElementById(id);
+      vals.forEach(v => {
+        const o = document.createElement('option');
+        o.value = v; o.textContent = labelFn ? labelFn(v) : v;
+        sel.appendChild(o);
+      });
+    };
+    fill('f-category', FILTER_CATEGORIES, c => c === 'C' ? 'C(균일가)' : c);
+    fill('f-location', (locsRes.data || []).map(r => r.name));
+    fill('f-color',    uniq('color'));
+    fill('f-pattern',  uniq('pattern'));
+    filterOptionsLoaded = true;
+    loadEl.style.display  = 'none';
+    fieldsEl.style.display = 'block';
+    document.getElementById('filter-search-btn').disabled = false;
+  } catch (e) {
+    loadEl.textContent = '옵션 로드 실패: ' + e.message;
+  }
+}
+
+async function runFilterSearch(append = false) {
+  const resultEl = document.getElementById('filter-result');
+  const btn      = document.getElementById('filter-search-btn');
+  if (!append) { filterOffset = 0; resultEl.innerHTML = '<div class="empty" style="color:#60a5fa">⏳ 조회 중...</div>'; }
+  btn.disabled = true; btn.textContent = '⏳ 조회 중...';
+  const category = document.getElementById('f-category').value;
+  const brand    = document.getElementById('f-brand').value;
+  const location = document.getElementById('f-location').value;
+  const color    = document.getElementById('f-color').value;
+  const pattern  = document.getElementById('f-pattern').value;
+  const status   = document.getElementById('f-status').value;
+  try {
+    let q = sb.from('inventory_items')
+      .select('barcode, price, brand, photo_url, color, pattern, category, location, status')
+      .order('created_at', { ascending: false })
+      .range(filterOffset, filterOffset + FILTER_PAGE_SIZE - 1);
+    if (category) q = q.eq('category', category);
+    if (brand)    q = q.ilike('brand',  `%${brand}%`);
+    if (location) q = q.eq('location', location);
+    if (color)    q = q.eq('color',    color);
+    if (pattern)  q = q.eq('pattern',  pattern);
+    if (status)   q = q.eq('status',   status);
+    const { data, error } = await q;
+    if (error) throw error;
+    const items = (data || []).map(r => ({ ...r, status: r.status === 'in_stock' ? 'active' : (r.status || 'active') }));
+    filterOffset += items.length;
+    if (!append) {
+      if (items.length === 0) { resultEl.innerHTML = '<div class="empty">조건에 맞는 물건이 없습니다</div>'; return; }
+      resultEl.innerHTML = `<div class="muted text-sm mb8" id="filter-count">${filterOffset}건</div>` + items.map(i => renderItemCard(i, true)).join('');
+    } else {
+      document.getElementById('filter-load-more')?.remove();
+      const countEl = document.getElementById('filter-count');
+      if (countEl) countEl.textContent = filterOffset + '건';
+      items.forEach(i => resultEl.insertAdjacentHTML('beforeend', renderItemCard(i, true)));
+    }
+    if (items.length === FILTER_PAGE_SIZE) {
+      resultEl.insertAdjacentHTML('beforeend', `<button class="btn btn-outline btn-block mt8" id="filter-load-more">더 보기 (${FILTER_PAGE_SIZE}건씩)</button>`);
+      document.getElementById('filter-load-more').addEventListener('click', () => runFilterSearch(true));
+    }
+    resultEl.querySelectorAll('.item-card[data-barcode]:not([data-tl])').forEach(card => {
+      card.dataset.tl = '1';
+      card.addEventListener('click', () => toggleTimeline(card));
+    });
+  } catch (e) {
+    showError('필터 조회 실패: ' + e.message);
+    if (!append) resultEl.innerHTML = '';
+  } finally {
+    btn.disabled = false; btn.textContent = '🔍 조회하기';
+  }
+}
+
+document.getElementById('filter-search-btn').addEventListener('click', () => runFilterSearch(false));

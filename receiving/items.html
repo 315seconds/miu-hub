@@ -26,8 +26,9 @@
 
       <!-- 탭 -->
       <div class="tab-bar">
-        <button class="tab-btn active" data-tab="scan">📷 리더기 스캔</button>
-        <button class="tab-btn" data-tab="manual">✏️ 직접 입력</button>
+        <button class="tab-btn active" data-tab="scan">📷 리더기</button>
+        <button class="tab-btn" data-tab="manual">✏️ 직접입력</button>
+        <button class="tab-btn" data-tab="filter">🔍 필터검색</button>
       </div>
 
       <!-- 스캔 탭 -->
@@ -51,6 +52,44 @@
                     placeholder="여러 개 붙여넣기&#10;C24578&#10;C24579"></textarea>
           <button class="btn btn-outline btn-block mt8" id="paste-btn">붙여넣기 추가</button>
         </div>
+      </div>
+
+      <!-- 필터 검색 탭 -->
+      <div class="tab-panel" id="panel-filter">
+        <div class="scan-box">
+          <div id="filter-loading" class="scan-empty">옵션 불러오는 중...</div>
+          <div id="filter-fields" style="display:none">
+            <div class="filter-row">
+              <span class="filter-label">카테고리</span>
+              <select id="f-category"><option value="">전체</option></select>
+            </div>
+            <div class="filter-row">
+              <span class="filter-label">브랜드</span>
+              <input type="text" id="f-brand" placeholder="입력 (대소문자 무관)">
+            </div>
+            <div class="filter-row">
+              <span class="filter-label">지점</span>
+              <select id="f-location"><option value="">전체</option></select>
+            </div>
+            <div class="filter-row">
+              <span class="filter-label">색상</span>
+              <select id="f-color"><option value="">전체</option></select>
+            </div>
+            <div class="filter-row">
+              <span class="filter-label">패턴</span>
+              <select id="f-pattern"><option value="">전체</option></select>
+            </div>
+            <div class="filter-row">
+              <span class="filter-label">상태</span>
+              <select id="f-status">
+                <option value="in_stock">보유중만</option>
+                <option value="">전체 (판매완료 포함)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block" id="filter-search-btn" disabled>🔍 조회하기</button>
+        <div id="filter-result" style="margin-top:16px"></div>
       </div>
 
       <!-- 스캔 목록 + 조회 버튼 -->
