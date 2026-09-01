@@ -649,6 +649,7 @@ async function renderClosed() {
         ${withItems.length ? `<label class="closed-select-all-label"><input type="checkbox" id="chk-all-stores" checked onchange="toggleAllClosedStores(this.checked)"> 전체 선택</label>` : ''}
         <button class="btn-refresh" onclick="copyClosedBarcodes()">바코드 복사</button>
         <button class="btn-refresh" id="btn-closed-csv" onclick="downloadClosedCSV()">CSV 다운로드 (전체)</button>
+        <button class="btn-refresh" id="btn-closed-lookup" onclick="openClosedInLookup()">물건조회에서 보기</button>
       </div>
     </div>
     ${!withItems.length
@@ -678,14 +679,15 @@ function copyClosedBarcodes() {
 function updateClosedCSVBtn() {
   const all = document.querySelectorAll('.store-chk');
   const checked = document.querySelectorAll('.store-chk:checked');
+  const isAll = checked.length === all.length;
   const btn = document.getElementById('btn-closed-csv');
-  if (btn) btn.textContent = checked.length === all.length
-    ? 'CSV 다운로드 (전체)'
-    : `CSV 다운로드 (${checked.length}개 매장)`;
+  if (btn) btn.textContent = isAll ? 'CSV 다운로드 (전체)' : `CSV 다운로드 (${checked.length}개 매장)`;
+  const lBtn = document.getElementById('btn-closed-lookup');
+  if (lBtn) lBtn.textContent = isAll ? '물건조회에서 보기' : `물건조회에서 보기 (${checked.length}개 매장)`;
   const allChk = document.getElementById('chk-all-stores');
   if (allChk) {
     allChk.indeterminate = checked.length > 0 && checked.length < all.length;
-    allChk.checked = checked.length === all.length;
+    allChk.checked = isAll;
   }
 }
 
@@ -707,6 +709,15 @@ function downloadClosedCSV() {
   a.href = URL.createObjectURL(blob);
   a.download = `철수후잔여재고_${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}.csv`;
   a.click();
+}
+
+function openClosedInLookup() {
+  const checkedNames = [...document.querySelectorAll('.store-chk:checked')].map(c => c.dataset.store);
+  if (!checkedNames.length) { alert('매장을 선택해주세요.'); return; }
+  const stores = (window.__closedStores || []).filter(s => checkedNames.includes(s.name));
+  const barcodes = stores.flatMap(s => s.items.map(i => i.barcode));
+  if (!barcodes.length) { alert('조회할 물건이 없습니다.'); return; }
+  window.location.href = '../receiving/items.html?barcodes=' + barcodes.join(',');
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────

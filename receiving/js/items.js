@@ -114,6 +114,14 @@ document.getElementById('paste-btn').addEventListener('click', () => {
 });
 document.getElementById('clear-btn').addEventListener('click', clearAll);
 
+// ── URL 파라미터로 바코드 자동 로드 ──────────────────────────────────────────
+(function initFromUrl() {
+  const param = new URLSearchParams(location.search).get('barcodes');
+  if (!param) return;
+  param.split(',').map(s => normalizeBarcode(s)).filter(Boolean).forEach(addBarcode);
+  document.getElementById('search-btn').click();
+})();
+
 // ── Supabase 조회 ─────────────────────────────────────────────────────────────
 async function fetchItemData(bc) {
   const [invRes, moveRes, priceRes, soldRes] = await Promise.all([
