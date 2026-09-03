@@ -405,18 +405,27 @@ async function loadReport(dateStr) {
 
   // 2. 재고 정보
   const invRows = await sbChunked('inventory_items', {
-    select: 'barcode,category,photo_url,session_id,created_at,brand',
+    select: 'barcode,category,photo_url,session_id,hanger_id,created_at,brand',
   }, 'barcode', barcodes);
   const invMap = Object.fromEntries(invRows.map(r => [r.barcode, r]));
 
-  // 3. 입고 세션
+  // 3. 입고 세션 + 행거
   const sessionIds = [...new Set(invRows.filter(r => r.session_id).map(r => r.session_id))];
   const sessionMap = {};
   if (sessionIds.length) {
     const sRows = await sbChunked('inventory_sessions', {
-      select: 'id,session_date,created_by',
+      select: 'id,session_date',
     }, 'id', sessionIds);
     for (const r of sRows) sessionMap[r.id] = r;
+  }
+
+  const hangerIds = [...new Set(invRows.filter(r => r.hanger_id).map(r => r.hanger_id))];
+  const hangerMap = {};
+  if (hangerIds.length) {
+    const hRows = await sbChunked('inventory_hangers', {
+      select: 'id,submitted_by',
+    }, 'id', hangerIds);
+    for (const r of hRows) hangerMap[r.id] = r;
   }
 
   // 4. 이동이력 (session_items → move_sessions)
@@ -477,7 +486,7 @@ async function loadReport(dateStr) {
       brand:           inv?.brand || '',
       daysSinceReceive,
       daysSinceMove,
-      receivedBy:      sess?.created_by || '',
+      receivedBy:      hangerMap[inv?.hanger_id]?.submitted_by || '',
       priceChangedBy:  pcMap[bc]?.changed_by || '',
     };
   });
