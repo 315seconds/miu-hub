@@ -495,7 +495,7 @@ function speedInfo(item) {
     if (md === 0)      { cls = 'fast'; base = '당일 판매 🔥'; }
     else if (md <= 3)  { cls = 'fast'; base = `이동 ${md}일 🔥`; }
     else if (md <= 7)  { cls = 'mid';  base = `이동 ${md}일 ⚡`; }
-    else               { return { cls: '', text: '' }; }
+    else               { cls = 'slow'; base = `이동 ${md}일`; }
     const text = rd !== null ? `${base} · 입고 ${rd}일` : base;
     return { cls, text };
   }
@@ -505,6 +505,7 @@ function speedInfo(item) {
     if (rd === 0)  return { cls: 'fast', text: '당일 판매 🔥' };
     if (rd <= 3)   return { cls: 'fast', text: `입고 ${rd}일 🔥` };
     if (rd <= 7)   return { cls: 'mid',  text: `입고 ${rd}일 ⚡` };
+    return { cls: 'slow', text: `입고 ${rd}일` };
   }
 
   return { cls: '', text: '' };
