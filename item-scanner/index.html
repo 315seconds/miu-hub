@@ -256,13 +256,9 @@ button{touch-action:manipulation}
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3/+esm';
 
-const TEST_SUPABASE_URL = 'https://ozvuistaledjcvjcccma.supabase.co';
-const TEST_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96dnVpc3RhbGVkamN2amNjY21hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY2NjA0MjcsImV4cCI6MjEwMjIzNjQyN30.OQ2_hZP6YsRIMMVwLDg61KWgMfCC62XJ8D-KvlhOFzQ';
-
-// 운영(마켓인유 허브) Supabase — 이 화면에서는 inventory_items 를 읽기 전용으로만 조회한다.
 // miu-hub/receiving/js/supabase-client.js 와 동일한 값(anon key, 이미 공개된 클라이언트 키).
-const PROD_SUPABASE_URL = 'https://yqnocnzjrcsrwrvsvsyg.supabase.co';
-const PROD_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlxbm9jbnpqcmNzcndydnN2c3lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNjExNzgsImV4cCI6MjA5MTgzNzE3OH0.u172XxuUcRF7WhT0UmLq-xQjoeDjBt95Qgbstln8mMs';
+const SUPABASE_URL = 'https://yqnocnzjrcsrwrvsvsyg.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlxbm9jbnpqcmNzcndydnN2c3lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNjExNzgsImV4cCI6MjA5MTgzNzE3OH0.u172XxuUcRF7WhT0UmLq-xQjoeDjBt95Qgbstln8mMs';
 
 const STORAGE_BUCKET = 'item-photos';
 const EXCELJS_MODULE_URL = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/+esm';
@@ -275,14 +271,9 @@ const HANGER_SYNC_CHANNEL_NAME = `item-scanner-hanger-${DEVICE_ID}`;
 const HANGER_SYNC_STORAGE_KEY = `${HANGER_SYNC_CHANNEL_NAME}-event`;
 const hangerSyncChannel = typeof BroadcastChannel === 'function' ? new BroadcastChannel(HANGER_SYNC_CHANNEL_NAME) : null;
 
-const supabase = createClient(TEST_SUPABASE_URL, TEST_SUPABASE_ANON_KEY, {
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   global: { headers: { 'x-device-id': DEVICE_ID } }
-});
-
-// 읽기 전용: 이 클라이언트로는 .select() 이외의 쓰기 호출을 절대 추가하지 않는다.
-const prodSupabase = createClient(PROD_SUPABASE_URL, PROD_SUPABASE_ANON_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
 });
 
 const $ = id => document.getElementById(id);
@@ -552,7 +543,7 @@ async function loadAppState(){
 }
 
 async function checkInventoryStatus(barcode){
-  const { data, error } = await prodSupabase
+  const { data, error } = await supabase
     .from('inventory_items')
     .select('brand,photo_url')
     .eq('barcode', barcode);
@@ -564,7 +555,7 @@ async function checkInventoryStatus(barcode){
 }
 
 async function loadBrandSuggestions(){
-  const { data, error } = await prodSupabase
+  const { data, error } = await supabase
     .from('inventory_items')
     .select('brand')
     .not('brand','is',null);
