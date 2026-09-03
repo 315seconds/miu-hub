@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>판매 리포트 — 마켓인유</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+:root {
+  --brand:     #f54e00;
+  --bg:        #F2F2F0;
+  --surface:   #FFFFFF;
+  --fg:        #171719;
+  --fg2:       #666;
+  --fg3:       #ABABAB;
+  --line:      rgba(112,115,124,0.14);
+  --r:         12px;
+  --fast-bg:   #FFF0EB;  --fast-fg:  #C83200;
+  --mid-bg:    #FFF8E8;  --mid-fg:   #975000;
+  --norm-bg:   #EDFAF3;  --norm-fg:  #1F7A3E;
+  --slow-bg:   #F0F0F0;  --slow-fg:  #888;
+}
+
+body {
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+}
+
+/* ── 상단 nav ── */
+.top-nav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  padding: 0 12px;
+  height: 52px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.nav-back {
+  display: flex; align-items: center; gap: 4px;
+  color: var(--brand); font-size: 13px; font-weight: 600;
+  text-decoration: none;
+}
+.nav-title { font-size: 15px; font-weight: 700; text-align: center; }
+.nav-date-control {
+  display: flex; align-items: center; justify-content: flex-end; gap: 2px;
+}
+.nav-date-btn {
+  background: none; border: none; cursor: pointer;
+  width: 32px; height: 32px; border-radius: 8px;
+  font-size: 16px; color: var(--fg2);
+  display: flex; align-items: center; justify-content: center;
+}
+.nav-date-btn:hover { background: var(--bg); }
+.nav-date-btn:disabled { color: var(--fg3); cursor: default; }
+
+/* ── 날짜/요약 헤더 — sticky ── */
+.report-head {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  padding: 16px 16px 0;
+  position: sticky;
+  top: 52px;
+  z-index: 90;
+}
+.report-date {
+  font-size: 22px; font-weight: 800; letter-spacing: -0.5px;
+  margin-bottom: 6px;
+}
+.report-kpi {
+  display: flex; flex-wrap: wrap; gap: 6px 20px;
+  font-size: 13px; color: var(--fg2);
+  margin-bottom: 14px;
+}
+.kpi-val { font-weight: 700; color: var(--fg); }
+.kpi-fast { color: var(--fast-fg); font-weight: 700; }
+
+/* ── 매장 탭 ── */
+.store-tabs {
+  display: flex; gap: 0; overflow-x: auto;
+  scrollbar-width: none; border-top: 1px solid var(--line);
+}
+.store-tabs::-webkit-scrollbar { display: none; }
+.tab {
+  flex-shrink: 0;
+  padding: 10px 14px;
+  font-size: 13px; font-weight: 600; color: var(--fg3);
+  cursor: pointer; border-bottom: 2px solid transparent;
+  white-space: nowrap; background: none; border-top: none; border-left: none; border-right: none;
+  transition: color .15s, border-color .15s;
+}
+.tab.active { color: var(--brand); border-bottom-color: var(--brand); }
+
+/* ── 빠른판매 하이라이트 ── */
+.highlight-section {
+  margin: 12px 14px 0;
+}
+.highlight-label {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 10px;
+}
+.highlight-title {
+  font-size: 14px; font-weight: 800;
+}
+.highlight-sub {
+  font-size: 12px; color: var(--fg3); font-weight: 500;
+}
+.highlight-scroll {
+  display: flex; gap: 10px; overflow-x: auto;
+  padding-bottom: 14px; scrollbar-width: none;
+}
+.highlight-scroll::-webkit-scrollbar { display: none; }
+
+/* 하이라이트 미니 카드 */
+.mini-card {
+  flex-shrink: 0;
+  width: 120px;
+  background: var(--surface);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 6px rgba(0,0,0,.07);
+}
+.mini-photo-area {
+  position: relative;
+  aspect-ratio: 3/4;
+  background: #E8E8E8;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.mini-photo-area img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+}
+.mini-no-photo { font-size: 11px; color: #bbb; }
+.mini-speed {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  padding: 5px 8px;
+  font-size: 11px; font-weight: 800;
+  background: var(--fast-bg); color: var(--fast-fg);
+}
+.mini-info {
+  padding: 7px 8px 8px;
+}
+.mini-price { font-size: 13px; font-weight: 800; }
+.mini-store { font-size: 10px; color: var(--fg3); margin-top: 1px; }
+
+/* ── 본문 ── */
+.main { padding: 4px 14px 60px; }
+
+/* ── 섹션 구분선 ── */
+.section-divider {
+  display: flex; align-items: center; gap: 10px;
+  padding: 20px 0 12px; scroll-margin-top: 52px;
+}
+.section-divider-line { flex: 1; height: 1px; background: var(--line); }
+.section-divider-label {
+  font-size: 11px; font-weight: 700; color: var(--fg3);
+  letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+}
+
+.store-block { margin-bottom: 8px; } /* scroll-margin-top은 JS에서 동적 설정 */
+.store-name-row {
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+  padding: 0 0 10px;
+}
+.store-nm { font-size: 18px; font-weight: 800; letter-spacing: -0.3px; }
+.store-meta { font-size: 12px; color: var(--fg3); }
+.store-fast-note { font-size: 12px; color: var(--fast-fg); font-weight: 600; }
+
+/* ── 카드 그리드 ── */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+@media (min-width: 440px) {
+  .card-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (min-width: 640px) {
+  .card-grid { grid-template-columns: repeat(4, 1fr); gap: 12px; }
+}
+
+/* ── 상품 카드 ── */
+.card {
+  background: var(--surface);
+  border-radius: var(--r);
+  overflow: hidden;
+  box-shadow: 0 1px 6px rgba(0,0,0,.07);
+}
+
+.card-photo-area {
+  position: relative;
+  aspect-ratio: 3/4;
+  background: #E8E8E8;
+  overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+}
+.card-photo-area img {
+  position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.card-no-photo { font-size: 11px; color: #C0C0C0; }
+
+/* 가격 오버레이 */
+.price-pill {
+  position: absolute; top: 8px; right: 8px; z-index: 2;
+  background: rgba(255,255,255,0.93);
+  backdrop-filter: blur(6px);
+  border-radius: 20px;
+  padding: 4px 9px;
+  font-size: 13px; font-weight: 800; color: var(--fg);
+  line-height: 1.2;
+}
+
+/* 카테고리 오버레이 */
+.cat-pill {
+  position: absolute; top: 8px; left: 8px; z-index: 2;
+  background: rgba(0,0,0,.52);
+  backdrop-filter: blur(6px);
+  border-radius: 6px;
+  padding: 3px 7px;
+  font-size: 10px; font-weight: 700; color: #fff;
+}
+
+/* 판매속도 오버레이 띠 */
+.speed-strip {
+  position: absolute; bottom: 0; left: 0; right: 0; z-index: 2;
+  padding: 6px 10px;
+  font-size: 12px; font-weight: 800;
+  line-height: 1.2;
+}
+.speed-strip.fast { background: var(--fast-bg); color: var(--fast-fg); }
+.speed-strip.mid  { background: var(--mid-bg);  color: var(--mid-fg);  }
+.speed-strip.norm { background: rgba(237,250,243,0.92); color: var(--norm-fg); }
+.speed-strip.slow { background: rgba(240,240,240,0.85); color: var(--slow-fg); }
+
+/* 카드 하단 */
+.card-foot {
+  padding: 8px 9px 10px;
+}
+.staff-row {
+  display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 5px;
+}
+.staff-chip {
+  font-size: 10px; color: var(--fg3);
+  background: var(--bg);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+.barcode-text {
+  font-size: 10px; color: var(--fg3);
+  letter-spacing: .03em;
+  font-feature-settings: "tnum";
+}
+
+/* ── 로딩/에러 ── */
+.state-full {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 40vh; gap: 10px; color: var(--fg3); text-align: center; padding: 40px 20px;
+}
+.spinner {
+  width: 28px; height: 28px;
+  border: 3px solid var(--line);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.state-icon { font-size: 32px; }
+.state-msg { font-size: 14px; font-weight: 600; }
+.state-sub { font-size: 12px; }
+
+/* ── 범례 (인라인 텍스트) ── */
+.legend-bar {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  padding: 10px 14px;
+  font-size: 11px; color: var(--fg3);
+  align-items: center; border-bottom: 1px solid var(--line);
+}
+.legend-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 3px;
+}
+</style>
+</head>
+<body>
+
+<!-- 상단 네비 -->
+<nav class="top-nav">
+  <a href="../" class="nav-back">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    허브
+  </a>
+  <span class="nav-title">판매리포트</span>
+  <div class="nav-date-control">
+    <button class="nav-date-btn" id="btn-prev" title="전날">‹</button>
+    <button class="nav-date-btn" id="btn-next" title="다음날" disabled>›</button>
+  </div>
+</nav>
+
+<!-- 날짜/KPI 헤더 -->
+<div class="report-head" id="report-head">
+  <div class="report-date" id="report-date">불러오는 중…</div>
+  <div class="report-kpi" id="report-kpi"></div>
+  <div class="store-tabs" id="store-tabs"></div>
+</div>
+
+<!-- 범례 -->
+<div class="legend-bar">
+  <span><span class="legend-dot" style="background:var(--fast-fg)"></span>🔥 3일 이내 — 가격 높였어도 될 가능성</span>
+  <span><span class="legend-dot" style="background:var(--mid-fg)"></span>⚡ 4–7일</span>
+  <span><span class="legend-dot" style="background:var(--norm-fg)"></span>✓ 8–14일 — 적정</span>
+  <span><span class="legend-dot" style="background:var(--slow-fg)"></span>14일+ — 느린판매</span>
+</div>
+
+<!-- 메인 콘텐츠 -->
+<div id="app-body">
+  <div class="state-full">
+    <div class="spinner"></div>
+    <div class="state-msg">데이터 로딩 중</div>
+  </div>
+</div>
+
+<script>
+// ── 설정 ──────────────────────────────────────────────────────────────
+const SB_URL = 'https://yqnocnzjrcsrwrvsvsyg.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlxbm9jbnpqcmNzcndydnN2c3lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNjExNzgsImV4cCI6MjA5MTgzNzE3OH0.u172XxuUcRF7WhT0UmLq-xQjoeDjBt95Qgbstln8mMs';
+const KST_OFFSET = 9 * 60; // KST = UTC+9
+
+// ── 날짜 유틸 ────────────────────────────────────────────────────────
+function todayKST() {
+  const d = new Date(Date.now() + KST_OFFSET * 60000);
+  return d.toISOString().slice(0, 10);
+}
+function kstYesterday() {
+  const d = new Date(Date.now() + KST_OFFSET * 60000 - 86400000);
+  return d.toISOString().slice(0, 10);
+}
+function addDays(dateStr, n) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+function daysBetween(from, to) {
+  if (!from || !to) return null;
+  const a = new Date(from.slice(0,10)+'T00:00:00Z');
+  const b = new Date(to.slice(0,10)+'T00:00:00Z');
+  return Math.round((b - a) / 86400000);
+}
+function formatDate(str) {
+  const d = new Date(str + 'T00:00:00Z');
+  const dow = ['일','월','화','수','목','금','토'][d.getUTCDay()];
+  return `${d.getUTCFullYear()}년 ${d.getUTCMonth()+1}월 ${d.getUTCDate()}일 (${dow})`;
+}
+function displayStore(raw) {
+  return raw.replace('공동판매', '').trim();
+}
+function h(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Supabase fetch ────────────────────────────────────────────────────
+const SB_HDR = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, Accept: 'application/json' };
+
+async function sbGet(table, params) {
+  const qs = new URLSearchParams(params).toString();
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${qs}`, { headers: SB_HDR });
+  if (!r.ok) throw new Error(`Supabase ${table}: ${r.status}`);
+  return r.json();
+}
+
+async function sbChunked(table, base, key, values, size = 200) {
+  const out = [];
+  for (let i = 0; i < values.length; i += size) {
+    const chunk = values.slice(i, i + size);
+    const p = { ...base, [key]: `in.(${chunk.join(',')})` };
+    const rows = await sbGet(table, p);
+    out.push(...rows);
+  }
+  return out;
+}
+
+// ── 데이터 페치 ──────────────────────────────────────────────────────
+async function loadReport(dateStr) {
+  // 1. 판매 데이터 (PB 제외)
+  const soldRaw = await sbGet('sold_items', {
+    sold_date: `eq.${dateStr}`,
+    price: 'gt.0',
+    select: 'barcode,store,sold_date,price',
+  });
+  const sold = soldRaw.filter(r => !r.barcode.toUpperCase().startsWith('PB'));
+  if (!sold.length) return [];
+
+  const barcodes = [...new Set(sold.map(r => r.barcode))];
+
+  // 2. 재고 정보
+  const invRows = await sbChunked('inventory_items', {
+    select: 'barcode,category,photo_url,session_id,created_at',
+  }, 'barcode', barcodes);
+  const invMap = Object.fromEntries(invRows.map(r => [r.barcode, r]));
+
+  // 3. 입고 세션
+  const sessionIds = [...new Set(invRows.filter(r => r.session_id).map(r => r.session_id))];
+  const sessionMap = {};
+  if (sessionIds.length) {
+    const sRows = await sbChunked('inventory_sessions', {
+      select: 'id,session_date,created_by',
+    }, 'id', sessionIds);
+    for (const r of sRows) sessionMap[r.id] = r;
+  }
+
+  // 4. 이동이력 (session_items → move_sessions)
+  const siRows = await sbChunked('session_items', {
+    is_submitted: 'eq.true',
+    is_error:     'eq.false',
+    select:       'barcode,session_id',
+  }, 'barcode', barcodes);
+
+  const msIds = [...new Set(siRows.map(r => r.session_id))];
+  const msMap = {};
+  if (msIds.length) {
+    const msRows = await sbChunked('move_sessions', {
+      status: 'eq.approved',
+      select: 'id,to_location,approved_at,created_by',
+    }, 'id', msIds);
+    for (const r of msRows) if (r.approved_at) msMap[r.id] = r;
+  }
+
+  // 바코드별 이동이력 조합 (approved_at 내림차순)
+  const movesMap = {};
+  for (const si of siRows) {
+    const ms = msMap[si.session_id];
+    if (!ms) continue;
+    (movesMap[si.barcode] = movesMap[si.barcode] || []).push(ms);
+  }
+  for (const bc in movesMap) {
+    movesMap[bc].sort((a, b) => b.approved_at.localeCompare(a.approved_at));
+  }
+
+  // 5. 가격수정 이력 (바코드별 최신 1건)
+  const pcRows = await sbChunked('price_changes', {
+    select: 'barcode,changed_by,changed_at',
+    order:  'changed_at.desc',
+  }, 'barcode', barcodes);
+  const pcMap = {};
+  for (const r of pcRows) if (!pcMap[r.barcode]) pcMap[r.barcode] = r;
+
+  // 6. 조합
+  return sold.map(s => {
+    const bc   = s.barcode;
+    const inv  = invMap[bc];
+    const sess = inv?.session_id ? sessionMap[inv.session_id] : null;
+    const moves = movesMap[bc] || [];
+    const loc  = displayStore(s.store);
+    const lastMove = moves.find(m => (m.to_location || '').trim() === loc);
+
+    const receiveDate = sess?.session_date || inv?.created_at?.slice(0, 10) || null;
+    const daysSinceReceive = daysBetween(receiveDate, s.sold_date);
+    const daysSinceMove    = lastMove?.approved_at ? daysBetween(lastMove.approved_at.slice(0,10), s.sold_date) : null;
+
+    return {
+      barcode:         bc,
+      store:           s.store,
+      price:           s.price,
+      category:        inv?.category || '',
+      photoUrl:        inv?.photo_url || '',
+      daysSinceReceive,
+      daysSinceMove,
+      receivedBy:      sess?.created_by || '',
+      priceChangedBy:  pcMap[bc]?.changed_by || '',
+    };
+  });
+}
+
+// ── 속도 계산 ─────────────────────────────────────────────────────────
+// 이동 타이밍(빠른판매 판단 기준) + 입고 타이밍(총 보유기간)을 함께 표시
+function speedInfo(item) {
+  const md = item.daysSinceMove;
+  const rd = item.daysSinceReceive;
+
+  // 이동 데이터가 있으면 이동 기준으로 속도 분류
+  if (md !== null) {
+    let cls, base;
+    if (md === 0)   { cls = 'fast'; base = '당일 판매 🔥'; }
+    else if (md <= 3)  { cls = 'fast'; base = `이동 ${md}일 🔥`; }
+    else if (md <= 7)  { cls = 'mid';  base = `이동 ${md}일 ⚡`; }
+    else if (md <= 14) { cls = 'norm'; base = `이동 ${md}일 ✓`; }
+    else               { cls = 'slow'; base = `이동 ${md}일`; }
+    // 입고 타이밍도 함께 표시
+    const text = rd !== null ? `${base} · 입고 ${rd}일` : base;
+    return { cls, text };
+  }
+
+  // 이동 데이터 없으면 입고 기준
+  if (rd !== null) {
+    if (rd === 0)   return { cls: 'fast', text: '당일 판매 🔥' };
+    if (rd <= 3)    return { cls: 'fast', text: `입고 ${rd}일 🔥` };
+    if (rd <= 7)    return { cls: 'mid',  text: `입고 ${rd}일 ⚡` };
+    if (rd <= 14)   return { cls: 'norm', text: `입고 ${rd}일 ✓` };
+    return            { cls: 'slow', text: `입고 ${rd}일` };
+  }
+
+  return { cls: '', text: '' };
+}
+
+// ── 렌더 ─────────────────────────────────────────────────────────────
+function renderCard(item, mini = false) {
+  const sp   = speedInfo(item);
+  const photo = item.photoUrl
+    ? `<img src="${h(item.photoUrl)}" loading="lazy" onerror="this.remove()" alt="">`
+    : `<span class="${mini?'mini-no-photo':'card-no-photo'}">사진없음</span>`;
+  const speed = sp.text ? `<div class="speed-strip ${sp.cls}">${sp.text}</div>` : '';
+  const price = `<div class="price-pill">${item.price.toLocaleString()}원</div>`;
+  const cat   = item.category ? `<div class="cat-pill">${h(item.category)}</div>` : '';
+
+  if (mini) {
+    return `<div class="mini-card">
+      <div class="mini-photo-area">${photo}${speed}</div>
+      <div class="mini-info">
+        <div class="mini-price">${item.price.toLocaleString()}원</div>
+        <div class="mini-store">${h(displayStore(item.store))}</div>
+      </div>
+    </div>`;
+  }
+
+  const staff = [
+    item.receivedBy     ? `<span class="staff-chip">입고 ${h(item.receivedBy)}</span>`     : '',
+    item.priceChangedBy ? `<span class="staff-chip">가격 ${h(item.priceChangedBy)}</span>` : '',
+  ].filter(Boolean).join('');
+
+  return `<div class="card">
+    <div class="card-photo-area">
+      ${photo}${price}${cat}${speed}
+    </div>
+    <div class="card-foot">
+      ${staff ? `<div class="staff-row">${staff}</div>` : ''}
+      <div class="barcode-text">${h(item.barcode)}</div>
+    </div>
+  </div>`;
+}
+
+function renderStoreBlock(storeName, items) {
+  const display = displayStore(storeName);
+  const total   = items.reduce((s, i) => s + i.price, 0);
+  const fast    = items.filter(i => (i.daysSinceMove ?? i.daysSinceReceive ?? 99) <= 3).length;
+  const fastNote = fast ? `<span class="store-fast-note">🔥 ${fast}건 빠른판매</span>` : '';
+  const cards   = items.map(i => renderCard(i)).join('');
+
+  return `<div class="store-block" id="store-${h(storeName)}">
+    <div class="store-name-row">
+      <span class="store-nm">${h(display)}</span>
+      <span class="store-meta">${items.length}건 · ${total.toLocaleString()}원</span>
+      ${fastNote}
+    </div>
+    <div class="card-grid">${cards}</div>
+  </div>`;
+}
+
+function renderFull(items) {
+  // 빠른판매 필터
+  const fast = items.filter(i => (i.daysSinceMove ?? i.daysSinceReceive ?? 99) <= 3);
+
+  // 매장별 그룹 (건수 내림차순)
+  const byStore = {};
+  for (const item of items) {
+    (byStore[item.store] = byStore[item.store] || []).push(item);
+  }
+  const stores = Object.entries(byStore).sort((a, b) => b[1].length - a[1].length);
+
+  let html = '';
+
+  // 빠른판매 하이라이트 띠
+  if (fast.length) {
+    const miniCards = fast.map(i => renderCard(i, true)).join('');
+    html += `<div class="highlight-section">
+      <div class="highlight-label">
+        <span class="highlight-title">🔥 빠른판매 ${fast.length}건</span>
+        <span class="highlight-sub">가격 재검토 고려</span>
+      </div>
+      <div class="highlight-scroll">${miniCards}</div>
+    </div>`;
+  }
+
+  // 섹션 구분선
+  html += `<div class="section-divider">
+    <div class="section-divider-line"></div>
+    <div class="section-divider-label">매장별 전체 판매</div>
+    <div class="section-divider-line"></div>
+  </div>`;
+
+  // 매장별 블록
+  html += stores.map(([name, its]) => renderStoreBlock(name, its)).join('');
+
+  return `<div class="main">${html}</div>`;
+}
+
+// ── KPI / 탭 헤더 ────────────────────────────────────────────────────
+function updateHeader(dateStr, items) {
+  document.getElementById('report-date').textContent = formatDate(dateStr);
+
+  const total   = items.reduce((s, i) => s + i.price, 0);
+  const fast    = items.filter(i => (i.daysSinceMove ?? i.daysSinceReceive ?? 99) <= 3).length;
+  const fastPct = items.length ? Math.round(fast / items.length * 100) : 0;
+
+  document.getElementById('report-kpi').innerHTML = `
+    <span>총 <span class="kpi-val">${items.length}건</span></span>
+    <span>합계 <span class="kpi-val">${total.toLocaleString()}원</span></span>
+    ${fast ? `<span class="kpi-fast">🔥 빠른판매 ${fast}건 (${fastPct}%)</span>` : ''}
+  `;
+
+  // 매장 탭
+  const byStore = {};
+  for (const item of items) (byStore[item.store] = byStore[item.store] || []).push(item);
+  const sorted = Object.entries(byStore).sort((a, b) => b[1].length - a[1].length);
+
+  const tabs = document.getElementById('store-tabs');
+  tabs.innerHTML = sorted.map(([name, its], idx) => `
+    <button class="tab${idx===0?' active':''}" data-store="${h(name)}">
+      ${h(displayStore(name))} ${its.length}
+    </button>
+  `).join('');
+
+  tabs.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabs.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      btn.classList.add('active');
+      const el = document.getElementById(`store-${btn.dataset.store}`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+}
+
+// ── 스크롤 헬퍼 ──────────────────────────────────────────────────────
+
+// sticky 헤더 전체 높이를 기준으로 store-block의 scroll-margin-top을 동적 설정
+function updateScrollMargins() {
+  const navH  = document.querySelector('.top-nav').offsetHeight;
+  const headH = document.querySelector('.report-head').offsetHeight;
+  const margin = navH + headH + 6; // +6px 여유
+  document.querySelectorAll('.store-block').forEach(el => {
+    el.style.scrollMarginTop = margin + 'px';
+  });
+}
+
+// 스크롤 위치에 따라 탭 active 상태 자동 갱신
+let _spyCleanup = null;
+function setupScrollSpy() {
+  if (_spyCleanup) _spyCleanup();
+
+  const tabs = document.getElementById('store-tabs');
+  const blocks = [...document.querySelectorAll('.store-block')];
+  if (!blocks.length) return;
+
+  const handler = () => {
+    const navH  = document.querySelector('.top-nav').offsetHeight;
+    const headH = document.querySelector('.report-head').offsetHeight;
+    const threshold = window.scrollY + navH + headH + 20;
+
+    let current = null;
+    for (const block of blocks) {
+      if (block.offsetTop <= threshold) current = block;
+    }
+    if (!current) return;
+    const store = current.id.replace(/^store-/, '');
+    tabs.querySelectorAll('.tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.store === store);
+    });
+  };
+
+  window.addEventListener('scroll', handler, { passive: true });
+  _spyCleanup = () => window.removeEventListener('scroll', handler);
+}
+
+// ── 앱 상태 ──────────────────────────────────────────────────────────
+let currentDate = kstYesterday();
+const today     = todayKST();
+
+function setDateNav() {
+  document.getElementById('btn-prev').disabled = false;
+  document.getElementById('btn-next').disabled = currentDate >= today;
+}
+
+async function renderDate(dateStr) {
+  const body = document.getElementById('app-body');
+  const head = document.getElementById('report-date');
+  head.textContent = formatDate(dateStr);
+  document.getElementById('report-kpi').innerHTML = '';
+  document.getElementById('store-tabs').innerHTML = '';
+  body.innerHTML = `<div class="state-full"><div class="spinner"></div><div class="state-msg">불러오는 중</div></div>`;
+
+  try {
+    const items = await loadReport(dateStr);
+
+    if (!items.length) {
+      body.innerHTML = `<div class="state-full">
+        <div class="state-icon">📭</div>
+        <div class="state-msg">판매 데이터 없음</div>
+        <div class="state-sub">${h(dateStr)}</div>
+      </div>`;
+      document.getElementById('report-date').textContent = formatDate(dateStr);
+      document.getElementById('report-kpi').innerHTML = '';
+      return;
+    }
+
+    updateHeader(dateStr, items);
+    body.innerHTML = renderFull(items);
+    // sticky 헤더 높이 확정 후 scroll-margin 재계산 + 스파이 시작
+    requestAnimationFrame(() => {
+      updateScrollMargins();
+      setupScrollSpy();
+    });
+
+  } catch(err) {
+    body.innerHTML = `<div class="state-full">
+      <div class="state-icon">⚠️</div>
+      <div class="state-msg">데이터 로드 실패</div>
+      <div class="state-sub">${h(String(err))}</div>
+    </div>`;
+  }
+}
+
+// ── 이벤트 ───────────────────────────────────────────────────────────
+document.getElementById('btn-prev').addEventListener('click', () => {
+  currentDate = addDays(currentDate, -1);
+  setDateNav();
+  renderDate(currentDate);
+});
+document.getElementById('btn-next').addEventListener('click', () => {
+  if (currentDate >= today) return;
+  currentDate = addDays(currentDate, 1);
+  setDateNav();
+  renderDate(currentDate);
+});
+
+// ── 초기 실행 ─────────────────────────────────────────────────────────
+setDateNav();
+renderDate(currentDate);
+</script>
+</body>
+</html>
