@@ -165,7 +165,7 @@ async function fetchItemData(bc) {
     pattern:   invItem.pattern || null,
     category,
     location,
-    status:    sold ? 'sold' : 'active',
+    status:    invItem.status === 'in_stock' ? 'active' : (invItem.status || 'active'),
   };
 
   // 타임라인 조립
@@ -202,6 +202,13 @@ async function fetchItemData(bc) {
       store: sold.store,
       price: sold.price,
     });
+    if (sold.refund_date) {
+      timeline.push({
+        type:        'refund',
+        ts:          sold.refund_date,
+        refund_type: sold.refund_type || '환불',
+      });
+    }
   }
   timeline.sort((a, b) => (a.ts || '') < (b.ts || '') ? -1 : 1);
 
@@ -283,6 +290,15 @@ function renderSingle(data) {
             <div class="tl-sub">₩${ev.price ? ev.price.toLocaleString() : '—'}</div>
           </div><span class="tl-date">${(ev.ts || '').slice(0, 10)}</span>
         </div>`;
+      if (ev.type === 'refund') {
+        const isDouble = ev.refund_type === '중복결제환불';
+        return `
+        <div class="tl-item"><span class="tl-icon">↩</span>
+          <div class="tl-body">
+            <div class="tl-main" style="color:${isDouble ? '#f59e0b' : '#f87171'}">${isDouble ? '중복결제 환불' : '환불 (반납)'}</div>
+          </div><span class="tl-date">${(ev.ts || '').slice(0, 10)}</span>
+        </div>`;
+      }
       return '';
     }).join('');
     html += '</div>';
@@ -297,12 +313,13 @@ function renderSingle(data) {
 }
 
 // ── 엑셀 다운로드 ─────────────────────────────────────────────────────────────
-const TL_TYPE_LABEL = { ingest: '입고', move: '이동', price: '가격수정', sold: '판매' };
+const TL_TYPE_LABEL = { ingest: '입고', move: '이동', price: '가격수정', sold: '판매', refund: '환불' };
 const TL_TYPE_FILL = {
-  ingest: 'FFB9DEFF', // sky (입고는 조금 더 진하게)
+  ingest: 'FFB9DEFF', // sky
   move:   'FFF1EFFF', // light purple
   price:  'FFFFF4D1', // yellow
   sold:   'FFDFF7EC', // mint
+  refund: 'FFFDE8E8', // light red
 };
 
 function tlDetailText(ev) {
@@ -310,6 +327,7 @@ function tlDetailText(ev) {
   if (ev.type === 'move')   return `${ev.from_location || '?'} → ${ev.to_location || '?'}`;
   if (ev.type === 'price')  return `₩${(ev.old_price ?? 0).toLocaleString()} → ₩${(ev.new_price ?? 0).toLocaleString()}`;
   if (ev.type === 'sold')   return `${ev.store || '-'} 매장 · ₩${(ev.price ?? 0).toLocaleString()}`;
+  if (ev.type === 'refund') return ev.refund_type === '중복결제환불' ? '중복결제 환불' : '환불 (반납)';
   return '';
 }
 
@@ -506,6 +524,15 @@ async function toggleTimeline(card) {
               <div class="tl-sub">₩${ev.price ? ev.price.toLocaleString() : '—'}</div>
             </div><span class="tl-date">${(ev.ts || '').slice(0, 10)}</span>
           </div>`;
+        if (ev.type === 'refund') {
+          const isDouble = ev.refund_type === '중복결제환불';
+          return `
+          <div class="tl-item"><span class="tl-icon">↩</span>
+            <div class="tl-body">
+              <div class="tl-main" style="color:${isDouble ? '#f59e0b' : '#f87171'}">${isDouble ? '중복결제 환불' : '환불 (반납)'}</div>
+            </div><span class="tl-date">${(ev.ts || '').slice(0, 10)}</span>
+          </div>`;
+        }
         return '';
       }).join('');
     }
