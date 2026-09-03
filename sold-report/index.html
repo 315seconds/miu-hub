@@ -253,6 +253,11 @@ body {
   border-radius: 4px;
   padding: 2px 6px;
 }
+.brand-text {
+  font-size: 11px; font-weight: 700; color: var(--fg2);
+  margin-bottom: 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .barcode-text {
   font-size: 10px; color: var(--fg3);
   letter-spacing: .03em;
@@ -402,7 +407,7 @@ async function loadReport(dateStr) {
 
   // 2. 재고 정보
   const invRows = await sbChunked('inventory_items', {
-    select: 'barcode,category,photo_url,session_id,created_at',
+    select: 'barcode,category,photo_url,session_id,created_at,brand',
   }, 'barcode', barcodes);
   const invMap = Object.fromEntries(invRows.map(r => [r.barcode, r]));
 
@@ -471,6 +476,7 @@ async function loadReport(dateStr) {
       price:           s.price,
       category:        inv?.category || '',
       photoUrl:        inv?.photo_url || '',
+      brand:           inv?.brand || '',
       daysSinceReceive,
       daysSinceMove,
       receivedBy:      sess?.created_by || '',
@@ -540,10 +546,20 @@ function renderCard(item, mini = false) {
       ${photo}${price}${cat}${speed}
     </div>
     <div class="card-foot">
+      ${item.brand ? `<div class="brand-text">${h(item.brand)}</div>` : ''}
       ${staff ? `<div class="staff-row">${staff}</div>` : ''}
       <div class="barcode-text">${h(item.barcode)}</div>
     </div>
   </div>`;
+}
+
+function sortItems(items) {
+  return [...items].sort((a, b) => {
+    const sa = a.daysSinceMove ?? a.daysSinceReceive ?? 9999;
+    const sb = b.daysSinceMove ?? b.daysSinceReceive ?? 9999;
+    if (sa !== sb) return sa - sb;       // 속도 오름차순
+    return b.price - a.price;            // 가격 내림차순
+  });
 }
 
 function renderStoreBlock(storeName, items) {
@@ -551,7 +567,7 @@ function renderStoreBlock(storeName, items) {
   const total   = items.reduce((s, i) => s + i.price, 0);
   const fast    = items.filter(i => (i.daysSinceMove ?? i.daysSinceReceive ?? 99) <= 3).length;
   const fastNote = fast ? `<span class="store-fast-note">🔥 ${fast}건 빠른판매</span>` : '';
-  const cards   = items.map(i => renderCard(i)).join('');
+  const cards   = sortItems(items).map(i => renderCard(i)).join('');
 
   return `<div class="store-block" id="store-${h(storeName)}">
     <div class="store-name-row">
