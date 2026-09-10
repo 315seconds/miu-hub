@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>회전율 리포트 · MIU</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --brand: #f54e00;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --radius: 10px;
+    }
+    body { font-family: 'Pretendard Variable', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── Header ── */
+    .header { background: var(--card); border-bottom: 1px solid var(--border); padding: 14px 16px; position: sticky; top: 0; z-index: 10; display: flex; align-items: center; gap: 10px; }
+    .header h1 { font-size: 17px; font-weight: 700; }
+    .back-link { color: var(--muted); font-size: 20px; text-decoration: none; line-height: 1; }
+
+    /* ── Controls ── */
+    .controls { padding: 12px 16px 4px; display: flex; flex-direction: column; gap: 10px; }
+    .label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 4px; }
+    .tabs { display: flex; gap: 6px; }
+    .tab { padding: 7px 14px; border: 1px solid var(--border); border-radius: 99px; font-size: 13px; font-weight: 600; background: var(--card); color: var(--muted); cursor: pointer; white-space: nowrap; font-family: inherit; }
+    .tab.active { background: var(--text); color: #fff; border-color: var(--text); }
+    .store-row { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .store-row::-webkit-scrollbar { display: none; }
+
+    /* ── Summary ── */
+    .summary { display: flex; gap: 10px; padding: 12px 16px; }
+    .stat { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
+    .stat-val { font-size: 20px; font-weight: 800; }
+    .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+    /* ── Table ── */
+    .table-wrap { padding: 0 16px 40px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: var(--radius); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.07); font-size: 13px; }
+    thead th {
+      background: #f1f5f9; padding: 10px 12px;
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      text-align: left; white-space: nowrap;
+      cursor: pointer; user-select: none; border-bottom: 1px solid var(--border);
+    }
+    thead th:hover { background: #e8edf3; }
+    thead th.sort-asc::after  { content: ' ↑'; color: var(--brand); }
+    thead th.sort-desc::after { content: ' ↓'; color: var(--brand); }
+    tbody tr { border-top: 1px solid #f1f5f9; transition: background .1s; }
+    tbody tr:hover { background: #f8fafc; }
+    td { padding: 10px 12px; vertical-align: middle; }
+    .td-rank { color: #cbd5e1; font-size: 12px; font-weight: 700; width: 24px; }
+    .brand-name { font-weight: 700; font-size: 13px; }
+    .cat-tag { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .count-cell { font-weight: 700; font-size: 14px; }
+    .price-cell { font-variant-numeric: tabular-nums; color: var(--muted); }
+
+    /* ── Days badge ── */
+    .badge { display: inline-block; padding: 3px 9px; border-radius: 6px; font-size: 12px; font-weight: 700; white-space: nowrap; }
+    .badge-fast { background: #dcfce7; color: #166534; }
+    .badge-ok   { background: #fef9c3; color: #854d0e; }
+    .badge-slow { background: #fee2e2; color: #991b1b; }
+    .badge-none { background: #f1f5f9; color: #94a3b8; }
+
+    /* ── States ── */
+    .state { text-align: center; padding: 56px 16px; color: var(--muted); font-size: 14px; }
+    .state-icon { font-size: 36px; margin-bottom: 10px; }
+    .note { padding: 0 16px 16px; font-size: 12px; color: #94a3b8; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <a class="back-link" href="../index.html">←</a>
+  <h1>📊 회전율 리포트</h1>
+</div>
+
+<div class="controls">
+  <div>
+    <div class="label">기간</div>
+    <div class="tabs" id="period-tabs">
+      <button class="tab" data-days="30">30일</button>
+      <button class="tab active" data-days="60">60일</button>
+      <button class="tab" data-days="90">90일</button>
+    </div>
+  </div>
+  <div>
+    <div class="label">매장</div>
+    <div class="tabs store-row" id="store-tabs">
+      <button class="tab active" data-store="">전체</button>
+    </div>
+  </div>
+</div>
+
+<div class="summary" id="summary" style="display:none">
+  <div class="stat">
+    <div class="stat-val" id="stat-count">-</div>
+    <div class="stat-label">판매 건수</div>
+  </div>
+  <div class="stat">
+    <div class="stat-val" id="stat-avg">-</div>
+    <div class="stat-label">평균 소요일</div>
+  </div>
+  <div class="stat">
+    <div class="stat-val" id="stat-brands">-</div>
+    <div class="stat-label">브랜드 수</div>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <div class="state" id="loading">
+    <div class="state-icon">⏳</div>데이터 로딩 중…
+  </div>
+  <table id="report-table" style="display:none">
+    <thead>
+      <tr>
+        <th class="td-rank">#</th>
+        <th data-col="key">브랜드 / 카테고리</th>
+        <th data-col="count" class="sort-desc">판매</th>
+        <th data-col="avgDays">평균 소요일</th>
+        <th data-col="avgPrice">평균가</th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+<div class="note" id="data-note" style="display:none">
+  ※ 브랜드 정보가 없는 물건은 Vintage로 표시됩니다. 브랜드 데이터가 쌓일수록 정확도가 높아집니다.
+</div>
+
+<script>
+const SB_URL = 'https://yqnocnzjrcsrwrvsvsyg.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlxbm9jbnpqcmNzcndydnN2c3lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNjExNzgsImV4cCI6MjA5MTgzNzE3OH0.u172XxuUcRF7WhT0UmLq-xQjoeDjBt95Qgbstln8mMs';
+const SB_HDR = {
+  apikey: SB_KEY,
+  Authorization: `Bearer ${SB_KEY}`,
+  Accept: 'application/json',
+  'Range-Unit': 'items',
+  Range: '0-9999',
+};
+
+// ── 유틸
+function kstToday() {
+  return new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+}
+function subtractDays(dateStr, n) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+function daysBetween(from, to) {
+  if (!from || !to) return null;
+  const diff = Math.round((new Date(to.slice(0,10)+'T00:00:00Z') - new Date(from.slice(0,10)+'T00:00:00Z')) / 86400000);
+  return diff >= 0 ? diff : null;
+}
+function displayStore(raw) { return (raw || '').replace('공동판매', '').trim(); }
+function h(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── Supabase fetch
+async function sbFetch(table, qs) {
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${qs}`, { headers: SB_HDR });
+  if (!r.ok) throw new Error(`${table}: ${r.status}`);
+  return r.json();
+}
+async function sbChunked(table, baseQs, key, values, size = 200) {
+  const out = [];
+  for (let i = 0; i < values.length; i += size) {
+    const chunk = values.slice(i, i + size);
+    out.push(...await sbFetch(table, `${baseQs}&${key}=in.(${chunk.join(',')})`));
+  }
+  return out;
+}
+
+// ── 데이터 로드
+async function loadData(days) {
+  const endDate   = kstToday();
+  const startDate = subtractDays(endDate, days);
+
+  const soldRaw = await sbFetch('sold_items',
+    `sold_date=gte.${startDate}&sold_date=lte.${endDate}&price=gt.0&select=barcode,store,sold_date,price`);
+  const sold = soldRaw.filter(r => r.barcode && !r.barcode.toUpperCase().startsWith('PB'));
+  if (!sold.length) return [];
+
+  const barcodes = [...new Set(sold.map(r => r.barcode))];
+
+  const invRows = await sbChunked('inventory_items',
+    'select=barcode,category,brand,session_id', 'barcode', barcodes);
+  const invMap = Object.fromEntries(invRows.map(r => [r.barcode, r]));
+
+  const sessionIds = [...new Set(invRows.filter(r => r.session_id).map(r => r.session_id))];
+  const sessionMap = {};
+  if (sessionIds.length) {
+    const rows = await sbChunked('inventory_sessions', 'select=id,session_date', 'id', sessionIds);
+    for (const r of rows) sessionMap[r.id] = r;
+  }
+
+  return sold.map(s => {
+    const inv  = invMap[s.barcode];
+    const sess = inv?.session_id ? sessionMap[inv.session_id] : null;
+    return {
+      store:      displayStore(s.store),
+      price:      s.price,
+      brand:      inv?.brand || 'Vintage',
+      category:   inv?.category || '미분류',
+      daysToSell: daysBetween(sess?.session_date, s.sold_date),
+    };
+  });
+}
+
+// ── 집계
+function aggregate(items) {
+  const groups = {};
+  for (const it of items) {
+    const key = `${it.brand}||${it.category}`;
+    if (!groups[key]) groups[key] = { brand: it.brand, category: it.category, count: 0, daysSum: 0, daysCount: 0, priceSum: 0 };
+    const g = groups[key];
+    g.count++;
+    g.priceSum += it.price;
+    if (it.daysToSell !== null) { g.daysSum += it.daysToSell; g.daysCount++; }
+  }
+  return Object.values(groups).map(g => ({
+    brand:    g.brand,
+    category: g.category,
+    count:    g.count,
+    avgDays:  g.daysCount > 0 ? Math.round(g.daysSum / g.daysCount) : null,
+    avgPrice: Math.round(g.priceSum / g.count),
+  }));
+}
+
+// ── 상태
+let allItems = [];
+let sortCol  = 'count';
+let sortDir  = -1;
+let activeStore = '';
+
+// ── 매장 탭 구성
+function populateStores(items) {
+  const stores = [...new Set(items.map(i => i.store).filter(Boolean))].sort();
+  const wrap = document.getElementById('store-tabs');
+  wrap.innerHTML = `<button class="tab active" data-store="">전체</button>`;
+  for (const s of stores) {
+    const btn = document.createElement('button');
+    btn.className = 'tab';
+    btn.dataset.store = s;
+    btn.textContent = s;
+    wrap.appendChild(btn);
+  }
+  wrap.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      wrap.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeStore = btn.dataset.store;
+      renderTable();
+    });
+  });
+}
+
+// ── 뱃지
+function daysBadge(d) {
+  if (d === null) return `<span class="badge badge-none">-</span>`;
+  const [cls, label] = d <= 7 ? ['badge-fast','빠름'] : d <= 21 ? ['badge-ok','보통'] : ['badge-slow','느림'];
+  return `<span class="badge ${cls}">${d}일 · ${label}</span>`;
+}
+
+// ── 요약 바
+function renderSummary(filtered) {
+  const valid = filtered.filter(i => i.daysToSell !== null);
+  document.getElementById('stat-count').textContent = filtered.length + '건';
+  document.getElementById('stat-avg').textContent   =
+    valid.length ? Math.round(valid.reduce((s, i) => s + i.daysToSell, 0) / valid.length) + '일' : '-';
+  document.getElementById('stat-brands').textContent =
+    new Set(filtered.filter(i => i.brand !== 'Vintage').map(i => i.brand)).size + '개';
+  document.getElementById('summary').style.display = '';
+}
+
+// ── 테이블 렌더
+function renderTable() {
+  const filtered = activeStore ? allItems.filter(i => i.store === activeStore) : allItems;
+  const rows = aggregate(filtered);
+
+  rows.sort((a, b) => {
+    let av = a[sortCol], bv = b[sortCol];
+    if (av === null) av = sortDir > 0 ? Infinity : -Infinity;
+    if (bv === null) bv = sortDir > 0 ? Infinity : -Infinity;
+    return sortDir * (av > bv ? 1 : av < bv ? -1 : 0);
+  });
+
+  renderSummary(filtered);
+
+  document.getElementById('tbody').innerHTML = rows.length === 0
+    ? '<tr><td colspan="5" style="text-align:center;padding:32px;color:#94a3b8">데이터 없음</td></tr>'
+    : rows.map((r, i) => `
+      <tr>
+        <td class="td-rank">${i + 1}</td>
+        <td>
+          <div class="brand-name">${h(r.brand)}</div>
+          <div class="cat-tag">${h(r.category)}</div>
+        </td>
+        <td class="count-cell">${r.count}건</td>
+        <td>${daysBadge(r.avgDays)}</td>
+        <td class="price-cell">₩${r.avgPrice.toLocaleString()}</td>
+      </tr>`).join('');
+
+  document.getElementById('loading').style.display       = 'none';
+  document.getElementById('report-table').style.display  = '';
+  document.getElementById('data-note').style.display     = '';
+}
+
+// ── 정렬 클릭
+document.querySelectorAll('thead th[data-col]').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    sortDir = col === sortCol ? -sortDir : (col === 'avgDays' ? 1 : -1);
+    sortCol = col;
+    document.querySelectorAll('thead th').forEach(t => t.classList.remove('sort-asc','sort-desc'));
+    th.classList.add(sortDir > 0 ? 'sort-asc' : 'sort-desc');
+    renderTable();
+  });
+});
+
+// ── 기간 탭 클릭
+document.getElementById('period-tabs').querySelectorAll('.tab').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    if (btn.classList.contains('active')) return;
+    document.getElementById('period-tabs').querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('loading').style.display      = '';
+    document.getElementById('report-table').style.display = 'none';
+    document.getElementById('summary').style.display      = 'none';
+    document.getElementById('data-note').style.display    = 'none';
+    document.getElementById('loading').innerHTML = '<div class="state-icon">⏳</div>데이터 로딩 중…';
+    try {
+      allItems = await loadData(parseInt(btn.dataset.days));
+      populateStores(allItems);
+      activeStore = '';
+      renderTable();
+    } catch (e) {
+      document.getElementById('loading').innerHTML = `<div class="state-icon">⚠️</div>오류: ${h(e.message)}`;
+    }
+  });
+});
+
+// ── 초기 로드
+(async () => {
+  try {
+    allItems = await loadData(60);
+    populateStores(allItems);
+    renderTable();
+  } catch (e) {
+    document.getElementById('loading').innerHTML = `<div class="state-icon">⚠️</div>오류: ${h(e.message)}`;
+  }
+})();
+</script>
+</body>
+</html>
