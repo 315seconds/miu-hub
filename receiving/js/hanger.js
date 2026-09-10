@@ -12,6 +12,7 @@ let CURRENT_ITEMS = [];
 let currentCategory = "";
 let itemCount = 0;
 let unphotographedCount = 0;
+let unbrandedCount = 0;
 let refVisible = false;
 let refDebounceTimer = null;
 let sessionBrands = [];
@@ -45,6 +46,7 @@ async function load() {
     CURRENT_ITEMS = loaded;
     currentCategory = loaded.length ? (loaded[loaded.length - 1].category || "") : "";
     unphotographedCount = loaded.filter(it => !it.photo_url).length;
+    unbrandedCount = loaded.filter(it => !it.brand).length;
     render(loaded);
     if (SESSION.status === "pending") { loadSessionBrands(); loadTodayBrands(); }
   } catch (e) {
@@ -84,7 +86,6 @@ function render(items) {
       <span style="color:#94a3b8">🔒 ${escapeHtml(HANGER.submitted_by)}만 편집할 수 있는 행거입니다.</span>
     </div>`;
   } else {
-    // C 카테고리(균일가 저가 상품, 6,800/9,800원)는 브랜드·사진 데이터를 안 받음 — 가격+수량만 빠르게 입력
     const isBulkC = currentCategory.trim().toUpperCase() === "C";
     html += `
       <div class="card">
@@ -120,9 +121,11 @@ function render(items) {
         </div>
       </div>
 
-      ${isBulkC ? "" : `
+      ${isBulkC ? `
+      <a id="bulk-brand-btn" href="bulk-brand.html?id=${encodeURIComponent(HANGER_ID)}"
+         class="btn btn-outline btn-block" style="margin-bottom:12px">${bulkBrandLabel()}</a>` : ""}
       <a id="bulk-photo-btn" href="bulk-photo.html?id=${encodeURIComponent(HANGER_ID)}"
-         class="btn btn-outline btn-block" style="margin-bottom:12px">${bulkPhotoLabel()}</a>`}
+         class="btn btn-outline btn-block" style="margin-bottom:12px">${bulkPhotoLabel()}</a>
     `;
   }
 
@@ -159,6 +162,17 @@ function bulkPhotoLabel() {
 function updateBulkPhotoBtn() {
   const btn = document.getElementById("bulk-photo-btn");
   if (btn) btn.textContent = bulkPhotoLabel();
+}
+
+function bulkBrandLabel() {
+  if (unbrandedCount === 0 && itemCount > 0) return "🏷️ 일괄 브랜드 입력 ✓ 완료";
+  if (unbrandedCount > 0) return `🏷️ 일괄 브랜드 입력 (${unbrandedCount}개 미입력)`;
+  return "🏷️ 일괄 브랜드 입력";
+}
+
+function updateBulkBrandBtn() {
+  const btn = document.getElementById("bulk-brand-btn");
+  if (btn) btn.textContent = bulkBrandLabel();
 }
 
 function itemRowHtml(item, num, canDel) {
@@ -483,6 +497,7 @@ function prependItem(item) {
   CURRENT_ITEMS.push(item);
   itemCount++;
   unphotographedCount++;
+  if (!item.brand) unbrandedCount++;
   document.getElementById("item-count").textContent = itemCount + "개";
   document.getElementById("empty-msg")?.remove();
   const list = document.getElementById("item-list");
@@ -491,6 +506,7 @@ function prependItem(item) {
   list.insertBefore(div.firstElementChild, list.firstChild);
   renumber();
   updateBulkPhotoBtn();
+  updateBulkBrandBtn();
 }
 
 function renumber() {
@@ -505,6 +521,8 @@ async function deleteItem(itemId, btn) {
   btn.textContent = "…"; btn.disabled = true;
   const row = document.getElementById(`item-${itemId}`);
   const hadPhoto = row?.dataset.hasPhoto === "1";
+  const deletedItem = CURRENT_ITEMS.find(it => it.id === itemId);
+  const hadBrand = !!deletedItem?.brand;
   try {
     const { error } = await sb.from("inventory_items").delete().eq("id", itemId);
     if (error) throw error;
@@ -512,9 +530,11 @@ async function deleteItem(itemId, btn) {
     row?.remove();
     itemCount = Math.max(0, itemCount - 1);
     if (!hadPhoto) unphotographedCount = Math.max(0, unphotographedCount - 1);
+    if (!hadBrand) unbrandedCount = Math.max(0, unbrandedCount - 1);
     document.getElementById("item-count").textContent = itemCount + "개";
     renumber();
     updateBulkPhotoBtn();
+    updateBulkBrandBtn();
     if (itemCount === 0) {
       document.getElementById("item-list").innerHTML =
         '<div class="empty" id="empty-msg">아직 아이템이 없습니다</div>';
