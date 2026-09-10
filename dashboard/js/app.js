@@ -900,7 +900,7 @@ async function fetchYesterdayCatSales(locationName) {
 // Pure-alpha category names (e.g. "pk", "Pk", "c") → uppercase to merge duplicates
 function normalizeCatName(name) {
   if (!name) return '미분류';
-  return /^[A-Za-z]+$/.test(name) ? name.toUpperCase() : name;
+  return name.replace(/[A-Za-z]+/g, m => m.toUpperCase());
 }
 
 // How many days has this item been at this location?
