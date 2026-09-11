@@ -173,7 +173,7 @@ button{touch-action:manipulation}
       <label class="section-label" for="brandInput">브랜드</label>
       <input id="brandInput" class="brand-input" type="text" placeholder="브랜드명을 입력하세요" autocomplete="off" autocorrect="off" spellcheck="false" list="brandList">
       <datalist id="brandList"></datalist>
-      <button class="no-brand-btn" id="noBrandBtn" type="button">브랜드 없음 (VINTAGE)</button>
+      <button class="no-brand-btn" id="noBrandBtn" type="button">브랜드 없음 (Vintage)</button>
     </div>
 
     <div class="capture-section" id="photoSection">
@@ -241,7 +241,7 @@ button{touch-action:manipulation}
 
     <div class="capture-section">
       <input id="bulkBrandInput" class="brand-input" type="text" placeholder="브랜드명을 입력하세요" autocomplete="off" autocorrect="off" spellcheck="false" list="brandList">
-      <button class="no-brand-btn" id="bulkNoBrandBtn" type="button">브랜드 없음 (VINTAGE)</button>
+      <button class="no-brand-btn" id="bulkNoBrandBtn" type="button">브랜드 없음 (Vintage)</button>
     </div>
 
     <div class="save-status" id="bulkBrandStatus" aria-live="polite"></div>
@@ -902,7 +902,7 @@ confirmCancelBtn.addEventListener('click',()=>resolveConfirmation(false));
 confirmActionBtn.addEventListener('click',()=>resolveConfirmation(true));
 brandInput.addEventListener('input',updateSaveButtonState);
 noBrandBtn.addEventListener('click',()=>{
-  brandInput.value = 'VINTAGE';
+  brandInput.value = 'Vintage';
   updateSaveButtonState();
 });
 modeBackfillBtn.addEventListener('click',()=>setMode('backfill'));
@@ -922,7 +922,7 @@ returnToActiveBtn.addEventListener('click',returnToActiveHanger);
 bulkBrandBtn.addEventListener('click',openBulkBrand);
 bulkBrandInput.addEventListener('input',updateBulkBrandSaveState);
 bulkNoBrandBtn.addEventListener('click',()=>{
-  bulkBrandInput.value = 'VINTAGE';
+  bulkBrandInput.value = 'Vintage';
   updateBulkBrandSaveState();
 });
 bulkBrandSaveBtn.addEventListener('click',saveBulkBrandStep);
