@@ -5,27 +5,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>판매 리포트 — 마켓인유</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="/shared/tokens.css">
+<link rel="stylesheet" href="/shared/layout.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 :root {
-  --brand:     #f54e00;
-  --bg:        #F2F2F0;
-  --surface:   #FFFFFF;
-  --fg:        #171719;
-  --fg2:       #666;
-  --fg3:       #ABABAB;
-  --line:      rgba(112,115,124,0.14);
+  --brand:     var(--miu-primary);
+  --bg:        var(--miu-canvas);
+  --surface:   var(--miu-canvas);
+  --fg:        var(--miu-ink);
+  --fg2:       var(--miu-body);
+  --fg3:       var(--miu-muted-soft);
+  --line:      var(--miu-hairline);
   --r:         12px;
-  --fast-bg:   #FFF0EB;  --fast-fg:  #C83200;
-  --mid-bg:    #FFF8E8;  --mid-fg:   #975000;
-  --norm-bg:   #EDFAF3;  --norm-fg:  #1F7A3E;
-  --slow-bg:   #F0F0F0;  --slow-fg:  #888;
+  --fast-bg:   #FFE8DD;  --fast-fg:  #a9583e;
+  --mid-bg:    #FFF3E0;  --mid-fg:   #7a5210;
+  --norm-bg:   #E8F5EC;  --norm-fg:  #2e6b3a;
+  --slow-bg:   var(--miu-surface-soft);  --slow-fg:  var(--miu-muted);
 }
 
 body {
   font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-  background: var(--bg);
+  background: var(--miu-canvas);
   color: var(--fg);
   -webkit-font-smoothing: antialiased;
   min-height: 100dvh;
@@ -64,15 +67,16 @@ body {
 
 /* ── 날짜/요약 헤더 — sticky ── */
 .report-head {
-  background: var(--surface);
-  border-bottom: 1px solid var(--line);
+  background: var(--miu-canvas);
+  border-bottom: 1px solid var(--miu-hairline);
   padding: 16px 16px 0;
   position: sticky;
-  top: 52px;
+  top: 72px;
   z-index: 90;
 }
 .report-date {
-  font-size: 22px; font-weight: 800; letter-spacing: -0.5px;
+  font-family: var(--miu-serif);
+  font-size: 24px; font-weight: 500; letter-spacing: -0.5px;
   margin-bottom: 6px;
 }
 .report-kpi {
@@ -292,23 +296,30 @@ body {
   display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 3px;
 }
 </style>
+  <!-- auth-migration: 로그인 가드 -->
+  <script src="/shared/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/shared/supabase-client.js"></script>
+  <script src="/shared/auth-guard.js"></script>
 </head>
 <body>
 
-<!-- 상단 네비 -->
-<nav class="top-nav">
-  <a href="../" class="nav-back">
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path d="M10 4L6 8l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-    허브
+<!-- 상단 네비 (새 디자인) -->
+<header class="miu-header">
+  <a href="/" class="miu-header-back" aria-label="허브로">
+    <i class="ph-bold ph-caret-left"></i>
   </a>
-  <span class="nav-title">판매리포트</span>
-  <div class="nav-date-control">
-    <button class="nav-date-btn" id="btn-prev" title="전날">‹</button>
-    <button class="nav-date-btn" id="btn-next" title="다음날" disabled>›</button>
+  <div class="miu-header-title">    <h1 class="miu-header-h1">판매 리포트</h1>
   </div>
-</nav>
+  <div class="miu-header-actions">
+    <button class="miu-icon-btn" id="btn-prev" aria-label="전날">
+      <i class="ph-bold ph-caret-left"></i>
+    </button>
+    <button class="miu-icon-btn" id="btn-next" aria-label="다음날" disabled>
+      <i class="ph-bold ph-caret-right"></i>
+    </button>
+  </div>
+</header>
 
 <!-- 날짜/KPI 헤더 -->
 <div class="report-head" id="report-head">
@@ -333,8 +344,8 @@ body {
 
 <script>
 // ── 설정 ──────────────────────────────────────────────────────────────
-const SB_URL = 'https://yqnocnzjrcsrwrvsvsyg.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlxbm9jbnpqcmNzcndydnN2c3lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNjExNzgsImV4cCI6MjA5MTgzNzE3OH0.u172XxuUcRF7WhT0UmLq-xQjoeDjBt95Qgbstln8mMs';
+const SB_URL = 'https://rakfyvxpysmfuzkdoevc.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJha2Z5dnhweXNtZnV6a2RvZXZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzMjEyOTYsImV4cCI6MjEwNDg5NzI5Nn0.nEv6bpAmN7aIBy_ZWeyObSChidvGCE3XNlWR4SyjkZw';
 const KST_OFFSET = 9 * 60; // KST = UTC+9
 
 // ── 날짜 유틸 ────────────────────────────────────────────────────────

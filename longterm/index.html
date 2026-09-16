@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>장기재고 처리 — 마켓인유</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="/shared/tokens.css">
+<link rel="stylesheet" href="/shared/layout.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -12,31 +15,31 @@
 <style>
 /* ── tokens — WDS 기반, 마켓인유 오렌지 오버라이드 ── */
 :root {
-  --primary:        #f54e00;
-  --primary-active: #d04200;
-  --ink:            #171719;
-  --body:           rgba(70,71,76,0.86);
-  --muted:          #989BA2;
-  --muted-soft:     #C2C4C8;
-  --hairline:       rgba(112,115,124,0.22);
-  --hairline-soft:  rgba(112,115,124,0.12);
-  --hairline-strong:rgba(112,115,124,0.38);
-  --canvas:         #F7F7F8;
-  --canvas-soft:    #FAFAFA;
-  --surface-card:   #FFFFFF;
-  --surface-strong: #F4F4F5;
-  --error:          #E52222;
-  --warn:           #d97706;
-  --success:        #00BF40;
+  --primary:        var(--miu-primary);
+  --primary-active: var(--miu-primary-active);
+  --ink:            var(--miu-ink);
+  --body:           var(--miu-body);
+  --muted:          var(--miu-muted);
+  --muted-soft:     var(--miu-muted-soft);
+  --hairline:       var(--miu-hairline);
+  --hairline-soft:  var(--miu-hairline-soft);
+  --hairline-strong:#a09d96;
+  --canvas:         var(--miu-canvas);
+  --canvas-soft:    var(--miu-canvas);
+  --surface-card:   var(--miu-canvas);
+  --surface-strong: var(--miu-surface-card);
+  --error:          var(--miu-error);
+  --warn:           var(--miu-warning);
+  --success:        var(--miu-success);
   /* timeline pastels — date pills */
   --peach:          #dfa88f;
   --blue-pastel:    #9fbbe0;
 }
 
-/* 홈화면 단독 가격수정 모드(?direct=1) — 장기재고 처리(오렌지)와 구분되는 로즈 테마 */
+/* 홈화면 단독 가격수정 모드(?direct=1) — 장기재고 처리(코랄)와 구분되는 버건디 테마 */
 body.direct-mode {
-  --primary:        #e11d48;
-  --primary-active: #be123c;
+  --primary:        #b03a2e;
+  --primary-active: #8b2d24;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -433,16 +436,23 @@ body {
 }
 .input-tab.active { background: var(--surface-card); color: var(--ink); font-weight: 600; }
 </style>
+  <!-- auth-migration: 로그인 가드 -->
+  <script src="/shared/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/shared/supabase-client.js"></script>
+  <script src="/shared/auth-guard.js"></script>
 </head>
 <body>
 
 <!-- STEP 1: 설정 -->
 <div id="step-setup">
-  <a href="../" class="hub-back">← 허브로</a>
-  <div class="app-header">
-    <h1>장기재고 처리</h1>
-    <div class="app-title-sub">바코드 스캔 → 가격수정 · 위치이동</div>
-  </div>
+  <header class="miu-header">
+    <a href="/" class="miu-header-back" aria-label="허브로">
+      <i class="ph-bold ph-caret-left"></i>
+    </a>
+    <div class="miu-header-title">      <h1 class="miu-header-h1">장기재고 처리</h1>
+    </div>
+  </header>
   <div class="content" style="padding-top:24px">
     <div class="form-group">
       <label class="form-label">매장 선택</label>

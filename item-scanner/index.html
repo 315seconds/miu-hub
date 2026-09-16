@@ -13,12 +13,26 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="/shared/tokens.css">
+<link rel="stylesheet" href="/shared/layout.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
 :root{
-  --bg:#fff;--subtle:#f6f8fa;--border:#d0d7de;--border-muted:#d8dee4;
-  --text:#1f2328;--muted:#656d76;--dim:#8c959f;--blue:#0969da;
-  --green:#1a7f37;--green-bg:#dafbe1;--red:#cf222e;--red-bg:#ffebe9;
-  --yellow:#9a6700;--yellow-bg:#fff8c5;--shadow:0 1px 0 rgba(31,35,40,.04);
+  --bg:#faf9f5;   /* miu-canvas */
+  --subtle:#f5f0e8;
+  --border:#e6dfd8;   /* miu-hairline */
+  --border-muted:#ebe6df;
+  --text:#141413;   /* miu-ink */
+  --muted:#6c6a64;
+  --dim:#8e8b82;
+  --blue:#3c4e75;   /* deep indigo (링크 대체) */
+  --green:#6b8e6b;   /* muted green */
+  --green-bg:#e8f5ec;
+  --red:#c64545;
+  --red-bg:#fbeaea;
+  --yellow:#d4a017;
+  --yellow-bg:#fff3e0;
+  --shadow:0 1px 0 rgba(20,20,19,0.04);
   --sans:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   --mono:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 }
@@ -88,14 +102,24 @@ button{touch-action:manipulation}
 .preview-actions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}.save-status{display:none;margin-top:14px;padding:9px;border-radius:6px;background:var(--subtle);color:var(--muted);font-size:12px;line-height:1.4}.save-status.show{display:block}.save-status.error{background:var(--red-bg);color:var(--red)}
 @media (prefers-reduced-motion:no-preference){.modal{animation:modal-in .14s ease-out}@keyframes modal-in{from{transform:translateY(8px);opacity:.7}to{transform:none;opacity:1}}}
 </style>
+  <!-- auth-migration: 로그인 가드 -->
+  <script src="/shared/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/shared/supabase-client.js"></script>
+  <script src="/shared/auth-guard.js"></script>
 </head>
 <body>
+<header class="miu-header">
+  <a href="/" class="miu-header-back" aria-label="허브로">
+    <i class="ph-bold ph-caret-left"></i>
+  </a>
+  <div class="miu-header-title">    <h1 class="miu-header-h1">브랜드 · 사진 스캐너</h1>
+  </div>
+  <div class="miu-header-actions">
+    <div class="status" id="connectionStatus" style="padding:5px 9px;border-radius:999px;font-size:10px;font-weight:600">연결 중</div>
+  </div>
+</header>
 <main class="app">
-  <header class="header">
-    <div><div class="brand-name">브랜드/사진 스캐너</div><div class="brand-sub">MARKET IN U · SUPABASE TEST</div></div>
-    <a class="home-link" href="../">← 허브</a>
-    <div class="status" id="connectionStatus">연결 중</div>
-  </header>
 
   <div class="mode-toggle" role="tablist" aria-label="작업 모드">
     <button class="mode-btn active" id="modeBackfillBtn" type="button" role="tab" aria-selected="true">소급백필</button>
@@ -257,8 +281,8 @@ button{touch-action:manipulation}
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3/+esm';
 
 // miu-hub/receiving/js/supabase-client.js 와 동일한 값(anon key, 이미 공개된 클라이언트 키).
-const SUPABASE_URL = 'https://yqnocnzjrcsrwrvsvsyg.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlxbm9jbnpqcmNzcndydnN2c3lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNjExNzgsImV4cCI6MjA5MTgzNzE3OH0.u172XxuUcRF7WhT0UmLq-xQjoeDjBt95Qgbstln8mMs';
+const SUPABASE_URL = 'https://rakfyvxpysmfuzkdoevc.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJha2Z5dnhweXNtZnV6a2RvZXZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzMjEyOTYsImV4cCI6MjEwNDg5NzI5Nn0.nEv6bpAmN7aIBy_ZWeyObSChidvGCE3XNlWR4SyjkZw';
 
 const STORAGE_BUCKET = 'item-photos';
 const EXCELJS_MODULE_URL = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/+esm';

@@ -49,7 +49,11 @@ function render() {
         style="width:100%;padding:14px;border:1px solid #334155;border-radius:8px;background:#1e293b;color:#f1f5f9;font-size:16px;font-weight:600;box-sizing:border-box">
       <div id="brand-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#1e293b;border:1px solid #334155;border-radius:8px;margin-top:4px;z-index:100;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.4)"></div>
     </div>
-    <button type="button" id="no-brand-btn" class="btn btn-outline btn-sm" style="margin-bottom:16px;width:100%">브랜드 없음 (Vintage)</button>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <button type="button" class="btn btn-outline btn-sm preset-btn" data-brand="Vintage" style="flex:1">Vintage</button>
+      <button type="button" class="btn btn-outline btn-sm preset-btn" data-brand="SPA" style="flex:1">SPA</button>
+      <button type="button" class="btn btn-outline btn-sm preset-btn" data-brand="보세" style="flex:1">보세</button>
+    </div>
     <button id="save-btn" class="bp-capture-btn" disabled>저장하고 다음 →</button>
     <button class="bp-skip-btn" id="skip-btn">건너뜀 →</button>
   `;
@@ -60,10 +64,12 @@ function render() {
   brandInput.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); saveBrand(); } });
   document.getElementById("save-btn").addEventListener("click", saveBrand);
   document.getElementById("skip-btn").addEventListener("click", skip);
-  document.getElementById("no-brand-btn").addEventListener("click", () => {
-    brandInput.value = "Vintage";
-    hideBrandDropdown();
-    updateSaveBtn();
+  document.querySelectorAll(".preset-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      brandInput.value = btn.dataset.brand;
+      hideBrandDropdown();
+      updateSaveBtn();
+    });
   });
 
   setTimeout(() => brandInput.focus(), 80);
@@ -168,19 +174,18 @@ function skip() {
 function renderTray() {
   const tray = document.getElementById("tray");
   if (!results.length) { tray.innerHTML = ""; return; }
-  tray.innerHTML = results.map((r, i) => {
-    if (!r.brand) {
-      return `<div class="bp-thumb bp-thumb-skip" style="cursor:default">
-        <span class="bp-thumb-num">${i + 1}</span>
-        <span style="font-size:9px;color:#64748b">건너뜀</span>
-      </div>`;
-    }
-    return `<div class="bp-thumb" style="cursor:default;border-color:#22c55e;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px">
-      <span style="font-size:9px;color:#86efac;text-align:center;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;word-break:break-all;line-height:1.3">${escapeHtml(r.brand)}</span>
-      <span class="bp-thumb-num">${i + 1}</span>
-    </div>`;
-  }).join("");
-  tray.scrollLeft = tray.scrollWidth;
+  tray.innerHTML = results.map((r, i) =>
+    r.brand
+      ? `<div class="bp-list-row">
+           <span class="bp-list-num">${i + 1}</span>
+           <span class="bp-list-brand">${escapeHtml(r.brand)}</span>
+           <i class="ph-bold ph-check" style="color:#22c55e;font-size:14px;flex-shrink:0"></i>
+         </div>`
+      : `<div class="bp-list-row skipped">
+           <span class="bp-list-num">${i + 1}</span>
+           <span class="bp-list-brand" style="color:var(--fg-tertiary)">건너뜀</span>
+         </div>`
+  ).reverse().join("");
 }
 
 function renderDone(allDone) {

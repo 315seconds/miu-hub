@@ -3,30 +3,642 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>매출리포트 — 마켓인유</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<title>매출 리포트 · 마켓인유</title>
+
+<link rel="stylesheet" href="/shared/tokens.css">
+<link rel="stylesheet" href="/shared/layout.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+
+<script src="/shared/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/shared/supabase-client.js"></script>
+<script src="/shared/auth-guard.js"></script>
+
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; background: #f7f7f4; display: flex; flex-direction: column; height: 100dvh; }
+  /* ── 월별 탭 ── */
+  .month-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    padding: 0 20px;
+    margin-bottom: 12px;
+  }
+  .month-tab {
+    padding: 6px 14px;
+    border-radius: var(--miu-r-pill);
+    background: var(--miu-surface-card);
+    color: var(--miu-muted);
+    font-family: var(--miu-sans);
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: background .12s, color .12s;
+  }
+  .month-tab.active {
+    background: var(--miu-ink);
+    color: white;
+  }
+  .month-panel { display: none; padding: 0 20px; }
+  .month-panel.active { display: block; }
 
-.hub-back {
-  display: flex; align-items: center; gap: 6px;
-  padding: 10px 16px;
-  background: #fff; border-bottom: 1px solid rgba(112,115,124,0.15);
-  text-decoration: none; color: #f54e00;
-  font-size: 13px; font-weight: 600;
-  flex-shrink: 0; -webkit-tap-highlight-color: transparent;
-}
+  /* ── 월별 KPI 그리드 ── */
+  .month-kpi-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .month-kpi-item {
+    background: var(--miu-surface-card);
+    border-radius: var(--miu-r-md);
+    padding: 10px 12px;
+  }
+  .month-kpi-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.6px;
+    color: var(--miu-muted);
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+  .month-kpi-value {
+    font-family: var(--miu-serif);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--miu-ink);
+    letter-spacing: -0.3px;
+    font-variant-numeric: tabular-nums;
+  }
+  .month-detail-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 12px;
+    padding: 8px 16px;
+    background: var(--miu-ink);
+    color: white;
+    border-radius: var(--miu-r-pill);
+    font-family: var(--miu-sans);
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: opacity .12s;
+  }
+  .month-detail-link:hover { opacity: 0.8; }
 
-iframe {
-  flex: 1;
-  border: none;
-  width: 100%;
-}
+  /* ── 인사이트 박스 ── */
+  .insight-box {
+    margin: 0 20px;
+    background: var(--miu-surface-soft);
+    border: 1px solid var(--miu-hairline);
+    border-left: 3px solid var(--miu-primary);
+    border-radius: var(--miu-r-lg);
+    padding: 14px 16px;
+  }
+  .insight-title {
+    font-family: var(--miu-serif);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--miu-ink);
+    margin-bottom: 12px;
+  }
+  .insight-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .insight-item {
+    background: var(--miu-canvas);
+    border-radius: var(--miu-r-md);
+    padding: 9px 11px;
+    border: 1px solid var(--miu-hairline-soft);
+  }
+  .insight-label { font-size: 10px; color: var(--miu-muted); margin-bottom: 3px; }
+  .insight-value { font-family: var(--miu-serif); font-size: 15px; font-weight: 700; color: var(--miu-ink); }
+  .insight-value.accent { color: #b34c2a; }
+
+  /* ── 위치별 랭킹 리스트 ── */
+  .loc-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 16px;
+    background: var(--miu-surface-card);
+    border-radius: var(--miu-r-md);
+    margin-bottom: 6px;
+  }
+  .loc-row:last-child { margin-bottom: 0; }
+  .for-bar {
+    display: inline-block;
+    height: 5px;
+    border-radius: 3px;
+    background: #b34c2a;
+    flex-shrink: 0;
+  }
+
+  /* ── 팝업 그리드 ── */
+  .popup-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 10px;
+    padding: 0 20px;
+  }
+  .popup-card {
+    background: var(--miu-surface-card);
+    border-radius: var(--miu-r-lg);
+    padding: 14px 16px;
+    transition: transform .12s;
+    border-left: 3px solid transparent;
+  }
+  .popup-card:active { transform: scale(0.98); }
+  .popup-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+  .popup-card-name {
+    font-family: var(--miu-serif);
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--miu-ink);
+    letter-spacing: -0.3px;
+  }
+  .popup-run-badge {
+    padding: 2px 8px;
+    border-radius: var(--miu-r-pill);
+    background: var(--miu-canvas);
+    color: var(--miu-muted);
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .popup-mini-kpis {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .popup-mini-kpi {
+    background: var(--miu-canvas);
+    border-radius: var(--miu-r-sm);
+    padding: 7px 10px;
+  }
+  .popup-mini-kpi .lbl { font-size: 10px; color: var(--miu-muted); margin-bottom: 2px; }
+  .popup-mini-kpi .val { font-family: var(--miu-serif); font-size: 13px; font-weight: 500; color: var(--miu-ink); }
+
+  /* ── 날짜 행 ── */
+  .date-list { display: flex; flex-direction: column; gap: 4px; }
+  .date-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 7px 10px;
+    border-radius: var(--miu-r-sm);
+    background: var(--miu-canvas);
+    text-decoration: none;
+    color: var(--miu-body);
+    font-size: 12px;
+    transition: background .1s;
+  }
+  .date-row:hover { background: var(--miu-surface-strong); }
+  .date-range { font-weight: 700; color: var(--miu-ink); font-variant-numeric: tabular-nums; }
+  .date-meta { color: var(--miu-muted); font-size: 11px; }
+
+  /* ── 검색 ── */
+  .search-wrap { padding: 0 20px; margin-bottom: 14px; }
+  .search-input {
+    width: 100%;
+    height: 40px;
+    padding: 0 14px 0 36px;
+    background: var(--miu-surface-card);
+    border: 1px solid var(--miu-hairline);
+    border-radius: var(--miu-r-pill);
+    font-family: var(--miu-sans);
+    font-size: 13px;
+    color: var(--miu-ink);
+    outline: none;
+    box-sizing: border-box;
+  }
+  .search-input:focus { border-color: var(--miu-primary); }
+  .search-wrap-inner { position: relative; }
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--miu-muted);
+    font-size: 15px;
+    pointer-events: none;
+  }
+
+  /* ── FAB ── */
+  .fab {
+    position: fixed;
+    bottom: 24px;
+    right: 20px;
+    left: 20px;
+    max-width: 440px;
+    margin: 0 auto;
+    z-index: 10;
+  }
+  .fab .miu-btn { box-shadow: 0 8px 24px rgba(20,20,19,0.15); }
+
+  .chip-main {
+    padding: 2px 8px;
+    border-radius: var(--miu-r-pill);
+    background: color-mix(in srgb, #4a6b8a 12%, transparent);
+    color: #4a6b8a;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
 </style>
 </head>
-<body>
-<a href="../" class="hub-back">← 허브로</a>
-<iframe src="https://315seconds.github.io/sales_report/" title="매출리포트"></iframe>
+<body class="miu-app">
+
+  <header class="miu-header">
+    <a href="/" class="miu-header-back" aria-label="허브로">
+      <i class="ph-bold ph-caret-left"></i>
+    </a>
+    <div class="miu-header-title">
+      <h1 class="miu-header-h1">매출 리포트</h1>
+    </div>
+  </header>
+
+  <div class="miu-app-body" style="padding-bottom:100px">
+
+    <!-- 01 성수본점 -->
+    <div class="miu-section-head" style="padding: 20px 20px 8px;">
+      <span class="miu-section-num">01</span>
+      <span class="miu-section-label">성수본점</span>
+      <span class="chip-main" style="margin-left:8px">PERMANENT</span>
+      <span class="miu-section-divider"></span>
+    </div>
+
+    <div class="month-tabs" id="main-tabs">
+      <span style="font-size:12px;color:var(--miu-muted)">불러오는 중…</span>
+    </div>
+    <div id="main-panels"></div>
+
+    <!-- 02 인사이트 -->
+    <div id="insight-section" style="display:none">
+      <div class="miu-section-head" style="padding: 24px 20px 8px;">
+        <span class="miu-section-num">02</span>
+        <span class="miu-section-label">본점 × 팝업 인사이트</span>
+        <span class="miu-section-divider"></span>
+      </div>
+      <div class="insight-box" id="insight-box"></div>
+    </div>
+
+    <!-- 03 위치별 해외 비중 -->
+    <div id="location-section" style="display:none">
+      <div class="miu-section-head" style="padding: 24px 20px 8px;">
+        <span class="miu-section-num">03</span>
+        <span class="miu-section-label">위치별 해외 비중</span>
+        <span class="miu-section-divider"></span>
+      </div>
+      <div style="padding: 0 20px; margin: 0 20px;" id="loc-list"></div>
+    </div>
+
+    <!-- 04 팝업 아카이브 -->
+    <div class="miu-section-head" style="padding: 24px 20px 8px;">
+      <span class="miu-section-num" id="popup-section-num">04</span>
+      <span class="miu-section-label">팝업 아카이브</span>
+      <span class="miu-section-divider"></span>
+    </div>
+
+    <div class="search-wrap">
+      <div class="search-wrap-inner">
+        <i class="ph-bold ph-magnifying-glass search-icon"></i>
+        <input class="search-input" id="search-q" placeholder="매장명 또는 기간 검색…">
+      </div>
+    </div>
+
+    <div class="popup-grid" id="popup-grid">
+      <span style="font-size:12px;color:var(--miu-muted)">불러오는 중…</span>
+    </div>
+    <div id="popup-empty" style="display:none;text-align:center;padding:20px 0;font-size:13px;color:var(--miu-muted)">
+      검색 결과가 없습니다.
+    </div>
+
+  </div>
+
+  <div class="fab">
+    <a href="upload.html" class="miu-btn miu-btn-primary">
+      <i class="ph-bold ph-plus"></i> 새 리포트
+    </a>
+  </div>
+
+<script>
+const STORE_PALETTE = ['#b34c2a','#1e4d70','#3d7a5f','#8a5a1e','#5a3d7a','#2a6b6b'];
+function storeColor(name) {
+  let h = 0;
+  for (const c of String(name)) h = (h * 31 + c.charCodeAt(0)) & 0xffff;
+  return STORE_PALETTE[h % STORE_PALETTE.length];
+}
+
+const fmtWon = (n) => {
+  const x = Number(n || 0);
+  if (x >= 1e8) return (x / 1e8).toFixed(1) + '억';
+  if (x >= 1e4) return Math.round(x / 1e4) + '만원';
+  return x.toLocaleString() + '원';
+};
+const fmtPct = (n) => (Number(n || 0) * 100).toFixed(1) + '%';
+const fmtDate = (d) => d ? d.replace(/-/g, '.') : '';
+
+let mainReports = [];
+let popupReports = [];
+
+// ── 데이터 로드 ────────────────────────────────────────────
+async function loadAll() {
+  const { data, error } = await sb
+    .from('sales_reports')
+    .select('*')
+    .order('start_date', { ascending: true });
+
+  if (error || !data) {
+    document.getElementById('main-tabs').innerHTML =
+      `<span style="color:var(--miu-error);font-size:13px">로드 실패: ${error?.message}</span>`;
+    return;
+  }
+
+  mainReports = data.filter(r => r.report_type === 'main');
+  popupReports = data.filter(r => r.report_type === 'popup');
+
+  buildMainSection();
+  buildPopupSection();
+  buildInsight();
+  buildLocationTable();
+}
+
+// ── 성수본점 탭 ───────────────────────────────────────────
+function buildMainSection() {
+  const tabsEl = document.getElementById('main-tabs');
+  const panelsEl = document.getElementById('main-panels');
+
+  if (mainReports.length === 0) {
+    tabsEl.innerHTML = `<span style="font-size:12px;color:var(--miu-muted)">등록된 데이터 없음</span>`;
+    return;
+  }
+
+  // 최신 월이 앞에 오도록
+  const sorted = [...mainReports].sort((a, b) => b.start_date.localeCompare(a.start_date));
+
+  tabsEl.innerHTML = '';
+  panelsEl.innerHTML = '';
+
+  sorted.forEach((r, i) => {
+    const label = r.label || r.start_date.slice(0, 7);
+    const [y, m] = label.split('-');
+    const tabLabel = m ? `${y}.${parseInt(m, 10)}` : label;
+
+    const tab = document.createElement('button');
+    tab.className = 'month-tab' + (i === 0 ? ' active' : '');
+    tab.textContent = tabLabel;
+    tab.addEventListener('click', () => {
+      tabsEl.querySelectorAll('.month-tab').forEach(t => t.classList.remove('active'));
+      panelsEl.querySelectorAll('.month-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(`mp-${i}`).classList.add('active');
+    });
+    tabsEl.appendChild(tab);
+
+    const panel = document.createElement('div');
+    panel.className = 'month-panel' + (i === 0 ? ' active' : '');
+    panel.id = `mp-${i}`;
+    panel.innerHTML = monthPanelHTML(r);
+    panelsEl.appendChild(panel);
+  });
+}
+
+function monthPanelHTML(r) {
+  const daily = r.daily_avg_sales || 0;
+  return `
+    <div class="month-kpi-grid">
+      <div class="month-kpi-item">
+        <div class="month-kpi-label">월 총 매출</div>
+        <div class="month-kpi-value">${fmtWon(r.total_sales)}</div>
+      </div>
+      <div class="month-kpi-item">
+        <div class="month-kpi-label">일 평균</div>
+        <div class="month-kpi-value">${fmtWon(daily)}</div>
+      </div>
+      <div class="month-kpi-item">
+        <div class="month-kpi-label">거래건수</div>
+        <div class="month-kpi-value">${(r.total_cnt || 0).toLocaleString()}건</div>
+      </div>
+      <div class="month-kpi-item">
+        <div class="month-kpi-label">해외 비중</div>
+        <div class="month-kpi-value">${fmtPct(r.foreign_share)}</div>
+      </div>
+      <div class="month-kpi-item">
+        <div class="month-kpi-label">국내 매출</div>
+        <div class="month-kpi-value">${fmtWon(r.dom_sales)}</div>
+      </div>
+      <div class="month-kpi-item">
+        <div class="month-kpi-label">해외 매출</div>
+        <div class="month-kpi-value">${fmtWon(r.for_sales)}</div>
+      </div>
+      <div class="month-kpi-item">
+        <div class="month-kpi-label">피크타임</div>
+        <div class="month-kpi-value">${r.peak_hour != null ? r.peak_hour + '시' : '—'}</div>
+      </div>
+      <div class="month-kpi-item">
+        <div class="month-kpi-label">TOP 카테고리</div>
+        <div class="month-kpi-value">${r.top_category || '—'}</div>
+      </div>
+    </div>
+    <a class="month-detail-link" href="view.html?id=${r.id}">
+      상세 리포트 <i class="ph-bold ph-arrow-right"></i>
+    </a>
+  `;
+}
+
+// ── 인사이트 ───────────────────────────────────────────────
+function buildInsight() {
+  if (mainReports.length === 0 || popupReports.length === 0) return;
+
+  const latestMain = [...mainReports].sort((a, b) => b.start_date.localeCompare(a.start_date))[0];
+  const pn = popupReports.length;
+  const avgPopupDaily = popupReports.reduce((s, r) => s + (r.daily_avg_sales || 0), 0) / pn;
+  const avgPopupFor = popupReports.reduce((s, r) => s + (r.foreign_share || 0), 0) / pn;
+
+  const hourCounts = {};
+  for (const r of popupReports) {
+    if (r.peak_hour != null) hourCounts[r.peak_hour] = (hourCounts[r.peak_hour] || 0) + 1;
+  }
+  const topHour = Object.entries(hourCounts).sort((a, b) => b[1] - a[1])[0];
+
+  const items = [
+    { label: `본점 일평균 (${latestMain.label})`, value: fmtWon(latestMain.daily_avg_sales) },
+    { label: `팝업 일평균 (${pn}개 평균)`, value: fmtWon(avgPopupDaily) },
+    { label: '본점 해외 비중', value: fmtPct(latestMain.foreign_share), accent: true },
+    { label: '팝업 해외 비중 (평균)', value: fmtPct(avgPopupFor), accent: true },
+    { label: '본점 피크타임', value: latestMain.peak_hour != null ? latestMain.peak_hour + '시' : '—' },
+    { label: '팝업 공통 피크', value: topHour ? topHour[0] + '시' : '—' },
+  ];
+
+  document.getElementById('insight-box').innerHTML = `
+    <div class="insight-title">본점 × 팝업 비교</div>
+    <div class="insight-grid">
+      ${items.map(it => `
+        <div class="insight-item">
+          <div class="insight-label">${it.label}</div>
+          <div class="insight-value${it.accent ? ' accent' : ''}">${it.value}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  document.getElementById('insight-section').style.display = '';
+}
+
+// ── 위치별 해외 비중 ───────────────────────────────────────
+function buildLocationTable() {
+  const groups = {};
+  for (const r of popupReports) {
+    if (!r.location) continue;
+    const k = r.store;
+    if (!groups[k]) groups[k] = { store: r.store, location: r.location, entries: [] };
+    groups[k].entries.push(r);
+  }
+
+  const rows = [];
+  for (const g of Object.values(groups)) {
+    const n = g.entries.length;
+    const avgShare = g.entries.reduce((s, r) => s + (r.foreign_share || 0), 0) / n;
+    const avgDaily = g.entries.reduce((s, r) => s + (r.daily_avg_sales || 0), 0) / n;
+    const starts = g.entries.map(r => r.start_date).sort();
+    const ends = g.entries.map(r => r.end_date).sort();
+    const period = n === 1
+      ? `${fmtDate(starts[0])} ~ ${fmtDate(ends[n-1])}`
+      : `${fmtDate(starts[0])} ~ ${fmtDate(ends[n-1])} (${n}회)`;
+    rows.push({ store: g.store, period, share: avgShare, daily: avgDaily });
+  }
+
+  // 본점 (최근 3개월 평균)
+  const mainWithLoc = mainReports.filter(r => r.location);
+  if (mainWithLoc.length > 0) {
+    const recent = [...mainWithLoc].sort((a, b) => b.start_date.localeCompare(a.start_date)).slice(0, 3);
+    const n = recent.length;
+    rows.push({
+      store: `성수본점`,
+      period: `최근 ${n}개월 평균`,
+      share: recent.reduce((s, r) => s + (r.foreign_share || 0), 0) / n,
+      daily: recent.reduce((s, r) => s + (r.daily_avg_sales || 0), 0) / n,
+      isMain: true,
+    });
+  }
+
+  if (rows.length === 0) return;
+  rows.sort((a, b) => b.share - a.share);
+
+  document.getElementById('loc-list').innerHTML = rows.map((r, i) => `
+    <div class="loc-row">
+      <div style="font-size:11px;font-weight:700;color:var(--miu-muted);min-width:16px;text-align:center;flex-shrink:0">${i + 1}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;color:var(--miu-ink);font-size:13px">${r.store}</div>
+        <div style="font-size:10px;color:var(--miu-muted);margin-top:2px">${r.period}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+        <span class="for-bar" style="width:${Math.round(r.share * 44)}px"></span>
+        <strong style="font-family:var(--miu-serif);font-size:14px">${fmtPct(r.share)}</strong>
+      </div>
+      <div style="font-family:var(--miu-serif);white-space:nowrap;font-size:13px;color:var(--miu-muted);min-width:52px;text-align:right">${fmtWon(r.daily)}</div>
+    </div>
+  `).join('');
+  document.getElementById('location-section').style.display = '';
+
+  // 인사이트가 없으면 위치 섹션 번호 조정
+  updateSectionNums();
+}
+
+function updateSectionNums() {
+  const hasInsight = document.getElementById('insight-section').style.display !== 'none';
+  const hasLoc = document.getElementById('location-section').style.display !== 'none';
+  let num = 2;
+  if (hasInsight) {
+    document.querySelector('#insight-section .miu-section-num').textContent = String(num++).padStart(2, '0');
+  }
+  if (hasLoc) {
+    document.querySelector('#location-section .miu-section-num').textContent = String(num++).padStart(2, '0');
+  }
+  document.getElementById('popup-section-num').textContent = String(num).padStart(2, '0');
+}
+
+// ── 팝업 그리드 ───────────────────────────────────────────
+function buildPopupSection() {
+  const gridEl = document.getElementById('popup-grid');
+  if (popupReports.length === 0) {
+    gridEl.innerHTML = `<span style="font-size:13px;color:var(--miu-muted)">등록된 팝업 데이터 없음</span>`;
+    return;
+  }
+
+  // 매장명으로 그루핑, 최신순 정렬
+  const groups = {};
+  const order = [];
+  const sorted = [...popupReports].sort((a, b) => b.start_date.localeCompare(a.start_date));
+  for (const r of sorted) {
+    if (!groups[r.store]) { groups[r.store] = []; order.push(r.store); }
+    groups[r.store].push(r);
+  }
+
+  gridEl.innerHTML = '';
+  for (const store of order) {
+    const runs = groups[store];
+    const n = runs.length;
+    const avgDaily = runs.reduce((s, r) => s + (r.daily_avg_sales || 0), 0) / n;
+    const avgFor = runs.reduce((s, r) => s + (r.foreign_share || 0), 0) / n;
+    const searchText = [store, ...runs.map(r => `${r.start_date} ${r.end_date}`)].join(' ').toLowerCase();
+
+    const dateRowsHTML = runs.map(r => {
+      const kpi = `${fmtWon(r.daily_avg_sales)} · 해외 ${fmtPct(r.foreign_share)}`;
+      return `<a class="date-row" href="view.html?id=${r.id}">
+        <span class="date-range">${fmtDate(r.start_date)} ~ ${fmtDate(r.end_date)}</span>
+        <span class="date-meta">${kpi}</span>
+      </a>`;
+    }).join('');
+
+    const card = document.createElement('div');
+    card.className = 'popup-card';
+    card.style.borderLeftColor = storeColor(store);
+    card.dataset.search = searchText;
+    card.innerHTML = `
+      <div class="popup-card-top">
+        <div class="popup-card-name">${store}</div>
+        ${n > 1 ? `<span class="popup-run-badge">${n}회</span>` : ''}
+      </div>
+      <div class="popup-mini-kpis">
+        <div class="popup-mini-kpi">
+          <div class="lbl">일평균 매출${n > 1 ? ' (평균)' : ''}</div>
+          <div class="val">${fmtWon(avgDaily)}</div>
+        </div>
+        <div class="popup-mini-kpi">
+          <div class="lbl">해외 비중${n > 1 ? ' (평균)' : ''}</div>
+          <div class="val">${fmtPct(avgFor)}</div>
+        </div>
+      </div>
+      <div class="date-list">${dateRowsHTML}</div>
+    `;
+    gridEl.appendChild(card);
+  }
+
+  document.getElementById('search-q').addEventListener('input', filterPopup);
+}
+
+function filterPopup() {
+  const q = document.getElementById('search-q').value.toLowerCase().trim();
+  const cards = document.querySelectorAll('.popup-card');
+  let shown = 0;
+  cards.forEach(c => {
+    const match = !q || (c.dataset.search || '').includes(q);
+    c.style.display = match ? '' : 'none';
+    if (match) shown++;
+  });
+  document.getElementById('popup-empty').style.display = shown === 0 ? '' : 'none';
+}
+
+loadAll();
+</script>
 </body>
 </html>

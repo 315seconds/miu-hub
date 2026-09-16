@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>디자인 시스템 · 마켓인유</title>
+
+<link rel="stylesheet" href="/shared/tokens.css">
+<link rel="stylesheet" href="/shared/layout.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+
+<style>
+  .ds-container { max-width: 460px; margin: 0 auto; }
+  .ds-block {
+    padding: 0 20px;
+    margin: 32px 0 24px;
+  }
+  .ds-block-title {
+    font-family: var(--miu-serif);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--miu-ink);
+    margin-bottom: 4px;
+    letter-spacing: -0.3px;
+  }
+  .ds-block-desc {
+    font-size: 12px;
+    color: var(--miu-muted);
+    margin-bottom: 16px;
+  }
+  .ds-code {
+    display: block;
+    background: var(--miu-surface-dark);
+    color: var(--miu-on-dark);
+    padding: 12px 14px;
+    border-radius: var(--miu-r-md);
+    font-family: var(--miu-mono);
+    font-size: 11px;
+    margin-top: 8px;
+    overflow-x: auto;
+  }
+
+  /* 색상 팔레트 스와치 */
+  .swatch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .swatch {
+    padding: 12px;
+    border-radius: var(--miu-r-md);
+    border: 1px solid var(--miu-hairline);
+  }
+  .swatch-color { height: 40px; border-radius: var(--miu-r-sm); margin-bottom: 8px; }
+  .swatch-name { font-size: 11px; font-weight: 600; color: var(--miu-ink); }
+  .swatch-hex { font-family: var(--miu-mono); font-size: 10px; color: var(--miu-muted); }
+
+  /* 타이포 데모 */
+  .type-demo { margin-bottom: 12px; }
+  .type-demo-label {
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--miu-muted);
+    margin-bottom: 4px;
+  }
+
+  /* Sticky nav */
+  .ds-nav {
+    position: sticky;
+    top: 0;
+    background: var(--miu-canvas);
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--miu-hairline);
+    z-index: 20;
+    font-size: 12px;
+    color: var(--miu-muted);
+  }
+  .ds-nav strong {
+    color: var(--miu-primary);
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+  .ds-nav a { color: var(--miu-body); text-decoration: none; margin-left: 8px; }
+</style>
+</head>
+<body class="miu-app">
+
+<div class="ds-container">
+
+<div class="ds-nav">
+  <strong>Design System</strong> · marketinu
+  <a href="/">← 허브</a>
+</div>
+
+<!-- ============ 1. 색상 ============ -->
+<div class="ds-block">
+  <div class="ds-block-title">1. 색상 팔레트</div>
+  <div class="ds-block-desc">크림 · 코랄 · 다크 네이비 트리니티</div>
+
+  <div class="swatch-grid">
+    <div class="swatch"><div class="swatch-color" style="background:#faf9f5"></div><div class="swatch-name">Canvas</div><div class="swatch-hex">#faf9f5</div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#f5f0e8"></div><div class="swatch-name">Surface Soft</div><div class="swatch-hex">#f5f0e8</div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#efe9de"></div><div class="swatch-name">Surface Card</div><div class="swatch-hex">#efe9de</div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#e8e0d2"></div><div class="swatch-name">Surface Strong</div><div class="swatch-hex">#e8e0d2</div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#cc785c"></div><div class="swatch-name" style="color:#cc785c">Primary Coral</div><div class="swatch-hex">#cc785c</div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#a9583e"></div><div class="swatch-name">Primary Active</div><div class="swatch-hex">#a9583e</div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#181715"></div><div class="swatch-name">Surface Dark</div><div class="swatch-hex">#181715</div></div>
+    <div class="swatch"><div class="swatch-color" style="background:#141413"></div><div class="swatch-name">Ink</div><div class="swatch-hex">#141413</div></div>
+  </div>
+</div>
+
+<!-- ============ 2. 타이포그래피 ============ -->
+<div class="ds-block">
+  <div class="ds-block-title">2. 타이포그래피</div>
+  <div class="ds-block-desc">Noto Serif KR (헤드라인) · Pretendard (본문)</div>
+
+  <div class="type-demo"><div class="type-demo-label">display-lg · 36px serif</div><div class="miu-display-lg">신규 입고</div></div>
+  <div class="type-demo"><div class="type-demo-label">display-md · 28px serif</div><div class="miu-display-md">신규 입고</div></div>
+  <div class="type-demo"><div class="type-demo-label">display-sm · 22px serif</div><div class="miu-display-sm">신규 입고</div></div>
+  <div class="type-demo"><div class="type-demo-label">title-lg · 18px sans</div><div class="miu-title-lg">신규 입고 세션 관리</div></div>
+  <div class="type-demo"><div class="type-demo-label">title-md · 16px sans</div><div class="miu-title-md">세션 관리</div></div>
+  <div class="type-demo"><div class="type-demo-label">body-md · 15px sans</div><div class="miu-body-md">바코드를 스캔하여 상품을 등록하세요.</div></div>
+  <div class="type-demo"><div class="type-demo-label">body-sm · 13px sans</div><div class="miu-body-sm">담당자와 카테고리를 함께 지정합니다.</div></div>
+  <div class="type-demo"><div class="type-demo-label">caption · 12px</div><div class="miu-caption">2026년 9월 14일 · 이광원</div></div>
+  <div class="type-demo"><div class="type-demo-label">eyebrow · 11px uppercase</div><div class="miu-caption-eyebrow">RECEIVING</div></div>
+</div>
+
+<!-- ============ 3. Header (뒤로가기) ============ -->
+<div class="ds-block">
+  <div class="ds-block-title">3. Page Header</div>
+  <div class="ds-block-desc">모든 서브앱 상단 공통</div>
+</div>
+<header class="miu-header">
+  <a href="#" class="miu-header-back" aria-label="뒤로">
+    <i class="ph-bold ph-caret-left"></i>
+  </a>
+  <div class="miu-header-title">    <h1 class="miu-header-h1">신규 입고</h1>
+  </div>
+  <div class="miu-header-actions">
+    <button class="miu-icon-btn" aria-label="추가">
+      <i class="ph-bold ph-plus"></i>
+    </button>
+  </div>
+</header>
+
+<!-- ============ 4. Hero ============ -->
+<div class="ds-block">
+  <div class="ds-block-title">4. Hero (랜딩용)</div>
+</div>
+<div class="miu-hero">
+  <div class="miu-hero-eyebrow">MARKET IN U</div>
+  <div class="miu-hero-title">관리툴</div>
+  <div class="miu-hero-sub">2026년 9월 14일 일요일</div>
+</div>
+
+<!-- ============ 5. Section 패턴 ============ -->
+<div class="ds-block">
+  <div class="ds-block-title">5. Section</div>
+  <div class="ds-block-desc">01, 02 넘버링 + 라벨</div>
+</div>
+<div class="miu-section">
+  <div class="miu-section-head">
+    <span class="miu-section-num">01</span>
+    <span class="miu-section-label">정기 작업</span>
+    <span class="miu-section-divider"></span>
+  </div>
+  <div class="miu-body-sm">섹션 아래에 컨텐츠가 들어갑니다.</div>
+</div>
+
+<!-- ============ 6. Tile Grid ============ -->
+<div class="ds-block">
+  <div class="ds-block-title">6. Tile Grid (허브)</div>
+</div>
+<div class="miu-section">
+  <div class="miu-tile-grid">
+    <a href="#" class="miu-tile" style="--tile-accent:#4a6b8a">
+      <div class="miu-tile-icon"><i class="ph-bold ph-package"></i></div>
+      <div>
+        <div class="miu-tile-title">신규 입고</div>
+        <div class="miu-tile-desc">바코드 등록</div>
+      </div>
+    </a>
+    <a href="#" class="miu-tile" style="--tile-accent:#7c6da8">
+      <div class="miu-tile-icon"><i class="ph-bold ph-arrows-left-right"></i></div>
+      <div>
+        <div class="miu-tile-title">물류 이동</div>
+        <div class="miu-tile-desc">매장간 이동</div>
+      </div>
+    </a>
+    <a href="#" class="miu-tile miu-tile-wide" style="--tile-accent:#3c4e75">
+      <div class="miu-tile-icon"><i class="ph-bold ph-magnifying-glass"></i></div>
+      <div class="miu-tile-body">
+        <div class="miu-tile-title">통합 물건 조회</div>
+        <div class="miu-tile-desc">입고 · 이동 · 판매 이력</div>
+      </div>
+      <span class="miu-tile-arrow"><i class="ph-bold ph-caret-right"></i></span>
+    </a>
+  </div>
+</div>
+
+<!-- ============ 7. Callout ============ -->
+<div class="ds-block">
+  <div class="ds-block-title">7. Callout (코랄 강조)</div>
+</div>
+<a href="#" class="miu-callout">
+  <div class="miu-callout-eyebrow">
+    <i class="ph-bold ph-calendar-blank"></i>
+    <span>TODAY</span>
+  </div>
+  <div class="miu-callout-title">일정 캘린더</div>
+  <div class="miu-callout-desc">팝업 셋업 · 철수 · 행사 · 재고조사</div>
+</a>
+
+<!-- ============ 8. List Items ============ -->
+<div class="ds-block">
+  <div class="ds-block-title">8. List Item</div>
+  <div class="ds-block-desc">테이블 대체, 세션 · 물건 목록</div>
+</div>
+<div class="miu-section">
+  <ul class="miu-list">
+    <li class="miu-list-item">
+      <div class="miu-list-icon"><i class="ph-bold ph-package"></i></div>
+      <div class="miu-list-main">
+        <div class="miu-list-title">C-1234 · Vintage Denim Jacket</div>
+        <div class="miu-list-sub">공동물류 · 이광원 · 3분 전</div>
+      </div>
+      <div class="miu-list-meta">39,000원</div>
+      <div class="miu-list-arrow"><i class="ph-bold ph-caret-right"></i></div>
+    </li>
+    <li class="miu-list-item">
+      <div class="miu-list-icon"><i class="ph-bold ph-package"></i></div>
+      <div class="miu-list-main">
+        <div class="miu-list-title">C-1235 · Wool Coat</div>
+        <div class="miu-list-sub">성수255 · 김민우 · 12분 전</div>
+      </div>
+      <div class="miu-list-meta">89,000원</div>
+      <div class="miu-list-arrow"><i class="ph-bold ph-caret-right"></i></div>
+    </li>
+    <li class="miu-list-item">
+      <div class="miu-list-icon"><i class="ph-bold ph-package"></i></div>
+      <div class="miu-list-main">
+        <div class="miu-list-title">C-1236 · Silk Blouse</div>
+        <div class="miu-list-sub">회현 · 최영훈 · 1시간 전</div>
+      </div>
+      <div class="miu-list-meta">15,000원</div>
+      <div class="miu-list-arrow"><i class="ph-bold ph-caret-right"></i></div>
+    </li>
+  </ul>
+</div>
+
+<!-- ============ 9. Stat Cards ============ -->
+<div class="ds-block">
+  <div class="ds-block-title">9. Stat (대시보드 KPI)</div>
+</div>
+<div class="miu-section">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="miu-stat">
+      <div class="miu-stat-label">오늘 매출</div>
+      <div class="miu-stat-value">1,247,000</div>
+      <div class="miu-stat-delta up"><i class="ph-bold ph-arrow-up"></i> 12%</div>
+    </div>
+    <div class="miu-stat">
+      <div class="miu-stat-label">재고 총량</div>
+      <div class="miu-stat-value">77,148</div>
+      <div class="miu-stat-delta down"><i class="ph-bold ph-arrow-down"></i> 3%</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 10. Buttons ============ -->
+<div class="ds-block">
+  <div class="ds-block-title">10. Buttons</div>
+</div>
+<div class="miu-section">
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <button class="miu-btn miu-btn-primary">
+      <i class="ph-bold ph-check"></i> 확인 (Primary)
+    </button>
+    <button class="miu-btn miu-btn-secondary">Secondary</button>
+    <button class="miu-btn miu-btn-ghost">Ghost</button>
+    <button class="miu-btn miu-btn-primary" disabled>비활성</button>
+
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="miu-btn-sm miu-btn-primary"><i class="ph-bold ph-plus"></i> 추가</button>
+      <button class="miu-btn-sm miu-btn-secondary">편집</button>
+      <button class="miu-btn-sm miu-btn-ghost">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 11. Form ============ -->
+<div class="ds-block">
+  <div class="ds-block-title">11. Form Field</div>
+</div>
+<div class="miu-section">
+  <div class="miu-field">
+    <label class="miu-field-label" for="ds-input">바코드</label>
+    <input class="miu-input" id="ds-input" placeholder="스캔 또는 직접 입력" value="C-1234">
+    <div class="miu-field-hint">C, W, WWA 접두사를 지원합니다.</div>
+  </div>
+
+  <div class="miu-field">
+    <label class="miu-field-label miu-field-optional" for="ds-textarea">메모</label>
+    <textarea class="miu-textarea" id="ds-textarea" placeholder="특이사항"></textarea>
+  </div>
+
+  <div class="miu-field">
+    <label class="miu-field-label" for="ds-select">매장</label>
+    <select class="miu-select" id="ds-select">
+      <option>공동물류</option>
+      <option>성수255</option>
+      <option>회현</option>
+    </select>
+  </div>
+
+  <div class="miu-field">
+    <label class="miu-check">
+      <input type="checkbox" checked>
+      <span>온라인 발송</span>
+    </label>
+  </div>
+
+  <div class="miu-field">
+    <div class="miu-segment">
+      <button class="miu-segment-item active">전체</button>
+      <button class="miu-segment-item">대기</button>
+      <button class="miu-segment-item">완료</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 12. Chips ============ -->
+<div class="ds-block">
+  <div class="ds-block-title">12. Chips / Badges</div>
+</div>
+<div class="miu-section">
+  <div style="display:flex;flex-wrap:wrap;gap:6px">
+    <span class="miu-chip">기본</span>
+    <span class="miu-chip primary">코랄</span>
+    <span class="miu-chip success">완료</span>
+    <span class="miu-chip warn">대기</span>
+    <span class="miu-chip danger">오류</span>
+    <span class="miu-chip muted">지난</span>
+  </div>
+</div>
+
+<!-- ============ 13. Empty / Loading States ============ -->
+<div class="ds-block">
+  <div class="ds-block-title">13. Empty State</div>
+</div>
+<div class="miu-state">
+  <div class="miu-state-icon"><i class="ph-bold ph-package"></i></div>
+  <div class="miu-state-title">아직 데이터가 없어요</div>
+  <div class="miu-state-desc">첫 입고 세션을 시작하고 물건을 등록해보세요.</div>
+  <button class="miu-btn miu-btn-primary">
+    <i class="ph-bold ph-plus"></i> 새 세션
+  </button>
+</div>
+
+<div class="ds-block">
+  <div class="ds-block-title">14. Loading</div>
+</div>
+<div class="miu-loading">
+  <div class="miu-spinner"></div>
+  <span>불러오는 중…</span>
+</div>
+
+<!-- ============ 15. Modal ============ -->
+<div class="ds-block">
+  <div class="ds-block-title">15. Modal 프리뷰</div>
+</div>
+<div class="miu-section">
+  <button class="miu-btn miu-btn-secondary" onclick="document.getElementById('demo-modal').style.display='flex'">
+    모달 열기
+  </button>
+  <button class="miu-btn miu-btn-secondary miu-mt-sm" onclick="showToast()">
+    토스트 보이기
+  </button>
+</div>
+
+<div class="miu-overlay" id="demo-modal" style="display:none">
+  <div class="miu-modal">
+    <div class="miu-modal-head">
+      <div class="miu-modal-title">가격 수정</div>
+      <button class="miu-icon-btn" onclick="document.getElementById('demo-modal').style.display='none'">
+        <i class="ph-bold ph-x"></i>
+      </button>
+    </div>
+    <div class="miu-modal-body">
+      <div class="miu-field">
+        <label class="miu-field-label">새 가격</label>
+        <input class="miu-input" value="39,000">
+      </div>
+      <div class="miu-field">
+        <label class="miu-field-label">변경 사유</label>
+        <textarea class="miu-textarea">장기 재고 30% 할인</textarea>
+      </div>
+    </div>
+    <div class="miu-modal-actions">
+      <button class="miu-btn miu-btn-ghost" onclick="document.getElementById('demo-modal').style.display='none'">취소</button>
+      <button class="miu-btn miu-btn-primary" onclick="document.getElementById('demo-modal').style.display='none'">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="ds-block" style="margin-bottom:64px">
+  <div class="miu-body-sm miu-text-center miu-text-muted" style="font-style:italic;font-family:var(--miu-serif)">
+    — 마켓인유 디자인 시스템 v1 —
+  </div>
+</div>
+
+</div>
+
+<script>
+function showToast() {
+  const t = document.createElement('div');
+  t.className = 'miu-toast';
+  t.innerHTML = '<i class="ph-bold ph-check-circle"></i> &nbsp;저장되었습니다';
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2000);
+}
+</script>
+</body>
+</html>

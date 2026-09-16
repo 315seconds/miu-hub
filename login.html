@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>로그인 · 마켓인유</title>
+
+<link rel="stylesheet" href="/shared/tokens.css">
+<link rel="stylesheet" href="/shared/layout.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+
+<style>
+  body {
+    background: var(--miu-canvas);
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .login-card {
+    width: 100%;
+    max-width: 400px;
+  }
+
+  .login-eyebrow {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--miu-primary);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .login-spike {
+    width: 12px; height: 12px; color: var(--miu-primary);
+  }
+  .login-title {
+    font-family: var(--miu-serif);
+    font-size: 32px;
+    font-weight: 500;
+    line-height: 1.15;
+    letter-spacing: -1px;
+    color: var(--miu-ink);
+    margin-bottom: 6px;
+  }
+  .login-sub {
+    font-size: 14px;
+    color: var(--miu-muted);
+    margin-bottom: 32px;
+  }
+
+  form { display: flex; flex-direction: column; gap: 14px; }
+
+  .email-badge-info {
+    background: var(--miu-surface-soft);
+    border-left: 3px solid var(--miu-primary);
+    padding: 12px 14px;
+    border-radius: var(--miu-r-md);
+    font-size: 13px;
+    color: var(--miu-body-strong);
+    line-height: 1.55;
+  }
+  .email-badge-info strong { color: var(--miu-ink); font-weight: 600; }
+
+  #code {
+    font-family: var(--miu-mono);
+    font-size: 24px; font-weight: 700;
+    text-align: center; letter-spacing: 6px;
+    padding: 0; height: 60px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .msg {
+    margin-top: 14px; padding: 12px 14px;
+    border-radius: var(--miu-r-md); font-size: 13px; line-height: 1.5;
+    display: none;
+  }
+  .msg.err {
+    background: color-mix(in srgb, var(--miu-error) 8%, transparent);
+    color: var(--miu-error);
+    border: 1px solid color-mix(in srgb, var(--miu-error) 20%, transparent);
+    display: block;
+  }
+  .msg.ok {
+    background: color-mix(in srgb, var(--miu-success) 10%, transparent);
+    color: #056d24;
+    border: 1px solid color-mix(in srgb, var(--miu-success) 25%, transparent);
+    display: block;
+  }
+
+  .login-hint {
+    margin-top: 20px;
+    font-size: 12px;
+    color: var(--miu-muted);
+    text-align: center;
+    line-height: 1.6;
+  }
+
+  .backup-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    background: color-mix(in srgb, var(--miu-warning) 15%, transparent);
+    color: #6b5210;
+    border-radius: var(--miu-r-pill);
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.3px;
+    margin-bottom: 16px;
+  }
+
+  .btn-ghost-inline {
+    background: none; border: none; color: var(--miu-muted);
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 8px;
+    font-family: var(--miu-sans);
+  }
+  .btn-ghost-inline:hover { color: var(--miu-body); }
+
+  .login-footer {
+    margin-top: 40px;
+    text-align: center;
+    font-family: var(--miu-serif);
+    font-style: italic;
+    font-size: 12px;
+    color: var(--miu-muted-soft);
+    letter-spacing: -0.1px;
+  }
+</style>
+</head>
+<body>
+
+<div class="login-card">
+  <div class="login-eyebrow">
+    <svg class="login-spike" viewBox="0 0 16 16" fill="currentColor">
+      <path d="M8 0 L9 6 L15 7 L10 9 L14 14 L8 11 L2 14 L6 9 L1 7 L7 6 Z"/>
+    </svg>
+    <span>MARKET IN U</span>
+  </div>
+  <div class="login-title">로그인</div>
+  <div class="login-sub">마켓인유 관리툴</div>
+
+  <!-- Step 1: 이메일 입력 -->
+  <form id="email-form">
+    <div class="miu-field">
+      <label class="miu-field-label" for="email">이메일</label>
+      <input class="miu-input" id="email" type="email" required
+             placeholder="you@example.com"
+             autocomplete="email" inputmode="email">
+    </div>
+    <button type="submit" class="miu-btn miu-btn-primary" id="email-btn">
+      로그인 코드 받기
+    </button>
+  </form>
+
+  <!-- Step 2: 코드 입력 -->
+  <form id="code-form" style="display:none">
+    <div class="email-badge-info">
+      <strong id="sent-email">-</strong> 으로<br>
+      8자리 인증 코드를 보냈습니다.
+    </div>
+    <div class="miu-field">
+      <label class="miu-field-label" for="code">인증 코드</label>
+      <input class="miu-input" id="code" type="text"
+             inputmode="numeric" pattern="[0-9]{8}" maxlength="8"
+             autocomplete="one-time-code" required
+             placeholder="00000000">
+    </div>
+    <button type="submit" class="miu-btn miu-btn-primary" id="code-btn">
+      <i class="ph-bold ph-check"></i> 확인
+    </button>
+    <button type="button" class="miu-btn miu-btn-secondary" id="resend-btn">
+      코드 다시 받기
+    </button>
+    <button type="button" class="btn-ghost-inline" id="back-btn">
+      ← 다른 이메일로
+    </button>
+  </form>
+
+  <!-- 관리자 백업용 비번 폼 (?password=1) -->
+  <form id="password-form" style="display:none">
+    <div class="backup-tag">
+      <i class="ph-bold ph-shield-check"></i>
+      관리자 백업 로그인
+    </div>
+    <div class="miu-field">
+      <label class="miu-field-label" for="pw-email">이메일</label>
+      <input class="miu-input" id="pw-email" type="email" required autocomplete="email">
+    </div>
+    <div class="miu-field">
+      <label class="miu-field-label" for="pw">임시 비밀번호</label>
+      <input class="miu-input" id="pw" type="password" required autocomplete="current-password">
+    </div>
+    <button type="submit" class="miu-btn miu-btn-primary">
+      <i class="ph-bold ph-sign-in"></i> 로그인
+    </button>
+  </form>
+
+  <div id="msg" class="msg"></div>
+
+  <div class="login-hint" id="hint">
+    이메일로 8자리 인증 코드를 보내드립니다.
+  </div>
+
+  <div class="login-footer">— 마켓인유 —</div>
+</div>
+
+<script src="/shared/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/shared/supabase-client.js"></script>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const msg = $('msg');
+const showMsg = (kind, text) => {
+  msg.className = 'msg ' + kind;
+  msg.textContent = text;
+};
+const clearMsg = () => { msg.className = 'msg'; msg.textContent = ''; };
+
+// 이미 로그인돼 있으면 원래 있던 곳으로 리디렉트
+(async function () {
+  const { data } = await sb.auth.getSession();
+  if (data.session) {
+    const params = new URLSearchParams(window.location.search);
+    const returnTo = params.get('returnTo');
+    window.location.replace(returnTo || '/');
+  }
+})();
+
+// 관리자 백업: ?password=1 이면 비번 폼으로 전환
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('password') === '1') {
+  $('email-form').style.display = 'none';
+  $('password-form').style.display = 'flex';
+  $('hint').textContent = '관리자가 발급한 임시 비밀번호로 로그인하세요.';
+}
+
+let currentEmail = '';
+
+$('email-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = $('email').value.trim();
+  const btn = $('email-btn');
+  btn.disabled = true; btn.textContent = '전송 중...';
+  clearMsg();
+
+  const { error } = await sb.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: true },
+  });
+
+  btn.disabled = false; btn.textContent = '로그인 코드 받기';
+
+  if (error) {
+    showMsg('err', '전송 실패: ' + error.message);
+    return;
+  }
+
+  currentEmail = email;
+  $('sent-email').textContent = email;
+  $('email-form').style.display = 'none';
+  $('code-form').style.display = 'flex';
+  $('hint').textContent = '이메일이 안 보이면 스팸함도 확인해주세요.';
+  setTimeout(() => $('code').focus(), 100);
+});
+
+$('code-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const code = $('code').value.trim();
+  const btn = $('code-btn');
+  btn.disabled = true; btn.innerHTML = '확인 중...';
+  clearMsg();
+
+  const { data, error } = await sb.auth.verifyOtp({
+    email: currentEmail,
+    token: code,
+    type: 'email',
+  });
+
+  btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-check"></i> 확인';
+
+  if (error) {
+    showMsg('err', '코드가 올바르지 않거나 만료되었습니다.');
+    $('code').value = '';
+    $('code').focus();
+    return;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const returnTo = params.get('returnTo') || '/';
+  window.location.replace(returnTo);
+});
+
+$('resend-btn').addEventListener('click', async () => {
+  const btn = $('resend-btn');
+  btn.disabled = true; btn.textContent = '재전송 중...';
+  clearMsg();
+
+  const { error } = await sb.auth.signInWithOtp({
+    email: currentEmail,
+    options: { shouldCreateUser: true },
+  });
+
+  btn.disabled = false; btn.textContent = '코드 다시 받기';
+
+  if (error) showMsg('err', '재전송 실패: ' + error.message);
+  else showMsg('ok', '새 코드를 보냈습니다.');
+});
+
+$('back-btn').addEventListener('click', () => {
+  $('code-form').style.display = 'none';
+  $('email-form').style.display = 'flex';
+  $('hint').textContent = '이메일로 8자리 인증 코드를 보내드립니다.';
+  $('code').value = '';
+  clearMsg();
+});
+
+$('code').addEventListener('input', (e) => {
+  e.target.value = e.target.value.replace(/[^0-9]/g, '');
+  if (e.target.value.length === 8) $('code-form').requestSubmit();
+});
+
+$('password-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = $('pw-email').value.trim();
+  const password = $('pw').value;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  if (error) {
+    showMsg('err', '로그인 실패: ' + error.message);
+    return;
+  }
+  const params = new URLSearchParams(window.location.search);
+  const returnTo = params.get('returnTo') || '/';
+  window.location.replace(returnTo);
+});
+</script>
+</body>
+</html>

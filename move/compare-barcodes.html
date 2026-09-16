@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>바코드 비교 — 엑셀 vs Supabase</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/shared/config.js"></script>
+<script src="/shared/supabase-client.js"></script>
+<style>
+body { font-family: monospace; background: #0f172a; color: #e2e8f0; padding: 24px; }
+h1 { font-size: 18px; margin-bottom: 20px; color: #f8fafc; }
+label { display: block; margin-bottom: 8px; font-size: 13px; color: #94a3b8; }
+input[type=file] { display: block; margin-bottom: 20px; color: #e2e8f0; }
+button { background: #3b82f6; color: #fff; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; cursor: pointer; margin-bottom: 24px; }
+button:disabled { background: #475569; cursor: default; }
+#log { background: #1e293b; border-radius: 8px; padding: 16px; font-size: 13px; line-height: 1.7; white-space: pre-wrap; max-height: 80vh; overflow-y: auto; }
+.ok   { color: #22c55e; }
+.warn { color: #f59e0b; }
+.err  { color: #f87171; }
+.info { color: #94a3b8; }
+</style>
+</head>
+<body>
+<h1>엑셀 입고시트 vs inventory_items 바코드 비교</h1>
+<label>9월 공동판매 엑셀 파일 업로드 (.xlsx)</label>
+<input type="file" id="file-input" accept=".xlsx,.xls">
+<button id="run-btn" disabled>비교 시작</button>
+<div id="log">파일을 업로드하면 비교 버튼이 활성화됩니다.</div>
+
+<script>
+const log = document.getElementById('log');
+const btn = document.getElementById('run-btn');
+const fileInput = document.getElementById('file-input');
+
+let excelBarcodes = null;
+
+function print(msg, cls = '') {
+  log.innerHTML += `<span class="${cls}">${msg}</span>\n`;
+  log.scrollTop = log.scrollHeight;
+}
+
+fileInput.addEventListener('change', async () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+  log.innerHTML = '';
+  print(`파일 로드 중: ${file.name}`, 'info');
+
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(new Uint8Array(buf), { type: 'array' });
+  const sheet = wb.Sheets['입고'];
+  if (!sheet) {
+    print('❌ "입고" 시트를 찾을 수 없어요.', 'err');
+    return;
+  }
+
+  // 바코드 컬럼 G (index 6)
+  const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+  const bcSet = new Set();
+  rows.forEach((row, i) => {
+    if (i === 0) return; // 헤더 스킵
+    const bc = row[6]; // G열
+    if (bc !== undefined && bc !== '') bcSet.add(String(bc).trim().toUpperCase());
+  });
+
+  excelBarcodes = bcSet;
+  print(`✓ 입고 시트 로드 완료 — 총 ${rows.length - 1}행, 고유 바코드 ${bcSet.size}개`, 'ok');
+  btn.disabled = false;
+});
+
+btn.addEventListener('click', async () => {
+  if (!excelBarcodes) return;
+  btn.disabled = true;
+  log.innerHTML = '';
+
+  // 1. Supabase에서 inventory_items 전체 바코드 가져오기
+  print('Supabase inventory_items 조회 중...', 'info');
+  const sb = window.sb;
+  if (!sb) { print('❌ Supabase 클라이언트 없음', 'err'); btn.disabled = false; return; }
+
+  const sbBarcodes = new Set();
+  let from = 0;
+  const PAGE = 1000;
+  while (true) {
+    const { data, error } = await sb
+      .from('inventory_items')
+      .select('barcode')
+      .range(from, from + PAGE - 1);
+    if (error) { print('❌ Supabase 오류: ' + error.message, 'err'); btn.disabled = false; return; }
+    (data || []).forEach(r => { if (r.barcode) sbBarcodes.add(String(r.barcode).trim().toUpperCase()); });
+    if (!data || data.length < PAGE) break;
+    from += PAGE;
+  }
+  print(`✓ Supabase inventory_items — 총 ${sbBarcodes.size}개 바코드`, 'ok');
+
+  // 2. 비교
+  const onlyExcel = [...excelBarcodes].filter(b => !sbBarcodes.has(b));
+  const onlySb    = [...sbBarcodes].filter(b => !excelBarcodes.has(b));
+  const both      = [...excelBarcodes].filter(b => sbBarcodes.has(b));
+
+  print('', '');
+  print('══════════ 결과 ══════════', 'info');
+  print(`공통 (양쪽 모두 있음)       : ${both.length}개`, 'ok');
+  print(`엑셀에만 있음 (Supabase 없음): ${onlyExcel.length}개`, onlyExcel.length > 0 ? 'warn' : 'ok');
+  print(`Supabase에만 있음 (엑셀 없음): ${onlySb.length}개`, 'info');
+
+  if (onlyExcel.length > 0) {
+    print('', '');
+    print('── 엑셀에만 있는 바코드 (이동앱에서 조회 불가) ──', 'warn');
+    onlyExcel.slice(0, 200).forEach(b => print('  ' + b, 'warn'));
+    if (onlyExcel.length > 200) print(`  ... 외 ${onlyExcel.length - 200}개`, 'warn');
+  }
+
+  if (onlySb.length > 0 && onlySb.length <= 50) {
+    print('', '');
+    print('── Supabase에만 있는 바코드 ──', 'info');
+    onlySb.forEach(b => print('  ' + b, 'info'));
+  }
+
+  btn.disabled = false;
+});
+</script>
+</body>
+</html>

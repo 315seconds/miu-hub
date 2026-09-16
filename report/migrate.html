@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>리포트 데이터 가져오기 · 마켓인유</title>
+
+<link rel="stylesheet" href="/shared/tokens.css">
+<link rel="stylesheet" href="/shared/layout.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+
+<script src="/shared/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/shared/supabase-client.js"></script>
+<script src="/shared/auth-guard.js"></script>
+</head>
+<body class="miu-app">
+
+  <header class="miu-header">
+    <a href="index.html" class="miu-header-back" aria-label="목록으로">
+      <i class="ph-bold ph-caret-left"></i>
+    </a>
+    <div class="miu-header-title">
+      <h1 class="miu-header-h1">데이터 가져오기</h1>
+    </div>
+  </header>
+
+  <div class="miu-app-body" style="padding:24px 20px">
+
+    <div class="miu-surface-card" style="border-radius:var(--miu-r-lg);padding:16px 18px;margin-bottom:16px">
+      <div style="font-family:var(--miu-serif);font-size:17px;font-weight:500;color:var(--miu-ink);margin-bottom:6px">
+        기존 리포트 22개 일괄 가져오기
+      </div>
+      <div style="font-size:13px;color:var(--miu-muted);line-height:1.6">
+        성수본점 2~8월 (7건) · 팝업 15건<br>
+        KPI 데이터 포함 · 시간대 차트는 미포함
+      </div>
+    </div>
+
+    <div id="log" style="font-family:var(--miu-mono);font-size:12px;color:var(--miu-body);background:var(--miu-surface-card);border-radius:var(--miu-r-md);padding:14px;min-height:120px;max-height:360px;overflow-y:auto;margin-bottom:16px;display:none"></div>
+
+    <button class="miu-btn miu-btn-primary" id="run-btn" onclick="runMigration()">
+      <i class="ph-bold ph-database"></i> 22개 가져오기 시작
+    </button>
+
+    <a href="index.html" class="miu-btn" id="done-btn" style="display:none;margin-top:10px">
+      <i class="ph-bold ph-check"></i> 리포트 목록으로
+    </a>
+
+  </div>
+
+<script>
+const RECORDS = [{"store":"성수","report_type":"main","start_date":"2026-02-01","end_date":"2026-02-28","location":"서울특별시 성동구 아차산로 166 1층","label":"2026-02","total_sales":57353370,"total_cnt":1029,"daily_avg_sales":2048334,"dom_sales":37204160,"dom_cnt":749,"dom_share":0.648683,"for_sales":20149210,"for_cnt":280,"foreign_share":0.351317,"peak_hour":15,"peak_sales":9101020,"top_category":"자켓","foreign_keywords":["해외","오렌지스퀘어","중국","아이오로라"]},{"store":"성수","report_type":"main","start_date":"2026-03-01","end_date":"2026-03-31","location":"서울특별시 성동구 아차산로 166 1층","label":"2026-03","total_sales":103665390,"total_cnt":1866,"daily_avg_sales":3344044,"dom_sales":63750280,"dom_cnt":1256,"dom_share":0.614962,"for_sales":39915110,"for_cnt":610,"foreign_share":0.385038,"peak_hour":15,"peak_sales":16400190,"top_category":"스웻셔츠","foreign_keywords":["해외","오렌지스퀘어","중국","아이오로라"]},{"store":"성수","report_type":"main","start_date":"2026-04-01","end_date":"2026-04-30","location":"서울특별시 성동구 아차산로 166 1층","label":"2026-04","total_sales":86905130,"total_cnt":1569,"daily_avg_sales":2896837,"dom_sales":49958640,"dom_cnt":1025,"dom_share":0.574864,"for_sales":36946490,"for_cnt":544,"foreign_share":0.425136,"peak_hour":15,"peak_sales":13620450,"top_category":"반팔티","foreign_keywords":["해외","오렌지스퀘어","아이오로라","중국"]},{"store":"성수","report_type":"main","start_date":"2026-05-01","end_date":"2026-05-31","location":"서울특별시 성동구 아차산로 166 1층","label":"2026-05","total_sales":83373530,"total_cnt":1625,"daily_avg_sales":2689468,"dom_sales":50797490,"dom_cnt":1107,"dom_share":0.609276,"for_sales":32576040,"for_cnt":518,"foreign_share":0.390724,"peak_hour":16,"peak_sales":13009850,"top_category":"반팔티","foreign_keywords":["해외","오렌지스퀘어","알리페이","위챗페이","아이오로라","중국","한패스"]},{"store":"성수","report_type":"main","start_date":"2026-06-01","end_date":"2026-06-30","location":"서울특별시 성동구 아차산로 166 1층","label":"2026-06","total_sales":58931500,"total_cnt":1105,"daily_avg_sales":1964383,"dom_sales":30221500,"dom_cnt":669,"dom_share":0.512824,"for_sales":28710000,"for_cnt":436,"foreign_share":0.487176,"peak_hour":12,"peak_sales":12815200,"top_category":"반팔티","foreign_keywords":["해외","오렌지스퀘어","알리페이","위챗페이","아이오로라","중국"]},{"store":"성수","report_type":"main","start_date":"2026-07-01","end_date":"2026-07-31","location":null,"label":"2026-07","total_sales":78381200,"total_cnt":1371,"daily_avg_sales":2528425,"dom_sales":39621100,"dom_cnt":787,"dom_share":0.505492,"for_sales":38760100,"for_cnt":584,"foreign_share":0.494508,"peak_hour":12,"peak_sales":17176400,"top_category":"반팔티","foreign_keywords":["해외","오렌지스퀘어","알리페이","위챗페이","아이오로라","중국"]},{"store":"성수","report_type":"main","start_date":"2026-08-01","end_date":"2026-08-31","location":"서울특별시 성동구 아차산로 166 1층","label":"2026-08","total_sales":67975900,"total_cnt":1425,"daily_avg_sales":2192770,"dom_sales":38266900,"dom_cnt":934,"dom_share":0.562948,"for_sales":29709000,"for_cnt":491,"foreign_share":0.437052,"peak_hour":18,"peak_sales":10273200,"top_category":"반팔티","foreign_keywords":["해외","오렌지스퀘어","알리페이","위챗페이","중국","아이오로라"]},{"store":"차봇","report_type":"popup","start_date":"2026-02-04","end_date":"2026-02-09","location":"서울 성동구 성수이로 72 1층","label":"차봇","total_sales":7898700,"total_cnt":191,"daily_avg_sales":1316450,"dom_sales":4162700,"dom_cnt":117,"dom_share":0.527011,"for_sales":3736000,"for_cnt":74,"foreign_share":0.472989,"peak_hour":16,"peak_sales":1186600,"top_category":"자켓","foreign_keywords":["해외","오렌지스퀘어","중국","아이오로라"]},{"store":"한칸","report_type":"popup","start_date":"2026-02-05","end_date":"2026-03-01","location":"서울 성동구 연무장길 17 1층","label":"한칸","total_sales":10093600,"total_cnt":292,"daily_avg_sales":403744,"dom_sales":6019700,"dom_cnt":181,"dom_share":0.596388,"for_sales":4073900,"for_cnt":111,"foreign_share":0.403612,"peak_hour":17,"peak_sales":1525300,"top_category":"자켓","foreign_keywords":["해외","오렌지스퀘어","중국","아이오로라"]},{"store":"연무장","report_type":"popup","start_date":"2026-02-19","end_date":"2026-03-02","location":"서울 성동구 성수이로7가길 13 1층","label":"연무장","total_sales":2671800,"total_cnt":75,"daily_avg_sales":222650,"dom_sales":1701400,"dom_cnt":53,"dom_share":0.636799,"for_sales":970400,"for_cnt":22,"foreign_share":0.363201,"peak_hour":17,"peak_sales":465700,"top_category":"바람막이","foreign_keywords":["해외","오렌지스퀘어","중국","아이오로라"]},{"store":"오이","report_type":"popup","start_date":"2026-02-20","end_date":"2026-03-11","location":"서울 성동구 성수일로4길 52 1층","label":"오이","total_sales":20030600,"total_cnt":489,"daily_avg_sales":1001530,"dom_sales":13519700,"dom_cnt":335,"dom_share":0.674952,"for_sales":6510900,"for_cnt":154,"foreign_share":0.325048,"peak_hour":17,"peak_sales":4086700,"top_category":"스웻셔츠","foreign_keywords":["해외","오렌지스퀘어","중국","아이오로라"]},{"store":"연무장","report_type":"popup","start_date":"2026-03-11","end_date":"2026-04-30","location":"서울 성동구 성수이로7가길 13 1층","label":"연무장","total_sales":15642000,"total_cnt":551,"daily_avg_sales":306705,"dom_sales":6957000,"dom_cnt":306,"dom_share":0.444764,"for_sales":8685000,"for_cnt":245,"foreign_share":0.555236,"peak_hour":15,"peak_sales":2118200,"top_category":"스웻셔츠","foreign_keywords":["해외","오렌지스퀘어","알리페이","위챗페이","아이오로라","중국"]},{"store":"무성","report_type":"popup","start_date":"2026-03-20","end_date":"2026-04-07","location":"서울특별시 성동구 연무장11길 7 1층","label":"무성","total_sales":42732000,"total_cnt":1184,"daily_avg_sales":2249052,"dom_sales":18295600,"dom_cnt":618,"dom_share":0.428148,"for_sales":24436400,"for_cnt":566,"foreign_share":0.571852,"peak_hour":15,"peak_sales":6119700,"top_category":"스웻셔츠","foreign_keywords":["해외","오렌지스퀘어","아이오로라","중국"]},{"store":"한칸","report_type":"popup","start_date":"2026-03-31","end_date":"2026-04-20","location":"서울 성동구 연무장길 17 1층","label":"한칸","total_sales":7675600,"total_cnt":254,"daily_avg_sales":365504,"dom_sales":2763300,"dom_cnt":118,"dom_share":0.360011,"for_sales":4912300,"for_cnt":136,"foreign_share":0.639989,"peak_hour":17,"peak_sales":968500,"top_category":"반팔티","foreign_keywords":["해외","오렌지스퀘어","아이오로라","중국"]},{"store":"연무장","report_type":"popup","start_date":"2026-05-01","end_date":"2026-06-09","location":"서울 성동구 성수이로7가길 13 1층","label":"연무장","total_sales":18921800,"total_cnt":575,"daily_avg_sales":473045,"dom_sales":9534800,"dom_cnt":321,"dom_share":0.503906,"for_sales":9387000,"for_cnt":254,"foreign_share":0.496094,"peak_hour":17,"peak_sales":2696300,"top_category":"반팔티","foreign_keywords":["해외","오렌지스퀘어","알리페이","위챗페이","아이오로라","중국"]},{"store":"연오","report_type":"popup","start_date":"2026-05-04","end_date":"2026-06-06","location":"서울특별시 성동구 연무장길 115 1층","label":"연오","total_sales":25569200,"total_cnt":832,"daily_avg_sales":752035,"dom_sales":15812000,"dom_cnt":584,"dom_share":0.6184,"for_sales":9757200,"for_cnt":248,"foreign_share":0.3816,"peak_hour":18,"peak_sales":3635200,"top_category":"반팔티","foreign_keywords":["해외","오렌지스퀘어","알리페이","위챗페이","중국","아이오로라"]},{"store":"삼성","report_type":"popup","start_date":"2026-05-27","end_date":"2026-06-07","location":"서울 성동구 연무장길 35 1층","label":"삼성","total_sales":31445900,"total_cnt":722,"daily_avg_sales":2620491,"dom_sales":14029200,"dom_cnt":397,"dom_share":0.446138,"for_sales":17416700,"for_cnt":325,"foreign_share":0.553862,"peak_hour":15,"peak_sales":3784700,"top_category":"반팔티","foreign_keywords":["해외","오렌지스퀘어","알리페이","위챗페이","중국","아이오로라"]},{"store":"리얼","report_type":"popup","start_date":"2026-06-02","end_date":"2026-06-14","location":"서울 성동구 연무장7길 7","label":"리얼","total_sales":8999800,"total_cnt":304,"daily_avg_sales":692292,"dom_sales":5581500,"dom_cnt":208,"dom_share":0.62018,"for_sales":3418300,"for_cnt":96,"foreign_share":0.37982,"peak_hour":16,"peak_sales":1178900,"top_category":"반팔티","foreign_keywords":["해외","오렌지스퀘어","알리페이","위챗페이","중국","아이오로라"]},{"store":"한칸","report_type":"popup","start_date":"2026-06-02","end_date":"2026-06-22","location":"서울 성동구 연무장길 17 1층","label":"한칸","total_sales":4059900,"total_cnt":147,"daily_avg_sales":193328,"dom_sales":2338300,"dom_cnt":90,"dom_share":0.57595,"for_sales":1721600,"for_cnt":57,"foreign_share":0.42405,"peak_hour":23,"peak_sales":601500,"top_category":"반팔티","foreign_keywords":["해외","오렌지스퀘어","알리페이","위챗페이","아이오로라","중국"]},{"store":"연무장","report_type":"popup","start_date":"2026-06-15","end_date":"2026-06-30","location":"서울 성동구 성수이로7가길 13 1층","label":"연무장","total_sales":4159000,"total_cnt":140,"daily_avg_sales":259937,"dom_sales":1918700,"dom_cnt":84,"dom_share":0.461337,"for_sales":2240300,"for_cnt":56,"foreign_share":0.538663,"peak_hour":16,"peak_sales":831100,"top_category":"반팔티","foreign_keywords":["해외","오렌지스퀘어","알리페이","위챗페이","아이오로라","중국"]},{"store":"뚝도","report_type":"popup","start_date":"2026-06-19","end_date":"2026-06-26","location":"서울 성동구 뚝섬로 403","label":"뚝도","total_sales":1022500,"total_cnt":46,"daily_avg_sales":127812,"dom_sales":429600,"dom_cnt":30,"dom_share":0.420147,"for_sales":592900,"for_cnt":16,"foreign_share":0.579853,"peak_hour":20,"peak_sales":173700,"top_category":"셔츠","foreign_keywords":["해외","오렌지스퀘어","알리페이","위챗페이","중국","아이오로라"]},{"store":"삼성","report_type":"popup","start_date":"2026-08-19","end_date":"2026-08-31","location":"서울 성동구 연무장길 35 1층","label":"삼성","total_sales":39946400,"total_cnt":955,"daily_avg_sales":3072800,"dom_sales":13160300,"dom_cnt":367,"dom_share":0.329449,"for_sales":26786100,"for_cnt":588,"foreign_share":0.670551,"peak_hour":12,"peak_sales":10979800,"top_category":"스웻셔츠","foreign_keywords":["해외","오렌지스퀘어","알리페이","위챗페이","중국","아이오로라"]}];
+
+async function runMigration() {
+  const btn = document.getElementById('run-btn');
+  const log = document.getElementById('log');
+  const doneBtn = document.getElementById('done-btn');
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="miu-spinner" style="width:16px;height:16px;border-width:2px"></div> 진행 중...';
+  log.style.display = 'block';
+
+  let ok = 0, fail = 0;
+
+  for (let i = 0; i < RECORDS.length; i++) {
+    const r = RECORDS[i];
+    const tag = `[${i+1}/${RECORDS.length}] ${r.report_type === 'main' ? r.label : r.store} (${r.start_date}~${r.end_date})`;
+    log.textContent += `${tag} ...`;
+    log.scrollTop = log.scrollHeight;
+
+    const { error } = await sb
+      .from('sales_reports')
+      .upsert(r, { onConflict: 'store,report_type,start_date,end_date' });
+
+    if (error) {
+      log.textContent += ` 실패: ${error.message}\n`;
+      fail++;
+    } else {
+      log.textContent += ` 완료\n`;
+      ok++;
+    }
+    log.scrollTop = log.scrollHeight;
+  }
+
+  log.textContent += `\n완료: 성공 ${ok}건 / 실패 ${fail}건`;
+  btn.innerHTML = '<i class="ph-bold ph-check"></i> 완료';
+  doneBtn.style.display = 'block';
+}
+</script>
+</body>
+</html>

@@ -5,21 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>캘린더 · 마켓인유</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="/shared/tokens.css">
+<link rel="stylesheet" href="/shared/layout.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 :root {
-  --bg:        #FAFAFA;
-  --surface:   #FFFFFF;
-  --ink:       #171717;
-  --muted:     #9CA3AF;
-  --line:      #E5E7EB;
-  --brand:     #f54e00;
-  --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 24px;
+  --bg:        var(--miu-canvas);
+  --surface:   var(--miu-canvas);
+  --ink:       var(--miu-ink);
+  --muted:     var(--miu-muted);
+  --line:      var(--miu-hairline);
+  --brand:     var(--miu-primary);
+  --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 16px;
 }
 
 body {
-  background: var(--bg);
+  background: var(--miu-canvas);
   font-family: 'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
@@ -58,10 +61,11 @@ body {
   justify-content: space-between;
 }
 .month-year {
-  font-size: 28px;
-  font-weight: 800;
-  letter-spacing: -1px;
-  color: var(--ink);
+  font-family: var(--miu-serif);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.8px;
+  color: var(--miu-ink);
 }
 .month-nav {
   display: flex;
@@ -158,10 +162,10 @@ body {
 /* ── 캘린더 그리드 ── */
 .cal-outer {
   margin: 0 12px 32px;
-  background: var(--surface);
-  border-radius: var(--r-xl);
+  background: var(--miu-canvas);
+  border-radius: var(--miu-r-lg);
   overflow: hidden;
-  border: 1.5px solid var(--line);
+  border: 1px solid var(--miu-hairline);
 }
 
 .cal-grid {
@@ -455,14 +459,21 @@ body {
 }
 .pin-cancel:active { background: var(--bg); }
 </style>
+  <!-- auth-migration: 로그인 가드 -->
+  <script src="/shared/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/shared/supabase-client.js"></script>
+  <script src="/shared/auth-guard.js"></script>
 </head>
 <body>
 
-<div class="topbar">
-  <a href="../" class="back-btn">‹</a>
-  <span class="brand-label">Market in U</span>
-  <div style="width:30px"></div>
-</div>
+<header class="miu-header">
+  <a href="/" class="miu-header-back" aria-label="허브로">
+    <i class="ph-bold ph-caret-left"></i>
+  </a>
+  <div class="miu-header-title">    <h1 class="miu-header-h1">일정 캘린더</h1>
+  </div>
+</header>
 
 <!-- 월 헤더 -->
 <div class="month-header">

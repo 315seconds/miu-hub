@@ -1,32 +1,2924 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="물류 이동">
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>물류이동 — 마켓인유</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#FFF8EE">
+<title>물류 이동</title>
+<link rel="stylesheet" href="/shared/tokens.css">
+<link rel="stylesheet" href="/shared/layout.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- auth-migration: 마켓인유 통합 로그인 가드 -->
+<script src="/shared/config.js"></script>
+<script src="/shared/supabase-client.js"></script>
+<script src="/shared/auth-guard.js"></script>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; background: #f7f7f4; display: flex; flex-direction: column; height: 100dvh; }
+/* ════════════════════════════════════════════════════
+   MIU MOVE · PLAYBLOCK
+   Soft claymorphism · 3D icons · pastel
+   Instrument Serif display + Inter UI + Mono data
+   ════════════════════════════════════════════════════ */
+:root{
+  /* miu 통합 팔레트로 재매핑 */
+  --cream:      #faf9f5;   /* miu-canvas */
+  --cream-2:    #f5f0e8;   /* miu-surface-soft */
+  --cream-3:    #efe9de;   /* miu-surface-card */
+  --ink:        #141413;   /* miu-ink */
+  --ink-2:      #3d3d3a;
+  --ink-3:      #6c6a64;
+  --ink-4:      #8e8b82;
+  --paper:      #faf9f5;
 
-.hub-back {
-  display: flex; align-items: center; gap: 6px;
-  padding: 10px 16px;
-  background: #fff; border-bottom: 1px solid rgba(112,115,124,0.15);
-  text-decoration: none; color: #f54e00;
-  font-size: 13px; font-weight: 600;
-  flex-shrink: 0; -webkit-tap-highlight-color: transparent;
+  /* 카테고리 액센트 (톤다운 warm 팔레트) */
+  --purple:     #7c6da8;
+  --purple-2:   #a094c1;
+  --purple-dk:  #5a4d80;
+  --yellow:     #d4a017;
+  --yellow-2:   #e8b94a;
+  --yellow-dk:  #8a6b0f;
+  --mint:       #6b8e6b;
+  --mint-2:     #8ba98b;
+  --mint-dk:    #4a6b4a;
+  --coral:      #cc785c;   /* miu-primary */
+  --coral-2:    #d99887;
+  --coral-dk:   #a9583e;
+  --sky:        #4a6b8a;
+  --sky-2:      #7b96b3;
+  --sky-dk:     #34506a;
+
+  /* 배경 wash용 극연한 톤 */
+  --purple-bg:  #f0edf5;
+  --yellow-bg:  #f5eede;
+  --mint-bg:    #ecf1eb;
+  --coral-bg:   #f5e5db;
+  --sky-bg:     #eaeff5;
+
+  /* semantic */
+  --ok:         #5db872;
+  --warn:       #d4a017;
+  --err:        #c64545;
+
+  --r:    12px;
+  --r-sm: 8px;
+  --r-lg: 16px;
+  --r-pill: 999px;
+
+  --font-display: 'Noto Serif KR', 'KoPub Batang', ui-serif, Georgia, serif;
+  --font-ui:      'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+  --font-hand:    'Pretendard Variable', 'Pretendard', system-ui, sans-serif;  /* Gaegu 제거 */
+
+  /* 절제된 그림자 */
+  --shadow-soft: 0 1px 2px rgba(20,20,19,0.05);
+  --shadow-pop:  0 4px 12px rgba(20,20,19,0.08);
+  --shadow-deep: 0 8px 24px rgba(20,20,19,0.12);
+  --rim: 0 0 0 1px rgba(230,223,216,0.6) inset;   /* miu-hairline 계열 */
 }
 
-iframe {
-  flex: 1;
-  border: none;
-  width: 100%;
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--cream);color:var(--ink);font-family:var(--font-ui);overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body{
+  max-width:480px;margin:0 auto;min-height:100vh;position:relative;
+  background: var(--cream);
 }
+
+::selection{background:var(--coral);color:#fff}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-thumb{background:var(--ink-4);border-radius:3px}
+
+/* ── SCREEN SYSTEM ── */
+.screen{display:none;min-height:100vh;flex-direction:column;position:relative;z-index:1}
+.screen.active{display:flex;opacity:1;transform:none}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px) scale(.99)}to{opacity:1;transform:none}}
+
+/* ── TOPBAR (miu-header 톤) ── */
+.topbar{
+  display:flex;align-items:center;gap:12px;
+  padding:16px 20px;background:var(--cream);
+  border-bottom:1px solid #e6dfd8;
+  position:sticky;top:0;z-index:10;
+}
+.topbar-back{
+  width:40px;height:40px;border-radius:var(--r-sm);
+  background:transparent;border:none;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;flex-shrink:0;transition:background .12s;
+  color:var(--ink);
+}
+.topbar-back:hover{background:var(--cream-2)}
+.topbar-back:active{background:var(--cream-3)}
+.topbar-back svg{width:18px;height:18px;fill:none;stroke:var(--ink);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.topbar-title{font-family:var(--font-display);font-size:22px;font-weight:500;letter-spacing:-.5px;flex:1;line-height:1.2}
+.topbar-sub{font-family:var(--font-ui);font-size:10px;color:var(--coral);margin-top:2px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700}
+.topbar-action{
+  font-family:var(--font-ui);font-size:13px;font-weight:600;
+  color:var(--paper);cursor:pointer;padding:8px 14px;
+  white-space:nowrap;
+  background:var(--coral);border-radius:var(--r-sm);border:none;
+  transition:background .15s;
+}
+.topbar-action:hover{background:var(--coral-dk)}
+
+/* ── CONTENT ── */
+.content{flex:1;padding:8px 18px 140px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+/* ── TYPOGRAPHY ── */
+h1.page-title{
+  font-family:var(--font-display);font-size:36px;font-weight:500;
+  line-height:1.1;margin-bottom:12px;letter-spacing:-.8px;color:var(--ink);
+}
+h1.page-title em{font-style:italic;color:var(--coral);font-weight:500}
+h2.section-title{
+  font-family:var(--font-ui);font-size:11px;font-weight:600;
+  color:var(--ink-3);text-transform:uppercase;letter-spacing:.8px;
+  margin-bottom:12px;margin-top:28px;
+  display:flex;align-items:center;gap:8px;
+}
+h2.section-title:first-child{margin-top:8px}
+h2.section-title::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--coral);flex-shrink:0}
+p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24px}
+
+/* ── CARDS ── */
+.card{
+  background:var(--paper);border:none;
+  border-radius:var(--r);overflow:hidden;
+  box-shadow:var(--shadow-soft),var(--rim);
+}
+.card+.card{margin-top:12px}
+.card-header{
+  padding:16px 18px;border-bottom:1px dashed var(--cream-3);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.card-body{padding:18px}
+.card-row{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px dashed var(--cream-3)}
+.card-row:last-child{border-bottom:none}
+.card-row-label{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em}
+.card-row-value{font-size:14px;font-weight:600;color:var(--ink)}
+
+/* ── BUTTONS ── */
+.btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;padding:14px 20px;
+  border-radius:var(--r);border:none;
+  font-family:var(--font-ui);font-size:15px;font-weight:600;
+  letter-spacing:-.1px;cursor:pointer;
+  transition:transform .1s, background .15s;
+  background:var(--ink);color:var(--paper);
+}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--coral);color:#fff}
+.btn-primary:hover{background:var(--coral-dk)}
+.btn-secondary{background:var(--cream);color:var(--ink);border:1px solid #e6dfd8}
+.btn-secondary:hover{background:var(--cream-2)}
+.btn-danger{background:var(--err);color:#fff}
+.btn-danger:hover{filter:brightness(.92)}
+.btn-ghost{background:transparent;color:var(--ink-3)}
+.btn-ghost:hover{background:var(--cream-2);color:var(--ink)}
+.btn-sm{padding:8px 14px;font-size:13px;width:auto;border-radius:var(--r-sm)}
+.lookup-tabs{display:flex;gap:4px;margin-bottom:18px;background:var(--cream-3);border-radius:var(--r-sm);padding:3px}
+.lookup-tab{flex:1;padding:8px;border:none;border-radius:calc(var(--r-sm) - 3px);background:transparent;font-family:var(--font-ui);font-size:13px;font-weight:600;color:var(--ink-3);cursor:pointer;transition:all .15s}
+.lookup-tab.active{background:var(--paper);color:var(--coral)}
+.btn-icon{width:42px;height:42px;padding:0;border-radius:var(--r-pill)}
+.btn+.btn{margin-top:10px}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;filter:grayscale(.4)}
+
+/* ══════════════════════════════════════════
+   HOME — playful dispatch board
+   ══════════════════════════════════════════ */
+.home-hero{padding:28px 20px 18px;position:relative}
+.home-mark{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.home-mark-logo{
+  display:flex;align-items:center;gap:10px;
+  font-family:var(--font-ui);font-size:13px;font-weight:800;color:var(--ink);
+  background:var(--paper);padding:8px 14px 8px 10px;border-radius:var(--r-pill);
+  box-shadow:var(--shadow-soft),var(--rim);
+}
+.home-mark-logo .blob{
+  width:22px;height:22px;border-radius:50%;
+  background:
+    radial-gradient(circle at 30% 30%, #fff 0%, transparent 50%),
+    linear-gradient(135deg,var(--yellow) 0%, var(--coral) 100%);
+  box-shadow:0 2px 4px rgba(255,154,138,.4);
+  animation:wobble 3s ease-in-out infinite;
+}
+@keyframes wobble{
+  0%,100%{transform:rotate(-6deg) scale(1)}
+  50%{transform:rotate(8deg) scale(1.05)}
+}
+.home-mark-meta{
+  font-family:var(--font-mono);font-size:10px;color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:.1em;text-align:right;
+}
+.home-mark-meta strong{color:var(--ink);font-weight:700}
+
+.home-title{
+  font-family:var(--font-display);font-weight:500;
+  font-size:48px;line-height:1.05;letter-spacing:-1.2px;
+  color:var(--ink);
+}
+.home-title em{
+  font-style:italic;color:var(--coral);font-weight:500;
+}
+.home-subtitle{
+  margin-top:16px;display:flex;align-items:center;gap:10px;
+  font-family:var(--font-ui);font-size:11px;color:var(--ink-3);
+  text-transform:uppercase;letter-spacing:1.5px;font-weight:600;
+}
+.home-subtitle .pill{
+  background:var(--coral);color:#fff;padding:3px 10px;
+  border-radius:var(--r-pill);font-weight:700;letter-spacing:1px;font-size:10px;
+}
+
+/* home grid */
+.home-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:14px;
+  padding:20px 18px 10px;
+}
+.home-tile{
+  background:var(--cream-3);border:none;border-radius:var(--r-lg);
+  padding:20px 18px 18px;cursor:pointer;
+  transition:transform .12s, background .15s;
+  display:flex;flex-direction:column;gap:12px;
+  min-height:150px;position:relative;overflow:hidden;
+  border-left:3px solid var(--tile-accent,var(--coral));
+}
+.home-tile:active{transform:scale(.98);background:var(--cream-2)}
+
+.home-tile-icon{
+  width:36px;height:36px;display:flex;align-items:center;justify-content:center;
+  font-size:26px;color:var(--tile-accent,var(--ink));
+}
+.home-tile-icon svg{width:100%;height:100%;display:block}
+
+.home-tile-label{
+  font-family:var(--font-ui);font-size:15px;font-weight:600;
+  line-height:1.35;letter-spacing:-.2px;color:var(--ink);
+  margin-top:auto;
+}
+.home-tile-sub{
+  font-family:var(--font-ui);font-size:12px;color:var(--ink-2);
+  margin-top:4px;line-height:1.5;
+}
+
+/* accent tile — full width */
+.home-tile.accent{
+  grid-column:1 / -1;min-height:auto;
+  background:var(--coral);
+  color:#fff;flex-direction:row;align-items:center;gap:16px;padding:22px 20px;
+  border-left:none;
+}
+.home-tile.accent .home-tile-icon{width:44px;height:44px;font-size:32px;color:#fff;flex-shrink:0}
+.home-tile.accent .home-tile-label{color:#fff;font-family:var(--font-display);font-size:22px;font-weight:500;letter-spacing:-.4px;margin:0}
+.home-tile.accent .home-tile-sub{color:rgba(255,255,255,.85);font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:600}
+.home-tile.accent:active{transform:scale(.98);background:var(--coral-dk)}
+
+.home-sessions-wrap{padding:14px 20px 0}
+
+/* ── FORM ── */
+.form-group{margin-bottom:18px}
+.form-label{
+  font-family:var(--font-ui);font-size:13px;font-weight:600;
+  color:var(--ink-2);
+  margin-bottom:6px;
+}
+.form-input{
+  width:100%;background:var(--paper);
+  border:1px solid #e6dfd8;border-radius:var(--r-sm);
+  color:var(--ink);font-family:var(--font-ui);font-size:15px;font-weight:500;
+  padding:12px 14px;outline:none;transition:border-color .15s, box-shadow .15s;
+}
+.form-input:focus{border-color:var(--coral);box-shadow:0 0 0 3px rgba(204,120,92,.15)}
+.form-input::placeholder{color:var(--ink-4)}
+.form-select{
+  appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237B5CFF' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 16px center;
+  padding-right:40px;cursor:pointer;
+}
+
+/* ── BADGES ── */
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:var(--r-pill);
+  font-family:var(--font-ui);font-size:11px;font-weight:700;
+  white-space:nowrap;letter-spacing:.02em;
+}
+.badge-pending{color:#8A6A00;background:var(--yellow)}
+.badge-approved{color:#fff;background:var(--ok)}
+.badge-correction{color:#fff;background:var(--purple)}
+.badge-danger{color:#fff;background:var(--err)}
+.badge-dot::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;display:inline-block}
+
+/* ── SESSION CARDS ── */
+.session-card{
+  background:var(--paper);border:none;
+  border-radius:var(--r);padding:18px;cursor:pointer;
+  transition:all .22s cubic-bezier(.34,1.56,.64,1);margin-bottom:12px;
+  position:relative;overflow:hidden;
+  box-shadow:var(--shadow-soft),var(--rim);
+}
+.session-card:hover{transform:translateY(-2px) rotate(-.4deg);box-shadow:var(--shadow-pop),var(--rim)}
+.session-card:active{transform:translateY(0) scale(.99)}
+.session-card::before{
+  content:'';position:absolute;left:0;top:14px;bottom:14px;width:4px;
+  background:linear-gradient(180deg,var(--purple-2),var(--purple));
+  border-radius:0 4px 4px 0;
+}
+.session-route{
+  font-family:var(--font-display);font-size:24px;font-weight:400;
+  margin-bottom:8px;letter-spacing:-.015em;line-height:1.1;
+  display:flex;align-items:center;gap:8px;color:var(--ink);
+}
+.session-route-arrow{color:var(--purple);font-family:var(--font-ui);font-size:16px;font-weight:400}
+.session-meta{
+  font-family:var(--font-mono);font-size:11px;color:var(--ink-3);
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+}
+.session-meta-dot{width:3px;height:3px;border-radius:50%;background:var(--ink-4);display:inline-block}
+.session-members{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px}
+.member-chip{
+  background:var(--cream-2);color:var(--ink-2);
+  border-radius:var(--r-pill);padding:4px 12px;font-size:11px;font-weight:600;
+}
+.member-chip.me{background:linear-gradient(135deg,var(--yellow-2),var(--yellow));color:var(--ink);font-weight:700;box-shadow:0 2px 6px rgba(255,216,94,.4)}
+
+/* ══════════════════════════════════════════
+   SCAN SCREEN — bright playful mode
+   ══════════════════════════════════════════ */
+.screen#s-scanning{background:linear-gradient(180deg,var(--cream) 0%, var(--cream-2) 100%)}
+.scan-header{
+  padding:18px;margin:0 14px;
+  background:var(--paper);border-radius:var(--r);
+  box-shadow:var(--shadow-soft),var(--rim);
+  display:grid;grid-template-columns:1fr auto;gap:14px;
+  position:sticky;top:70px;z-index:5;
+}
+.scan-counters{display:flex;gap:10px}
+.scan-counter-cell{
+  padding:10px 12px;border-radius:var(--r-sm);min-width:70px;
+  background:var(--purple-bg);text-align:center;
+}
+.scan-counter-cell:nth-child(2){background:var(--mint-bg)}
+.scan-counter-cell:nth-child(3){background:var(--coral-bg)}
+.scan-count{
+  font-family:var(--font-display);font-size:34px;font-weight:400;
+  color:var(--purple);line-height:.95;letter-spacing:-.02em;
+}
+.scan-counter-cell:nth-child(2) .scan-count{color:var(--mint-dk)}
+.scan-counter-cell:nth-child(3) .scan-count{color:var(--coral-dk)}
+.scan-count-label{
+  font-family:var(--font-mono);font-size:9px;font-weight:600;
+  color:var(--ink-3);margin-top:4px;
+  text-transform:uppercase;letter-spacing:.1em;
+}
+.scan-meta-right{display:flex;flex-direction:column;gap:6px;align-items:flex-end;justify-content:space-between}
+.scan-route{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);text-align:right;text-transform:uppercase;letter-spacing:.06em}
+.scan-route strong{color:var(--ink);font-weight:700}
+
+.scan-input-area{padding:14px;margin:14px}
+.scan-input-wrap{
+  position:relative;display:flex;align-items:center;gap:12px;
+  background:var(--paper);padding:6px 6px 6px 16px;
+  border-radius:var(--r-pill);
+  box-shadow:var(--shadow-pop),var(--rim);
+}
+.scan-input-field{
+  flex:1;background:transparent;border:none;
+  color:var(--ink);font-family:var(--font-mono);font-size:15px;font-weight:600;
+  padding:12px 6px;outline:none;letter-spacing:.04em;
+}
+.scan-input-field::placeholder{color:var(--ink-4);font-weight:500}
+.scan-pulse{
+  width:36px;height:36px;border-radius:50%;flex-shrink:0;
+  background:radial-gradient(circle at 30% 30%,#fff 0%, transparent 45%), linear-gradient(135deg, var(--yellow) 0%, var(--coral) 100%);
+  box-shadow:0 4px 12px rgba(255,154,138,.5), 0 1px 0 rgba(255,255,255,.4) inset;
+  animation:pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse{
+  0%,100%{transform:scale(1)}
+  50%{transform:scale(1.12) rotate(20deg)}
+}
+
+.scan-list{flex:1;overflow-y:auto;padding:0 14px 20px}
+.scan-item{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 16px;margin-bottom:8px;
+  background:var(--paper);border-radius:var(--r-sm);
+  box-shadow:var(--shadow-soft),var(--rim);
+  animation:slideIn .24s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes slideIn{from{opacity:0;transform:translateY(-6px) scale(.97)}to{opacity:1;transform:none}}
+.scan-item-num{
+  font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--purple);
+  width:28px;text-align:center;flex-shrink:0;
+  background:var(--purple-bg);padding:4px 0;border-radius:var(--r-pill);
+}
+.scan-item-info{flex:1;min-width:0}
+.scan-item-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.scan-item-barcode{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-top:2px;letter-spacing:.04em}
+.scan-item-meta{font-size:10px;color:var(--ink-3);font-family:var(--font-mono)}
+.scan-item-by{font-family:var(--font-mono);font-size:10px;color:var(--ink-4);flex-shrink:0;text-transform:uppercase;letter-spacing:.06em}
+.scan-item-remove{
+  width:30px;height:30px;border-radius:50%;
+  background:var(--cream-2);border:none;color:var(--ink-3);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  transition:all .15s;font-size:14px;
+}
+.scan-item-remove:hover{background:var(--err);color:#fff;transform:rotate(90deg)}
+.scan-item.error{background:var(--coral-bg)}
+.scan-item.error .scan-item-name{color:var(--err)}
+
+/* ── HISTORY / LOOKUP ── */
+.history-item{display:flex;gap:14px;padding:14px 0}
+.history-line{width:3px;background:var(--cream-3);border-radius:2px;flex-shrink:0;margin:6px 0;position:relative}
+.history-line::before{
+  content:'';width:14px;height:14px;border-radius:50%;
+  background:var(--paper);border:3px solid var(--cream-3);
+  position:absolute;left:-6px;top:0;
+}
+.history-item:first-child .history-line::before{
+  background:radial-gradient(circle at 30% 30%, #fff, transparent 55%), var(--purple);
+  border-color:var(--purple);box-shadow:0 0 0 4px var(--purple-bg);
+}
+.history-info{flex:1;min-width:0}
+.history-route{font-family:var(--font-display);font-size:18px;font-weight:400;margin-bottom:3px;letter-spacing:-.015em}
+.history-date{font-family:var(--font-mono);font-size:10px;color:var(--ink-3);letter-spacing:.04em}
+.history-who{font-size:11px;color:var(--ink-3);margin-top:4px}
+.correction-tag{
+  font-family:var(--font-ui);font-size:10px;font-weight:700;color:#fff;
+  background:var(--purple);padding:2px 8px;border-radius:var(--r-pill);
+  margin-left:6px;
+}
+
+/* ── ADMIN ── */
+.location-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;margin-bottom:8px;
+  background:var(--paper);border-radius:var(--r-sm);
+  box-shadow:var(--shadow-soft),var(--rim);
+}
+.location-name{font-size:15px;font-weight:600}
+.location-inactive{color:var(--ink-4);text-decoration:line-through}
+.loc-actions{display:flex;gap:6px}
+.loc-btn{
+  padding:6px 12px;border-radius:var(--r-pill);
+  font-family:var(--font-ui);font-size:11px;font-weight:700;
+  border:none;background:var(--cream-2);color:var(--ink-2);cursor:pointer;
+  transition:all .15s;
+}
+.loc-btn:hover{background:var(--purple);color:#fff}
+.loc-btn.danger:hover{background:var(--err);color:#fff}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:24px;left:50%;
+  transform:translateX(-50%) translateY(100px);
+  background:var(--ink);color:var(--cream);
+  border-radius:var(--r-pill);padding:14px 22px;
+  font-family:var(--font-ui);font-size:13px;font-weight:600;
+  z-index:1000;transition:transform .28s cubic-bezier(.34,1.56,.64,1);
+  white-space:nowrap;max-width:calc(100vw - 40px);text-align:center;
+  box-shadow:var(--shadow-deep);
+}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{background:var(--ok);color:#fff}
+.toast.error{background:var(--err);color:#fff}
+
+/* ── MODAL ── */
+.modal-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(42,34,54,.48);backdrop-filter:blur(6px);
+  z-index:100;align-items:flex-end;padding:0;
+}
+.modal-overlay.show{display:flex}
+.modal-box{
+  background:var(--paper);
+  border-radius:var(--r-lg) var(--r-lg) 0 0;
+  width:100%;max-width:480px;margin:0 auto;
+  padding:28px 22px 34px;
+  animation:slideUp .32s cubic-bezier(.34,1.56,.64,1);position:relative;
+  box-shadow:0 -20px 60px rgba(42,34,54,.25);
+}
+.modal-box::before{
+  content:'';position:absolute;top:12px;left:50%;transform:translateX(-50%);
+  width:44px;height:5px;background:var(--cream-3);border-radius:3px;
+}
+@keyframes slideUp{from{transform:translateY(40px);opacity:.6}to{transform:none;opacity:1}}
+.modal-title{font-family:var(--font-display);font-size:28px;font-weight:400;margin-bottom:10px;letter-spacing:-.015em;margin-top:16px;line-height:1.1}
+.modal-desc{font-size:14px;color:var(--ink-2);line-height:1.55;margin-bottom:22px}
+.modal-actions{display:flex;gap:10px}
+.modal-actions .btn{flex:1}
+
+/* ── SLACK BOX ── */
+.slack-box{
+  background:var(--ink);color:var(--cream);
+  border-radius:var(--r);padding:18px;
+  font-family:var(--font-mono);font-size:11px;line-height:1.8;
+  white-space:pre-wrap;word-break:break-all;
+  max-height:44vh;overflow-y:auto;
+  box-shadow:var(--shadow-soft);
+}
+
+/* ── LOG ── */
+.log-filter-bar{
+  padding:12px 18px;background:transparent;
+  display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;
+}
+.log-filter-btn{
+  background:var(--paper);border:none;border-radius:var(--r-pill);
+  color:var(--ink-2);font-family:var(--font-ui);font-size:12px;font-weight:700;
+  padding:9px 16px;cursor:pointer;white-space:nowrap;
+  transition:all .18s;flex-shrink:0;
+  box-shadow:var(--shadow-soft),var(--rim);
+}
+.log-filter-btn:hover{transform:translateY(-1px)}
+.log-filter-btn.active{
+  background:linear-gradient(180deg,var(--purple-2),var(--purple));color:#fff;
+  box-shadow:0 8px 18px -4px rgba(123,92,255,.5),var(--rim);
+}
+.log-date-group{
+  padding:14px 20px 8px;
+  font-family:var(--font-display);font-size:20px;font-weight:400;
+  color:var(--ink);background:transparent;position:sticky;top:0;z-index:2;
+  letter-spacing:-.01em;
+}
+.log-day-summary{
+  margin:4px 18px 10px;
+  background:linear-gradient(135deg,var(--mint-bg),var(--sky-bg));
+  border-radius:var(--r-sm);padding:14px 16px;
+  border-left:3px solid var(--mint-dk);
+}
+.log-day-summary-total{
+  font-family:var(--font-ui);font-size:13px;font-weight:700;
+  color:var(--mint-dk);margin-bottom:10px;
+}
+.log-sum-route{
+  margin-bottom:8px;
+}
+.log-sum-route-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:4px;
+}
+.log-sum-route-label{
+  font-family:var(--font-ui);font-size:12px;font-weight:700;color:var(--ink-2);
+}
+.log-sum-route-count{
+  font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--mint-dk);
+}
+.log-sum-cat-row{
+  display:flex;flex-wrap:wrap;gap:5px;
+}
+.log-sum-cat{
+  font-family:var(--font-mono);font-size:11px;color:var(--ink-3);
+  background:rgba(255,255,255,.65);border-radius:var(--r-pill);
+  padding:2px 8px;white-space:nowrap;
+}
+.log-sum-cat b{
+  color:var(--ink);font-weight:700;
+}
+.log-sum-divider{
+  border-top:1px dashed var(--mint-dk);margin:8px 0;
+}
+.log-session-card{
+  background:var(--paper);border-radius:var(--r-sm);margin:6px 18px;
+  cursor:pointer;transition:all .18s;
+  box-shadow:var(--shadow-soft),var(--rim);
+}
+.log-session-card:hover{transform:translateY(-1px);box-shadow:var(--shadow-pop),var(--rim)}
+.log-session-header{display:flex;align-items:center;gap:12px;padding:14px 16px}
+.log-session-chevron{font-size:14px;color:var(--purple);transition:transform .22s;flex-shrink:0;font-weight:700}
+.log-session-chevron.open{transform:rotate(90deg)}
+.log-barcode-list{padding:0 16px 14px;background:var(--cream-2);display:none;border-radius:0 0 var(--r-sm) var(--r-sm);margin-top:-4px}
+.log-barcode-list.open{display:block}
+.log-barcode-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--cream-3);font-family:var(--font-mono);font-size:11px}
+.log-barcode-row:last-child{border-bottom:none}
+
+.sql-box{
+  background:var(--ink);color:var(--cream);
+  border-radius:var(--r-sm);padding:14px;
+  font-family:var(--font-mono);font-size:10px;
+  white-space:pre;overflow-x:auto;line-height:1.7;margin-top:10px;
+}
+
+/* ── EMPTY ── */
+.empty{
+  text-align:center;padding:56px 24px;color:var(--ink-3);
+  background:var(--paper);border-radius:var(--r);margin:8px 0;
+  box-shadow:var(--shadow-soft),var(--rim);
+}
+.empty-icon{font-size:48px;margin-bottom:14px;display:block;filter:drop-shadow(0 6px 10px rgba(42,34,54,.15))}
+.empty-text{font-family:var(--font-display);font-size:20px;font-weight:400;line-height:1.35;color:var(--ink-2);letter-spacing:-.01em}
+
+/* ── DIVIDER ── */
+.divider{
+  height:2px;background:repeating-linear-gradient(90deg,var(--cream-3) 0 6px, transparent 6px 12px);
+  margin:28px 0;border-radius:1px;
+}
+
+/* ── LOADING ── */
+.loading{display:flex;align-items:center;justify-content:center;gap:12px;padding:28px;color:var(--ink-3);font-size:13px;font-weight:600}
+.spinner{width:18px;height:18px;border:2.5px solid var(--cream-3);border-top-color:var(--purple);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── STATS / CALLOUT ── */
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.stat-cell{padding:14px 10px;background:var(--paper);border-radius:var(--r-sm);text-align:center;box-shadow:var(--shadow-soft),var(--rim)}
+.stat-cell-val{font-family:var(--font-display);font-size:28px;font-weight:400;color:var(--purple);line-height:1;letter-spacing:-.02em}
+.stat-cell-lbl{font-family:var(--font-mono);font-size:9px;color:var(--ink-3);margin-top:6px;text-transform:uppercase;letter-spacing:.08em}
+
+.callout{
+  padding:14px 16px;border-radius:var(--r-sm);
+  font-size:13px;line-height:1.55;
+  background:var(--yellow-bg);color:var(--ink);
+  display:flex;align-items:flex-start;gap:12px;
+  box-shadow:var(--shadow-soft),var(--rim);
+}
+.callout::before{
+  content:'💡';flex-shrink:0;font-size:20px;line-height:1;
+}
+.callout.warn::before{content:'⚠️'}
+.callout.err{background:var(--coral-bg);color:var(--coral-dk)}
+.callout.err::before{content:'🚨'}
+.callout.ok{background:var(--mint-bg);color:var(--mint-dk)}
+.callout.ok::before{content:'✨'}
+
+.detail-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px}
+.detail-stats>div{padding:14px 10px;background:var(--paper);border-radius:var(--r-sm);box-shadow:var(--shadow-soft),var(--rim)}
+
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
-<a href="../" class="hub-back">← 허브로</a>
-<iframe src="https://315seconds.github.io/miu_move/" title="물류이동"></iframe>
+
+<!-- ════ reusable 3D icon sprites ════ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- Gradients -->
+    <linearGradient id="gPurple" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#B9A4FF"/><stop offset="1" stop-color="#6342E8"/></linearGradient>
+    <linearGradient id="gYellow" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFEB9E"/><stop offset="1" stop-color="#F5B01E"/></linearGradient>
+    <linearGradient id="gMint" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#B8F2D8"/><stop offset="1" stop-color="#2FB487"/></linearGradient>
+    <linearGradient id="gCoral" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFC6B9"/><stop offset="1" stop-color="#E86450"/></linearGradient>
+    <linearGradient id="gSky" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#CFE3FC"/><stop offset="1" stop-color="#3F86D5"/></linearGradient>
+    <linearGradient id="gBoxSide" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD47A"/><stop offset="1" stop-color="#D99222"/></linearGradient>
+    <linearGradient id="gBoxTop" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFEBB3"/><stop offset="1" stop-color="#F3C66D"/></linearGradient>
+    <linearGradient id="gBoxDark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D99222"/><stop offset="1" stop-color="#A5690F"/></linearGradient>
+    <radialGradient id="gShine" cx=".3" cy=".3" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".7"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  </defs>
+
+  <!-- 01 · BOX (for scan tile) -->
+  <symbol id="ic-box" viewBox="0 0 100 100">
+    <!-- left face -->
+    <path d="M10 32 L50 52 L50 92 L10 72 Z" fill="url(#gBoxSide)"/>
+    <!-- right face -->
+    <path d="M90 32 L50 52 L50 92 L90 72 Z" fill="url(#gBoxDark)"/>
+    <!-- top face -->
+    <path d="M50 12 L90 32 L50 52 L10 32 Z" fill="url(#gBoxTop)"/>
+    <!-- tape -->
+    <path d="M50 12 L50 52" stroke="#fff" stroke-width="3" opacity=".6"/>
+    <path d="M30 22 L70 22" stroke="#fff" stroke-width="2" opacity=".4"/>
+    <!-- shine -->
+    <ellipse cx="35" cy="30" rx="14" ry="5" fill="url(#gShine)"/>
+  </symbol>
+
+  <!-- 02 · SHIELD CHECK (approve) -->
+  <symbol id="ic-shield" viewBox="0 0 100 100">
+    <path d="M50 8 L18 20 L18 52 C18 72 32 86 50 92 C68 86 82 72 82 52 L82 20 Z" fill="url(#gMint)"/>
+    <path d="M50 8 L18 20 L18 52 C18 60 22 68 28 74 L28 24 L50 15 Z" fill="#fff" opacity=".28"/>
+    <path d="M34 50 L45 60 L66 40" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <ellipse cx="38" cy="28" rx="10" ry="4" fill="#fff" opacity=".5"/>
+  </symbol>
+
+  <!-- 03 · MAGNIFIER (lookup) -->
+  <symbol id="ic-glass" viewBox="0 0 100 100">
+    <circle cx="42" cy="42" r="28" fill="url(#gSky)"/>
+    <circle cx="42" cy="42" r="22" fill="#fff" opacity=".3"/>
+    <circle cx="42" cy="42" r="22" fill="none" stroke="#fff" stroke-width="3" opacity=".6"/>
+    <ellipse cx="32" cy="32" rx="8" ry="4" fill="#fff" opacity=".7"/>
+    <rect x="62" y="62" width="30" height="12" rx="6" transform="rotate(45 62 62)" fill="url(#gBoxSide)"/>
+    <rect x="62" y="62" width="30" height="6" rx="3" transform="rotate(45 62 62)" fill="#fff" opacity=".3"/>
+  </symbol>
+
+  <!-- 04 · CLIPBOARD (log) -->
+  <symbol id="ic-clip" viewBox="0 0 100 100">
+    <rect x="20" y="16" width="60" height="76" rx="8" fill="url(#gCoral)"/>
+    <rect x="20" y="16" width="60" height="76" rx="8" fill="url(#gShine)" opacity=".4"/>
+    <rect x="28" y="10" width="44" height="18" rx="5" fill="#8B3A2C"/>
+    <rect x="28" y="10" width="44" height="6" rx="3" fill="#fff" opacity=".25"/>
+    <rect x="30" y="38" width="40" height="4" rx="2" fill="#fff" opacity=".8"/>
+    <rect x="30" y="50" width="30" height="4" rx="2" fill="#fff" opacity=".6"/>
+    <rect x="30" y="62" width="36" height="4" rx="2" fill="#fff" opacity=".6"/>
+    <rect x="30" y="74" width="22" height="4" rx="2" fill="#fff" opacity=".45"/>
+  </symbol>
+
+  <!-- 05 · GEAR (admin) -->
+  <symbol id="ic-gear" viewBox="0 0 100 100">
+    <g>
+      <path d="M50 8 L58 18 L70 14 L72 28 L84 34 L78 46 L86 56 L74 62 L72 76 L58 72 L50 84 L42 72 L28 76 L26 62 L14 56 L22 46 L16 34 L28 28 L30 14 L42 18 Z" fill="url(#gPurple)"/>
+      <circle cx="50" cy="48" r="18" fill="#fff" opacity=".25"/>
+      <circle cx="50" cy="48" r="14" fill="#fff"/>
+      <circle cx="50" cy="48" r="8" fill="url(#gPurple)"/>
+      <ellipse cx="38" cy="28" rx="10" ry="4" fill="#fff" opacity=".45"/>
+    </g>
+  </symbol>
+</svg>
+
+<!-- ════════════════ HOME ════════════════ -->
+<div class="screen active" id="s-home">
+
+  <header class="miu-header">
+    <a href="/" class="miu-header-back" aria-label="허브로">
+      <i class="ph-bold ph-caret-left"></i>
+    </a>
+    <div class="miu-header-title">
+      <h1 class="miu-header-h1">물류 이동</h1>
+    </div>
+    <div class="miu-header-actions">
+      <span id="home-date" style="font-size:12px;color:var(--miu-muted);padding-right:4px"></span>
+    </div>
+  </header>
+
+  <div class="miu-app-body" style="padding-bottom:40px">
+
+
+    <!-- 통계 -->
+    <div class="miu-section" style="margin-top:20px">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div class="miu-stat" style="padding:14px 12px">
+          <div class="miu-stat-label" style="font-size:10px">오늘 이동</div>
+          <div class="miu-stat-value" id="stat-today-move" style="color:var(--miu-muted);font-size:24px">—</div>
+        </div>
+        <div class="miu-stat" style="padding:14px 12px">
+          <div class="miu-stat-label" style="font-size:10px">대기 승인</div>
+          <div class="miu-stat-value" id="stat-pending-move" style="color:var(--miu-muted);font-size:24px">—</div>
+        </div>
+        <div class="miu-stat" style="padding:14px 12px">
+          <div class="miu-stat-label" style="font-size:10px">이번 주</div>
+          <div class="miu-stat-value" id="stat-week-move" style="color:var(--miu-muted);font-size:24px">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 01 이동 -->
+    <div class="miu-section">
+      <div class="miu-section-head">
+        <span class="miu-section-num">01</span>
+        <span class="miu-section-label">이동</span>
+        <span class="miu-section-divider"></span>
+      </div>
+      <div class="miu-tile-grid">
+        <a href="javascript:void(0)" onclick="startScanFlow()" class="miu-tile miu-tile-wide" style="--tile-accent:var(--miu-primary)">
+          <div class="miu-tile-icon"><i class="ph-bold ph-scan"></i></div>
+          <div class="miu-tile-body">
+            <div class="miu-tile-title">바코드 스캔</div>
+            <div class="miu-tile-desc">개별 물건 이동 · 실시간 스캔</div>
+          </div>
+          <span class="miu-tile-arrow"><i class="ph-bold ph-caret-right"></i></span>
+        </a>
+        <a href="javascript:void(0)" onclick="showScreen('s-bulk')" class="miu-tile miu-tile-wide" style="--tile-accent:#7c6da8">
+          <div class="miu-tile-icon"><i class="ph-bold ph-stack"></i></div>
+          <div class="miu-tile-body">
+            <div class="miu-tile-title">대량 이동</div>
+            <div class="miu-tile-desc">마대 · 일괄 처리</div>
+          </div>
+          <span class="miu-tile-arrow"><i class="ph-bold ph-caret-right"></i></span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 02 조회 -->
+    <div class="miu-section">
+      <div class="miu-section-head">
+        <span class="miu-section-num">02</span>
+        <span class="miu-section-label">조회</span>
+        <span class="miu-section-divider"></span>
+      </div>
+      <div class="miu-tile-grid">
+        <a href="javascript:void(0)" onclick="showScreen('s-log')" class="miu-tile miu-tile-wide" style="--tile-accent:#3c4e75">
+          <div class="miu-tile-icon"><i class="ph-bold ph-clipboard-text"></i></div>
+          <div class="miu-tile-body">
+            <div class="miu-tile-title">이동 로그</div>
+            <div class="miu-tile-desc">전체 이동 내역 · 날짜별 조회</div>
+          </div>
+          <span class="miu-tile-arrow"><i class="ph-bold ph-caret-right"></i></span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 03 관리 -->
+    <div class="miu-section">
+      <div class="miu-section-head">
+        <span class="miu-section-num">03</span>
+        <span class="miu-section-label">관리</span>
+        <span class="miu-section-divider"></span>
+      </div>
+      <div class="miu-tile-grid">
+        <a href="javascript:void(0)" onclick="startAdminFlow()" class="miu-tile miu-tile-wide" style="--tile-accent:var(--miu-muted)">
+          <div class="miu-tile-icon"><i class="ph-bold ph-users-three"></i></div>
+          <div>
+            <div class="miu-tile-title">관리자</div>
+            <div class="miu-tile-desc">매장 · 승인자</div>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- 오늘 진행 중 세션 -->
+    <div class="miu-section" id="home-sessions-section">
+      <div class="miu-section-head">
+        <span class="miu-section-num">04</span>
+        <span class="miu-section-label">오늘 진행 중</span>
+        <span class="miu-section-divider"></span>
+        <button onclick="loadHomeSessions(); this.disabled=true; setTimeout(()=>this.disabled=false, 800)" class="miu-icon-btn" aria-label="새로고침" style="margin-left:6px">
+          <i class="ph-bold ph-arrow-clockwise"></i>
+        </button>
+      </div>
+      <div id="home-sessions"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="screen" id="s-bulk">
+  <div class="topbar">
+    <div class="topbar-back" onclick="goBack()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+    <div><div class="topbar-title">대량 이동</div><div class="topbar-sub">마대 · 일괄 위치 변경</div></div>
+  </div>
+  <div class="content">
+    <div class="form-group">
+      <label class="form-label">담당자</label>
+      <select class="form-input form-select" id="bulk-name"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">출발지</label>
+      <select class="form-input form-select" id="bulk-from"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">도착지</label>
+      <select class="form-input form-select" id="bulk-to"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">바코드 목록</label>
+      <textarea class="form-input" id="bulk-barcodes" rows="8"
+        placeholder="바코드를 붙여넣으세요&#10;쉼표, 줄바꿈, 스페이스 모두 가능&#10;&#10;예) C02941, C38371&#10;C37171&#10;C37173"
+        style="resize:vertical;font-family:var(--font-mono);font-size:13px;line-height:1.7"></textarea>
+      <div style="font-size:12px;color:var(--ink-3);margin-top:6px">엑셀에서 바코드 열 복사 후 붙여넣기 하세요</div>
+    </div>
+    <div id="bulk-error" style="color:var(--err);font-size:13px;margin-bottom:12px;display:none"></div>
+    <button class="btn btn-primary" onclick="bulkSubmit()" id="bulk-submit-btn">
+      <span>바코드 확인 →</span>
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════ BULK CONFIRM ════════════════ -->
+<div class="screen" id="s-bulk-confirm">
+  <div class="topbar">
+    <div class="topbar-back" onclick="goBack()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+    <div><div class="topbar-title">대량 이동 확인</div><div class="topbar-sub">내용을 확인 후 제출하세요</div></div>
+  </div>
+  <div class="content">
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <div style="font-size:15px;font-weight:800;color:var(--ink)" id="bulk-confirm-route"></div>
+      </div>
+      <div class="card-row">
+        <span class="card-row-label">정상</span>
+        <span class="card-row-value" style="color:var(--ok)" id="bulk-confirm-ok"></span>
+      </div>
+      <div class="card-row" id="bulk-confirm-err-row" style="display:none">
+        <span class="card-row-label">오류 (제외)</span>
+        <span class="card-row-value" style="color:var(--err)" id="bulk-confirm-err"></span>
+      </div>
+    </div>
+    <div id="bulk-confirm-list" style="max-height:320px;overflow-y:auto;margin-bottom:16px"></div>
+    <button class="btn btn-primary" onclick="bulkConfirm()" id="bulk-confirm-btn">제출하기</button>
+    <div id="bulk-confirm-loading" class="loading" style="display:none"><div class="spinner"></div>제출 중...</div>
+  </div>
+</div>
+
+<!-- ════════════════ SETTINGS ════════════════ -->
+
+<!-- ════════════════ SCAN INFO ════════════════ -->
+<div class="screen" id="s-scan-info">
+  <div class="topbar">
+    <div class="topbar-back" onclick="goBack()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+    <div style="flex:1"><div class="topbar-title">이동 시작</div></div>
+  </div>
+  <div class="content">
+    <h1 class="page-title">누가, 어디로 <em>옮기나요?</em></h1>
+    <p class="page-desc">담당자와 출발·도착지를 선택해주세요.</p>
+
+    <div class="form-group">
+      <label class="form-label">담당자</label>
+      <select class="form-input form-select" id="scan-name"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">출발지</label>
+      <select class="form-input form-select" id="scan-from"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">도착지</label>
+      <select class="form-input form-select" id="scan-to"></select>
+    </div>
+    <div id="scan-info-error" style="display:none;color:var(--err);font-size:13px;margin-bottom:14px;font-weight:600"></div>
+    <button class="btn btn-primary" onclick="submitScanInfo()" id="scan-info-next-btn">
+      <span>스캔 시작하기</span>
+      <span>→</span>
+    </button>
+  </div>
+</div>
+
+<!-- ════════════════ SESSION CONFIRM ════════════════ -->
+<div class="screen" id="s-session-confirm">
+  <div class="topbar">
+    <div class="topbar-back" onclick="goBack()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+    <div><div class="topbar-title">같은 경로 세션 있음</div></div>
+  </div>
+  <div class="content">
+    <div class="callout" style="margin-bottom:20px">오늘 같은 이동 경로의 세션이 있어요. 합류하거나, 새 배송으로 별도 세션을 만들 수 있어요.</div>
+    <div class="card" id="existing-session-info" style="margin-bottom:20px"></div>
+    <button class="btn btn-primary" onclick="joinExistingSession()">기존 세션에 합류하기</button>
+    <button class="btn btn-secondary" onclick="createNewSession()">새 배송으로 시작하기</button>
+    <button class="btn btn-ghost" onclick="goBack()">돌아가기</button>
+  </div>
+</div>
+
+<!-- ════════════════ SCANNING ════════════════ -->
+<div class="screen" id="s-scanning">
+  <div class="topbar">
+    <div class="topbar-back" onclick="confirmLeaveScanning()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+    <div style="flex:1">
+      <div class="topbar-title" id="scanning-title">스캔 중</div>
+      <div class="topbar-sub" id="scanning-sub"></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="submitScan()">제출</button>
+  </div>
+  <div class="scan-header">
+    <div class="scan-counters">
+      <div class="scan-counter-cell">
+        <div class="scan-count" id="scan-count">0</div>
+        <div class="scan-count-label">전체</div>
+      </div>
+      <div class="scan-counter-cell">
+        <div class="scan-count" id="scan-count-mine">0</div>
+        <div class="scan-count-label">내 것</div>
+      </div>
+      <div class="scan-counter-cell">
+        <div class="scan-count" id="scan-count-hanger">0</div>
+        <div class="scan-count-label">행거</div>
+      </div>
+    </div>
+    <div class="scan-meta-right">
+      <div class="scan-route" id="scan-route-display"></div>
+      <div style="font-family:var(--font-mono);font-size:9px;color:var(--ink-4);text-transform:uppercase;letter-spacing:.06em" id="scan-session-members"></div>
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <button onclick="setScanFilter('all')" id="filter-btn-all" class="loc-btn" style="font-size:10px;padding:4px 10px;background:var(--purple);color:#fff">전체</button>
+        <button onclick="setScanFilter('mine')" id="filter-btn-mine" class="loc-btn" style="font-size:10px;padding:4px 10px">내 것만</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <button onclick="completeHanger()" class="loc-btn" style="flex:1">✓ 행거 완료</button>
+        <button onclick="deleteCurrentHanger()" class="loc-btn" style="flex:1;color:var(--err)">✕ 행거 삭제</button>
+      </div>
+    </div>
+  </div>
+  <div class="scan-input-area">
+    <div class="scan-input-wrap">
+      <input class="scan-input-field" id="barcode-input" placeholder="바코드를 스캔하세요..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="none" lang="en">
+      <div class="scan-pulse"></div>
+    </div>
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <input class="scan-input-field" id="manual-barcode-input" placeholder="직접 입력..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" style="flex:1;background:var(--paper);border-radius:var(--r-pill);padding:12px 18px;box-shadow:var(--shadow-soft),var(--rim)" inputmode="text">
+      <button onclick="submitManualBarcode()" class="btn btn-primary btn-sm" style="padding:12px 18px">+ 추가</button>
+    </div>
+  </div>
+  <div class="scan-list" id="scan-list"></div>
+</div>
+
+<!-- ════════════════ ADMIN AUTH ════════════════ -->
+<!-- ════════════════ LOG ════════════════ -->
+<div class="screen" id="s-log">
+  <div class="topbar">
+    <div class="topbar-back" onclick="goBack()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+    <div style="flex:1"><div class="topbar-title">이동 로그</div><div class="topbar-sub" id="log-sub"></div></div>
+    <div class="topbar-action" onclick="downloadLogExcel()" style="background:var(--mint)">⬇ 엑셀</div>
+  </div>
+  <div class="log-filter-bar">
+    <button class="log-filter-btn active" onclick="setLogFilter('today',this)">오늘</button>
+    <button class="log-filter-btn" onclick="setLogFilter('week',this)">이번 주</button>
+    <button class="log-filter-btn" onclick="setLogFilter('month',this)">이번 달</button>
+    <button class="log-filter-btn" onclick="setLogFilter('custom',this)">직접 입력</button>
+  </div>
+  <div id="log-custom-range" style="display:none;padding:12px 18px;gap:8px;align-items:center">
+    <input type="date" class="form-input" id="log-date-from" style="flex:1;font-size:13px;padding:10px 12px">
+    <span style="color:var(--ink-3);font-size:13px">~</span>
+    <input type="date" class="form-input" id="log-date-to" style="flex:1;font-size:13px;padding:10px 12px">
+    <button class="btn btn-primary btn-sm" onclick="loadLog()" style="width:60px;flex-shrink:0">조회</button>
+  </div>
+  <div class="content" style="padding:0 0 120px">
+    <div id="log-list"></div>
+  </div>
+</div>
+
+<!-- ════════════════ LOOKUP ════════════════ -->
+<div class="screen" id="s-lookup">
+  <div class="topbar">
+    <div class="topbar-back" onclick="goBack()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+    <div><div class="topbar-title">경로 조회</div></div>
+  </div>
+  <div class="content">
+    <h1 class="page-title">어디 <em>있었죠?</em></h1>
+    <p class="page-desc">바코드로 이 상품의 이동 이력을 확인해요.</p>
+    <div class="lookup-tabs">
+      <button class="lookup-tab active" id="lookup-tab-single" onclick="switchLookupTab('single')">단일</button>
+      <button class="lookup-tab" id="lookup-tab-multi" onclick="switchLookupTab('multi')">여러 개</button>
+    </div>
+    <div id="lookup-panel-single">
+      <div class="form-group">
+        <label class="form-label">바코드</label>
+        <div style="display:flex;gap:8px">
+          <input class="form-input" id="lookup-input" placeholder="스캔 또는 입력..." style="flex:1;font-family:var(--font-mono)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+          <button class="btn btn-primary btn-sm" onclick="doLookup()" style="width:72px">조회</button>
+        </div>
+      </div>
+      <div id="lookup-result"></div>
+    </div>
+    <div id="lookup-panel-multi" style="display:none">
+      <div class="form-group">
+        <label class="form-label">바코드 목록</label>
+        <textarea class="form-input" id="lookup-multi-input" rows="6" placeholder="바코드를 입력하세요&#10;쉼표, 줄바꿈 모두 가능&#10;&#10;예) C02941, C38371&#10;C37171" style="font-family:var(--font-mono);font-size:13px;resize:none"></textarea>
+        <div style="font-size:12px;color:var(--ink-3);margin-top:6px">엑셀에서 바코드 열 복사 후 붙여넣기</div>
+      </div>
+      <button class="btn btn-primary" onclick="doLookupMulti()" id="lookup-multi-btn" style="width:100%"><span>최종 위치 조회 →</span></button>
+      <div id="lookup-multi-result" style="margin-top:16px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ ADMIN ════════════════ -->
+<div class="screen" id="s-admin">
+  <div class="topbar">
+    <div class="topbar-back" onclick="showScreen('s-home')"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
+    <div><div class="topbar-title">관리자</div></div>
+  </div>
+  <div class="content">
+    <div id="admin-need-auth" style="display:none;margin-bottom:14px">
+      <div class="callout err">변경은 매니저 인증 후 가능해요.</div>
+    </div>
+
+    <h2 class="section-title">매장 / 창고</h2>
+    <div id="location-list"></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <input class="form-input" id="new-location-input" placeholder="새 매장 이름" style="flex:1">
+      <button class="btn btn-primary btn-sm" onclick="addLocation()" style="width:72px">추가</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <h2 class="section-title" style="margin-top:0">물류팀 담당자</h2>
+    <div id="handler-list"></div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <input class="form-input" id="new-handler-input" placeholder="담당자 이름" style="flex:1">
+      <button class="btn btn-primary btn-sm" onclick="addHandler()" style="width:72px">추가</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ════════════════ MODAL ════════════════ -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-desc" id="modal-desc"></div>
+    <div class="modal-actions" id="modal-actions"></div>
+  </div>
+</div>
+
+<!-- ════════════════ TOAST ════════════════ -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+//  APP STATE
+// ══════════════════════════════════════════
+const app = {
+  supabase: null,
+  settings: {},
+  navStack: [],
+  currentScreen: 's-home',
+
+  // scan flow
+  scanUser: '',
+  scanFrom: '',
+  scanTo: '',
+  currentSession: null,
+  hangerCount: 0,      // 현재 행거 스캔 수 (행거 완료 시 리셋)
+  currentHangerItemIds: [],  // 현재 행거에 속한 아이템 ID 목록
+  cancelledTempIds: new Set(), // 낙관적 삽입 취소된 temp ID 목록
+  realtimeSub: null,
+  homeRealtimeSub: null,
+  scannedItems: [],       // local list for current scanner
+
+  // manager flow
+  selectedSession: null,
+
+  // pin state
+  adminAuthed: false,
+};
+
+const DEFAULT_SETTINGS = {};
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  loadSettings();
+  initSupabase();
+  renderHomeDate();
+  loadHomeSessions();
+
+  // Android 여부 감지
+  const isAndroid = /Android/i.test(navigator.userAgent);
+
+  const bi = document.getElementById('barcode-input');
+  let scanTimer = null;
+
+  if (isAndroid) {
+    // ── Android: IME에 맡기고 input.value 통째로 읽기 ──
+    // e.preventDefault() 없이 IME가 자유롭게 input에 값 씀
+    bi.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        clearTimeout(scanTimer);
+        const v = normalizeBarcode(bi.value);
+        bi.value = '';
+        if (v) processBarcode(v);
+      }
+    });
+
+    // 500ms 타이머 — Enter 없는 스캐너 대응
+    bi.addEventListener('input', () => {
+      clearTimeout(scanTimer);
+      scanTimer = setTimeout(() => {
+        const v = normalizeBarcode(bi.value);
+        bi.value = '';
+        if (v) processBarcode(v);
+      }, 500);
+    });
+
+  } else {
+    // ── iOS / PC: e.code 기반 버퍼 직접 관리 (IME 완전 차단) ──
+    function charFromKeyEvent(e) {
+      if (e.ctrlKey || e.metaKey || e.altKey) return null;
+      const letters = {
+        'KeyA':'a','KeyB':'b','KeyC':'c','KeyD':'d','KeyE':'e','KeyF':'f','KeyG':'g',
+        'KeyH':'h','KeyI':'i','KeyJ':'j','KeyK':'k','KeyL':'l','KeyM':'m','KeyN':'n',
+        'KeyO':'o','KeyP':'p','KeyQ':'q','KeyR':'r','KeyS':'s','KeyT':'t','KeyU':'u',
+        'KeyV':'v','KeyW':'w','KeyX':'x','KeyY':'y','KeyZ':'z'
+      };
+      if (letters[e.code]) return e.shiftKey ? letters[e.code].toUpperCase() : letters[e.code];
+      const digits = {
+        'Digit0':'0','Digit1':'1','Digit2':'2','Digit3':'3','Digit4':'4',
+        'Digit5':'5','Digit6':'6','Digit7':'7','Digit8':'8','Digit9':'9'
+      };
+      if (digits[e.code] && !e.shiftKey) return digits[e.code];
+      const specials = { 'Minus': e.shiftKey ? '_' : '-', 'Period':'.', 'Slash':'/' };
+      if (specials[e.code] !== undefined) return specials[e.code];
+      return null;
+    }
+
+    let scanBuffer = '';
+
+    bi.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        clearTimeout(scanTimer);
+        const v = scanBuffer.trim();
+        scanBuffer = ''; bi.value = '';
+        if (v) processBarcode(v);
+        return;
+      }
+      if (e.key === 'Backspace') {
+        e.preventDefault();
+        scanBuffer = scanBuffer.slice(0, -1);
+        bi.value = scanBuffer;
+        return;
+      }
+      const char = charFromKeyEvent(e);
+      if (char !== null) {
+        e.preventDefault();
+        scanBuffer += char;
+        bi.value = scanBuffer;
+        clearTimeout(scanTimer);
+        scanTimer = setTimeout(() => {
+          const v = scanBuffer.trim();
+          scanBuffer = ''; bi.value = '';
+          if (v) processBarcode(v);
+        }, 500);
+      }
+    });
+
+    bi.addEventListener('compositionstart', () => {
+      const saved = scanBuffer;
+      bi.blur();
+      requestAnimationFrame(() => { bi.focus(); scanBuffer = saved; bi.value = scanBuffer; });
+    });
+    bi.addEventListener('compositionend', () => { bi.value = scanBuffer; });
+  }
+
+  // 수동 입력 Enter 지원
+  document.getElementById('manual-barcode-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); submitManualBarcode(); }
+  });
+
+  // lookup enter
+  document.getElementById('lookup-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doLookup();
+  });
+});
+
+// ══════════════════════════════════════════
+//  SETTINGS
+// ══════════════════════════════════════════
+function loadSettings() {
+  try { app.settings = { ...DEFAULT_SETTINGS, ...JSON.parse(localStorage.getItem('miu-settings') || '{}') }; }
+  catch { app.settings = { ...DEFAULT_SETTINGS }; }
+}
+
+
+// ══════════════════════════════════════════
+//  SUPABASE
+// ══════════════════════════════════════════
+function initSupabase() {
+  app.supabase = window.sb;
+}
+
+function requireSupabase() {
+  if (!app.supabase) {
+    showModal('연결 오류', 'Supabase 연결이 초기화되지 않았어요. 페이지를 새로고침해주세요.',
+      [{ label: '닫기', class: 'btn-secondary', fn: closeModal }]);
+    return false;
+  }
+  return true;
+}
+
+async function sbQuery(fn) {
+  if (!app.supabase) { showToast('Supabase 설정이 필요해요', 'error'); throw new Error('No Supabase'); }
+  return fn(app.supabase);
+}
+
+// ══════════════════════════════════════════
+//  NAVIGATION
+// ══════════════════════════════════════════
+function showScreen(id, pushHistory = true) {
+  const el = document.getElementById(id);
+  if (!el) { console.error('화면을 찾을 수 없어요:', id); return; }
+  if (pushHistory && id !== app.currentScreen) app.navStack.push(app.currentScreen);
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  el.classList.add('active');
+  app.currentScreen = id;
+  window.scrollTo(0, 0);
+  onScreenEnter(id);
+}
+
+function goBack() {
+  const prev = app.navStack.pop();
+  if (prev) showScreen(prev, false);
+  else showScreen('s-home', false);
+}
+
+function onScreenEnter(id) {
+  if (id === 's-home') {
+    app.adminAuthed = false;
+    loadHomeSessions();
+    subscribeHomeRealtime();
+  } else {
+    // 홈 떠날 때 구독 해제
+    if (app.homeRealtimeSub) {
+      app.supabase?.removeChannel(app.homeRealtimeSub);
+      app.homeRealtimeSub = null;
+    }
+  }
+  if (id === 's-scan-info') initScanInfo();
+  if (id === 's-bulk') initBulk();
+  if (id === 's-admin') loadAdmin();
+  if (id === 's-log') initLog();
+  if (id === 's-scanning') focusBarcodeInput();
+}
+
+// ══════════════════════════════════════════
+//  HOME
+// ══════════════════════════════════════════
+function renderHomeDate() {
+  const d = new Date();
+  const days = ['일','월','화','수','목','금','토'];
+  document.getElementById('home-date').textContent =
+    `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())} (${days[d.getDay()]})`;
+}
+
+async function homeSessionClick(sessionId, status) {
+  if (status === 'pending') {
+    // 대기 중 세션 → 이름 입력 후 참여해서 스캔
+    try {
+      const { data: session } = await app.supabase.from('move_sessions').select('*').eq('id', sessionId).single();
+      if (!session) { showToast('세션을 불러오지 못했어요', 'error'); return; }
+
+      showModal(
+        '세션 참여',
+        `${session.from_location} → ${session.to_location}\n\n참여할 담당자를 선택하세요.`,
+        [{ label: '참여하기', class: 'btn-primary', fn: async () => {
+            const name = document.getElementById('join-name-select').value;
+            if (!name) { showToast('담당자를 선택해주세요', 'error'); return; }
+            closeModal();
+            app.scanUser = name;
+            app.scanFrom = session.from_location;
+            app.scanTo = session.to_location;
+            app.currentSession = session;
+            await enterScanningScreen();
+        }},
+        { label: '취소', class: 'btn-secondary', fn: closeModal }]
+      );
+      // 담당자 드롭다운 동적 삽입
+      setTimeout(async () => {
+        const desc = document.getElementById('modal-desc');
+        const { data: handlers } = await app.supabase.from('handlers').select('*').eq('is_active', true).order('name');
+        const sel = document.createElement('select');
+        sel.id = 'join-name-select';
+        sel.className = 'form-input form-select';
+        sel.style.marginTop = '12px';
+        sel.innerHTML = '<option value="">담당자 선택</option>' + (handlers||[]).map(h => `<option value="${h.name}">${h.name}</option>`).join('');
+        desc.appendChild(sel);
+      }, 50);
+
+    } catch(e) { showToast('오류: ' + e.message, 'error'); }
+  }
+}
+
+
+function subscribeHomeRealtime() {
+  if (!app.supabase) return;
+  // 이미 구독 중이면 재구독 안 함
+  if (app.homeRealtimeSub) return;
+  app.homeRealtimeSub = app.supabase
+    .channel('home-sessions')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'move_sessions' }, () => {
+      // 세션 INSERT·UPDATE·DELETE 시 홈 목록 자동 갱신
+      loadHomeSessions();
+    })
+    .subscribe();
+}
+
+async function loadMoveStats() {
+  if (!app.supabase) return;
+  const nowKST = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const today = nowKST.toISOString().slice(0, 10);
+  const dayOfWeek = nowKST.getUTCDay();
+  const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+  const monday = new Date(nowKST);
+  monday.setUTCDate(monday.getUTCDate() + daysToMonday);
+  const weekStart = monday.toISOString().slice(0, 10);
+
+  const [pendingRes, todayRes, weekRes] = await Promise.allSettled([
+    app.supabase.from("move_sessions").select("status", { count: "exact", head: true }).eq("status", "pending"),
+    app.supabase.from("move_sessions").select("session_items(id)").eq("session_date", today).in("status", ["approved", "processed"]),
+    app.supabase.from("move_sessions").select("session_items(id)").gte("session_date", weekStart).in("status", ["approved", "processed"]),
+  ]);
+
+  const setStat = (id, val, warn) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = val;
+    el.style.color = warn ? 'var(--miu-warning)' : 'var(--miu-ink)';
+  };
+
+  if (pendingRes.status === 'fulfilled' && !pendingRes.value.error) {
+    const count = pendingRes.value.count || 0;
+    setStat('stat-pending-move', count, count > 0);
+  }
+  if (todayRes.status === 'fulfilled' && !todayRes.value.error) {
+    const total = (todayRes.value.data || []).flatMap(s => s.session_items || []).length;
+    setStat('stat-today-move', total);
+  }
+  if (weekRes.status === 'fulfilled' && !weekRes.value.error) {
+    const total = (weekRes.value.data || []).flatMap(s => s.session_items || []).length;
+    setStat('stat-week-move', total);
+  }
+}
+
+async function loadHomeSessions() {
+  if (!app.supabase) return;
+  loadMoveStats();
+  const today = toDateStr(new Date());
+  try {
+    // 오늘 날짜가 아닌 pending 세션 자동 만료 처리
+    const { data: oldPending } = await app.supabase
+      .from('move_sessions')
+      .select('id, session_items(count)')
+      .eq('status', 'pending')
+      .neq('session_date', today);
+
+    if (oldPending && oldPending.length > 0) {
+      for (const s of oldPending) {
+        const count = s.session_items?.[0]?.count??0;
+        if (count === 0) {
+          // 빈 세션 → 삭제
+          await app.supabase.from('session_items').delete().eq('session_id', s.id);
+          await app.supabase.from('move_sessions').delete().eq('id', s.id);
+        } else {
+          // 찍힌 물건 있는 세션 → expired로 변경
+          await app.supabase.from('move_sessions').update({ status: 'expired' }).eq('id', s.id);
+        }
+      }
+    }
+
+    // 대기중: 오늘 것만 / 완료: 오늘 것만
+    const [pendingRes, approvedRes] = await Promise.all([
+      app.supabase.from('move_sessions').select('*, session_items(count)')
+        .eq('status', 'pending').eq('session_date', today).order('created_at', { ascending: false }),
+      app.supabase.from('move_sessions').select('*, session_items(count)')
+        .neq('status', 'pending').neq('status', 'expired').eq('session_date', today).order('created_at', { ascending: false }),
+    ]);
+    const all = [...(pendingRes.data || []), ...(approvedRes.data || [])];
+    const el = document.getElementById('home-sessions');
+    if (all.length === 0) {
+      el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">진행 중인 세션이 없어요</div></div>';
+      return;
+    }
+    el.innerHTML = all.map(s => `<div class="session-card" onclick="homeSessionClick('${s.id}','${s.status}')">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div class="session-route">${s.from_location} <span class="session-route-arrow">→</span> ${s.to_location}</div>
+      <span class="badge badge-${{pending:'pending',approved:'approved',correction:'correction'}[s.status]||'pending'} badge-dot">${{pending:'대기중',approved:'완료',correction:'정정완료'}[s.status]||s.status}</span>
+    </div>
+    <div class="session-meta">
+      <span style="font-family:var(--font-mono);font-size:11px">${s.session_items?.[0]?.count??0}벌</span>
+      <span class="session-meta-dot"></span>
+      <span>${formatDate(s.session_date)} ${formatTime(s.created_at)}</span>
+      <span class="session-meta-dot"></span>
+      <span>${s.created_by}</span>
+    </div>
+  </div>`).join('');
+  } catch(e) { console.warn(e); }
+}
+
+function sessionCardHTML(s, clickable = true) {
+  const badgeMap = { pending: 'pending', approved: 'approved', correction: 'correction' };
+  const badgeLbl = { pending: '대기중', approved: '완료', correction: '정정완료' };
+  const count = s.session_items?.[0]?.count??0;
+  return `<div class="session-card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <div class="session-route">${s.from_location} <span class="session-route-arrow">→</span> ${s.to_location}</div>
+      <span class="badge badge-${badgeMap[s.status] || 'pending'} badge-dot">${badgeLbl[s.status] || s.status}</span>
+    </div>
+    <div class="session-meta">
+      <span style="font-family:var(--font-mono);font-size:11px">${count}벌</span>
+      <span class="session-meta-dot"></span>
+      <span>${formatTime(s.created_at)}</span>
+      <span class="session-meta-dot"></span>
+      <span>${s.created_by}</span>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════
+//  BULK MOVE
+// ══════════════════════════════════════════
+const bulkState = { barcodes: [], validItems: [], errorItems: [], sessionId: null };
+
+async function initBulk() {
+  if (!app.supabase) { showToast('Supabase 설정이 필요해요', 'error'); return; }
+  // 담당자 로드
+  const { data: handlers } = await app.supabase.from('handlers').select('id,name').eq('is_active', true).order('name');
+  const { data: locations } = await app.supabase.from('locations').select('id,name').eq('is_active', true).order('name');
+
+  const nameEl = document.getElementById('bulk-name');
+  const fromEl = document.getElementById('bulk-from');
+  const toEl   = document.getElementById('bulk-to');
+
+  nameEl.innerHTML = '<option value="">담당자 선택</option>' + (handlers||[]).map(h => `<option value="${h.name}">${h.name}</option>`).join('');
+  const locOpts = '<option value="">선택</option>' + (locations||[]).map(l => `<option value="${l.name}">${l.name}</option>`).join('');
+  fromEl.innerHTML = locOpts;
+  toEl.innerHTML   = locOpts;
+}
+
+async function bulkSubmit() {
+  const name = document.getElementById('bulk-name').value;
+  const from = document.getElementById('bulk-from').value;
+  const to   = document.getElementById('bulk-to').value;
+  const raw  = document.getElementById('bulk-barcodes').value;
+  const errEl = document.getElementById('bulk-error');
+
+  errEl.style.display = 'none';
+  if (!name) { errEl.textContent = '담당자를 선택해주세요'; errEl.style.display = 'block'; return; }
+  if (!from) { errEl.textContent = '출발지를 선택해주세요'; errEl.style.display = 'block'; return; }
+  if (!to)   { errEl.textContent = '도착지를 선택해주세요'; errEl.style.display = 'block'; return; }
+  if (!raw.trim()) { errEl.textContent = '바코드를 입력해주세요'; errEl.style.display = 'block'; return; }
+  if (from === to) { errEl.textContent = '출발지와 도착지가 같아요'; errEl.style.display = 'block'; return; }
+
+  // 바코드 파싱 (쉼표, 줄바꿈, 스페이스, 탭 모두 구분자)
+  const barcodes = [...new Set(
+    raw.split(/[\s,;]+/)
+      .map(b => normalizeBarcode(b.trim()).toUpperCase())
+      .filter(b => b.length > 0)
+  )];
+
+  if (barcodes.length === 0) { errEl.textContent = '유효한 바코드가 없어요'; errEl.style.display = 'block'; return; }
+
+  const btn = document.getElementById('bulk-submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span>확인 중...</span>';
+
+  try {
+    const validItems = [];
+    const errorItems = [];
+
+    const { data: invItems } = await app.supabase
+      .from('inventory_items')
+      .select('barcode, product_name, category, price')
+      .in('barcode', barcodes);
+    const invMap = {};
+    (invItems || []).forEach(it => { invMap[it.barcode] = it; });
+
+    barcodes.forEach(bc => {
+      const it = invMap[bc];
+      if (!it) {
+        errorItems.push(bc);
+      } else {
+        validItems.push({
+          barcode:      bc,
+          product_name: it.product_name || '',
+          category:     it.category     || '',
+          price:        String(it.price || ''),
+        });
+      }
+    });
+
+    bulkState.barcodes   = barcodes;
+    bulkState.validItems = validItems;
+    bulkState.errorItems = errorItems;
+    bulkState.name = name;
+    bulkState.from = from;
+    bulkState.to   = to;
+
+    // 확인 화면으로
+    document.getElementById('bulk-confirm-route').textContent = `${from} → ${to}`;
+    document.getElementById('bulk-confirm-ok').textContent    = `${validItems.length}벌`;
+
+    const errRow = document.getElementById('bulk-confirm-err-row');
+    if (errorItems.length > 0) {
+      errRow.style.display = '';
+      document.getElementById('bulk-confirm-err').textContent = `${errorItems.length}개`;
+    } else {
+      errRow.style.display = 'none';
+    }
+
+    // 목록 렌더
+    const listEl = document.getElementById('bulk-confirm-list');
+    let html = '';
+    if (validItems.length > 0) {
+      html += `<div style="font-size:11px;font-weight:700;color:var(--ok);padding:8px 0 6px;letter-spacing:.04em">✅ 정상 ${validItems.length}벌</div>`;
+      validItems.forEach(i => {
+        html += `<div class="card-row" style="padding:10px 14px">
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--ink-2)">${i.barcode}</span>
+          <span style="font-size:12px;color:var(--ink-3)">${i.product_name||''} ${i.category ? '· '+i.category : ''}</span>
+        </div>`;
+      });
+    }
+    if (errorItems.length > 0) {
+      html += `<div style="font-size:11px;font-weight:700;color:var(--err);padding:12px 0 6px;letter-spacing:.04em">⚠ 오류 (엑셀에 없음) ${errorItems.length}개</div>`;
+      errorItems.forEach(bc => {
+        html += `<div class="card-row" style="padding:10px 14px;opacity:.6">
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--err)">${bc}</span>
+        </div>`;
+      });
+    }
+    listEl.innerHTML = html;
+    showScreen('s-bulk-confirm');
+
+  } catch(e) {
+    errEl.textContent = '오류: ' + e.message;
+    errEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>바코드 확인 →</span>';
+  }
+}
+
+async function bulkConfirm() {
+  if (!app.supabase) return;
+  if (bulkState.validItems.length === 0) { showToast('제출할 바코드가 없어요', 'error'); return; }
+
+  const btn = document.getElementById('bulk-confirm-btn');
+  const ldg = document.getElementById('bulk-confirm-loading');
+  btn.style.display = 'none';
+  ldg.style.display = 'flex';
+
+  try {
+    const today = toDateStr(new Date());
+    // 세션 생성
+    const { data: session } = await app.supabase.from('move_sessions').insert({
+      session_date:   today,
+      from_location:  bulkState.from,
+      to_location:    bulkState.to,
+      status:         'pending',
+      created_by:     bulkState.name,
+    }).select().single();
+
+    if (!session) throw new Error('세션 생성 실패');
+    bulkState.sessionId = session.id;
+
+    // 아이템 일괄 insert
+    const items = bulkState.validItems.map(i => ({
+      session_id:       session.id,
+      barcode:          i.barcode,
+      product_name:     i.product_name,
+      category:         i.category,
+      price:            i.price,
+      current_location: bulkState.from,
+      scanned_by:       bulkState.name,
+      is_submitted:     true,
+      is_error:         false,
+    }));
+
+    // 500개씩 나눠서 insert (Supabase 1000개 제한 방지)
+    const chunkSize = 500;
+    for (let i = 0; i < items.length; i += chunkSize) {
+      await app.supabase.from('session_items').insert(items.slice(i, i + chunkSize));
+    }
+
+    // 오류 바코드도 기록
+    if (bulkState.errorItems.length > 0) {
+      const errItems = bulkState.errorItems.map(bc => ({
+        session_id:   session.id,
+        barcode:      bc,
+        scanned_by:   bulkState.name,
+        is_submitted: true,
+        is_error:     true,
+        error_msg:    '공동판매 파일에 없는 바코드',
+      }));
+      for (let i = 0; i < errItems.length; i += chunkSize) {
+        await app.supabase.from('session_items').insert(errItems.slice(i, i + chunkSize));
+      }
+    }
+
+    showToast(`${bulkState.validItems.length}벌 제출 완료! 매니저 승인을 요청하세요.`, 'success');
+    // 홈으로 이동
+    document.getElementById('bulk-barcodes').value = '';
+    showScreen('s-home');
+    loadHomeSessions();
+
+  } catch(e) {
+    showToast('오류: ' + e.message, 'error');
+    btn.style.display = '';
+    ldg.style.display = 'none';
+  }
+}
+
+// ══════════════════════════════════════════
+//  SCAN FLOW
+// ══════════════════════════════════════════
+async function startScanFlow() {
+  if (!app.supabase) { showToast('Supabase 설정이 필요해요', 'error'); return; }
+  showScreen('s-scan-info');
+}
+
+async function initScanInfo() {
+  try {
+    const [locRes, handlerRes] = await Promise.all([
+      app.supabase.from('locations').select('*').eq('is_active', true).order('name'),
+      app.supabase.from('handlers').select('*').eq('is_active', true).order('name'),
+    ]);
+    const locs     = locRes.data     || [];
+    const handlers = handlerRes.data || [];
+
+    const nameSel  = document.getElementById('scan-name');
+    const fromSel  = document.getElementById('scan-from');
+    const toSel    = document.getElementById('scan-to');
+
+    nameSel.innerHTML  = '<option value="">담당자 선택</option>' + handlers.map(h => `<option value="${h.name}">${h.name}</option>`).join('');
+    fromSel.innerHTML  = '<option value="">출발지 선택</option>'  + locs.map(l => `<option value="${l.name}">${l.name}</option>`).join('');
+    toSel.innerHTML    = '<option value="">도착지 선택</option>'  + locs.map(l => `<option value="${l.name}">${l.name}</option>`).join('');
+  } catch(e) { console.warn(e); }
+}
+
+async function submitScanInfo() {
+  const name = document.getElementById('scan-name').value.trim();
+  const from = document.getElementById('scan-from').value;
+  const to   = document.getElementById('scan-to').value;
+  const errEl = document.getElementById('scan-info-error');
+
+  if (!name) { errEl.textContent = '담당자를 선택해주세요'; errEl.style.display='block'; return; }
+  if (!from) { errEl.textContent = '출발지를 선택해주세요'; errEl.style.display='block'; return; }
+  if (!to)   { errEl.textContent = '도착지를 선택해주세요'; errEl.style.display='block'; return; }
+  if (from === to) { errEl.textContent = '출발지와 도착지가 같아요'; errEl.style.display='block'; return; }
+  errEl.style.display = 'none';
+
+  app.scanUser = name;
+  app.scanFrom = from;
+  app.scanTo   = to;
+
+  // Check existing session
+  const today = toDateStr(new Date());
+  try {
+    const { data } = await app.supabase
+      .from('move_sessions')
+      .select('*, session_items(count)')
+      .eq('session_date', today)
+      .eq('from_location', from)
+      .eq('to_location', to)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (data) {
+      // Show join confirm
+      const count = data.session_items?.[0]?.count??0;
+      document.getElementById('existing-session-info').innerHTML = `
+        <div class="card-row"><span class="card-row-label">루트</span><span class="card-row-value">${data.from_location} → ${data.to_location}</span></div>
+        <div class="card-row"><span class="card-row-label">생성자</span><span class="card-row-value">${data.created_by}</span></div>
+        <div class="card-row"><span class="card-row-label">현재 스캔</span><span class="card-row-value" style="color:var(--accent);font-family:var(--font-mono)">${count}벌</span></div>
+        <div class="card-row"><span class="card-row-label">시작 시간</span><span class="card-row-value">${formatTime(data.created_at)}</span></div>
+      `;
+      app.currentSession = data;
+      showScreen('s-session-confirm');
+    } else {
+      await createNewSession();
+    }
+  } catch {
+    await createNewSession();
+  }
+}
+
+async function joinExistingSession() {
+  await enterScanningScreen();
+}
+
+async function createNewSession() {
+  const { data, error } = await app.supabase.from('move_sessions').insert({
+    session_date: toDateStr(new Date()),
+    from_location: app.scanFrom,
+    to_location: app.scanTo,
+    status: 'pending',
+    created_by: app.scanUser,
+  }).select().single();
+  if (error) throw new Error(error.message);
+  app.currentSession = data;
+  await enterScanningScreen();
+}
+
+async function enterScanningScreen() {
+  app.scannedItems = [];
+  app.hangerCount = 0;
+  app.currentHangerItemIds = [];
+  app.cancelledTempIds = new Set();
+  app.scanFilter = 'all';
+
+  const list = document.getElementById('scan-list');
+  list.innerHTML = '';
+  document.getElementById('scan-count').textContent = '0';
+  document.getElementById('scanning-title').textContent = `${app.scanFrom} → ${app.scanTo}`;
+  document.getElementById('scanning-sub').textContent = app.scanUser;
+  document.getElementById('scan-route-display').innerHTML = `<strong>${app.scanFrom}</strong> → <strong>${app.scanTo}</strong>`;
+
+  // 기존 항목 먼저 로드 (구독보다 먼저 — 중복 방지)
+  const { data } = await app.supabase.from('session_items')
+    .select('*').eq('session_id', app.currentSession.id).order('scanned_at', { ascending: true });
+
+  if (data) {
+    data.forEach(item => {
+      if (item.scanned_by === app.scanUser) app.scannedItems.push(item);
+      addItemToUI(item, false);
+    });
+  }
+
+  // 실시간 구독 (초기 로드 이후에 구독 — INSERT/DELETE 모두)
+  if (app.realtimeSub) { app.supabase.removeChannel(app.realtimeSub); }
+  app.realtimeSub = app.supabase
+    .channel(`session-${app.currentSession.id}-${Date.now()}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'session_items',
+      filter: `session_id=eq.${app.currentSession.id}` }, payload => {
+      // 이미 UI에 있으면 중복 추가 방지
+      if (document.getElementById(`item-${payload.new.id}`)) return;
+      if (payload.new.scanned_by === app.scanUser) app.scannedItems.push(payload.new);
+      addItemToUI(payload.new, true);
+      updateSessionMemberCount();
+    })
+    .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'session_items' },
+      payload => {
+      // 현재 세션 항목인지 확인 후 제거
+      const el = document.getElementById(`item-${payload.old.id}`);
+      if (el) {
+        el.remove();
+        app.scannedItems = app.scannedItems.filter(i => i.id !== payload.old.id);
+        app.currentHangerItemIds = app.currentHangerItemIds.filter(id => id !== payload.old.id);
+        updateScanCount();
+        updateSessionMemberCount();
+      }
+    })
+    .subscribe();
+
+  showScreen('s-scanning');
+}
+
+function focusBarcodeInput() {
+  setTimeout(() => { document.getElementById('barcode-input')?.focus(); }, 200);
+}
+
+// 한글 2벌식 → 영어 역변환 + 대문자 통일
+function normalizeBarcode(input) {
+  const JAMO_TO_ENG = {
+    'ㄱ':'r','ㄲ':'R','ㄴ':'s','ㄷ':'e','ㄸ':'E','ㄹ':'f','ㅁ':'a','ㅂ':'q','ㅃ':'Q',
+    'ㅅ':'t','ㅆ':'T','ㅇ':'','ㅈ':'w','ㅉ':'W','ㅊ':'c','ㅋ':'z','ㅌ':'x','ㅍ':'v','ㅎ':'g',
+    'ㅏ':'k','ㅐ':'o','ㅑ':'i','ㅒ':'O','ㅓ':'j','ㅔ':'p','ㅕ':'u','ㅖ':'P',
+    'ㅗ':'h','ㅘ':'hk','ㅙ':'ho','ㅚ':'hl','ㅛ':'y',
+    'ㅜ':'n','ㅝ':'nj','ㅞ':'np','ㅟ':'nl','ㅠ':'b',
+    'ㅡ':'m','ㅢ':'ml','ㅣ':'l',
+    'ㄳ':'rt','ㄵ':'sw','ㄶ':'sg','ㄺ':'fr','ㄻ':'fa','ㄼ':'fq',
+    'ㄽ':'ft','ㄾ':'fx','ㄿ':'fv','ㅀ':'fg','ㅄ':'qt'
+  };
+  const INITIALS = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+  const VOWELS   = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+  const FINALS   = ['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+
+  let result = '';
+  for (const ch of input) {
+    const code = ch.charCodeAt(0);
+    if (code >= 0xAC00 && code <= 0xD7A3) {
+      // 완성형 한글 음절 분해
+      const offset = code - 0xAC00;
+      const iIdx = Math.floor(offset / (21 * 28));
+      const vIdx = Math.floor((offset % (21 * 28)) / 28);
+      const fIdx = offset % 28;
+      result += JAMO_TO_ENG[INITIALS[iIdx]] ?? '';   // ㅇ 초성 = 빈 문자열(무음)
+      result += JAMO_TO_ENG[VOWELS[vIdx]]  ?? '';
+      if (fIdx > 0) result += JAMO_TO_ENG[FINALS[fIdx]] ?? '';
+    } else if (code >= 0x3130 && code <= 0x318F) {
+      // 독립 자모
+      result += JAMO_TO_ENG[ch] ?? ch;
+    } else {
+      result += ch;
+    }
+  }
+  return result.toUpperCase().trim();
+}
+
+function setScanFilter(filter) {
+  app.scanFilter = filter;
+  document.getElementById('filter-btn-all').style.background  = filter === 'all'  ? 'var(--purple)' : '';
+  document.getElementById('filter-btn-all').style.color       = filter === 'all'  ? '#fff' : '';
+  document.getElementById('filter-btn-mine').style.background = filter === 'mine' ? 'var(--purple)' : '';
+  document.getElementById('filter-btn-mine').style.color      = filter === 'mine' ? '#fff' : '';
+
+  // 리스트 항목 표시/숨김
+  document.querySelectorAll('#scan-list .scan-item').forEach(el => {
+    const ismine = el.dataset.scannedBy === app.scanUser;
+    el.style.display = (filter === 'mine' && !ismine) ? 'none' : '';
+  });
+}
+
+async function processBarcode(input) {
+  // inputmode=none + keyup으로 대부분 차단되지만 혹시 한글이 뚫리면 fallback 변환
+  const barcode = normalizeBarcode(input);
+  if (!barcode) return;
+
+  // 세션 전체 기준 중복 체크 (내가 찍은 것 + 다른 사람이 찍은 것 모두)
+  const isDup = Array.from(document.querySelectorAll('#scan-list .scan-item'))
+    .some(el => el.dataset.barcode?.toUpperCase() === barcode);
+  if (isDup) {
+    showToast(`이미 스캔된 바코드예요: ${barcode}`, 'error');
+    return;
+  }
+  let item = { barcode, is_error: false, product_name: '', category: '', price: '', current_location: '' };
+
+  const { data: inv } = await app.supabase
+    .from('inventory_items')
+    .select('product_name, category, price, location')
+    .eq('barcode', barcode)
+    .maybeSingle();
+  if (inv) {
+    item.product_name     = inv.product_name || '';
+    item.category         = inv.category     || '';
+    item.price            = String(inv.price  || '');
+    item.current_location = inv.location     || '';
+  } else {
+    item.is_error = true;
+    item.error_msg = '재고에 없는 바코드';
+    showErrorToast(barcode);
+  }
+
+  // 낙관적 업데이트: DB 응답 전에 temp ID로 즉시 UI 반영
+  const tempId = `temp-${Date.now()}`;
+  const tempItem = { id: tempId, barcode, scanned_by: app.scanUser,
+    product_name: item.product_name, category: item.category,
+    price: item.price, current_location: item.current_location,
+    is_error: item.is_error, error_msg: item.error_msg || null };
+  app.scannedItems.unshift(tempItem);
+  if (!tempItem.is_error) {
+    app.hangerCount++;
+    app.currentHangerItemIds.push(tempId);
+  }
+  addItemToUI(tempItem, true);
+  updateScanCount();
+
+  // 백그라운드 DB 삽입
+  app.supabase.from('session_items').insert({
+    session_id: app.currentSession.id,
+    barcode: item.barcode,
+    product_name: item.product_name,
+    category: item.category,
+    price: item.price,
+    current_location: item.current_location,
+    scanned_by: app.scanUser,
+    is_error: item.is_error,
+    error_msg: item.error_msg || null,
+  }).select().single().then(({ data, error }) => {
+    if (error || !data) {
+      // 실패: UI 롤백
+      document.getElementById(`item-${tempId}`)?.remove();
+      app.scannedItems = app.scannedItems.filter(i => i.id !== tempId);
+      app.currentHangerItemIds = app.currentHangerItemIds.filter(id => id !== tempId);
+      if (!tempItem.is_error) app.hangerCount = Math.max(0, app.hangerCount - 1);
+      updateScanCount();
+      showToast(`저장 실패: ${barcode}`, 'error');
+      return;
+    }
+    // 삽입 중 사용자가 취소(삭제)한 경우 → DB row 즉시 제거
+    if (app.cancelledTempIds.has(tempId)) {
+      app.cancelledTempIds.delete(tempId);
+      app.supabase.from('session_items').delete().eq('id', data.id);
+      return;
+    }
+    // 성공: temp ID → 실제 ID 교체
+    const el = document.getElementById(`item-${tempId}`);
+    if (el) {
+      el.id = `item-${data.id}`;
+      el.querySelector('.scan-item-remove')?.setAttribute('onclick', `removeItem('${data.id}')`);
+    }
+    const si = app.scannedItems.findIndex(i => i.id === tempId);
+    if (si !== -1) app.scannedItems[si] = data;
+    const hi = app.currentHangerItemIds.indexOf(tempId);
+    if (hi !== -1) app.currentHangerItemIds[hi] = data.id;
+  });
+}
+
+function showErrorToast(barcode) {
+  showModal('바코드를 찾을 수 없어요',
+    `${barcode}\n\n재고에 없는 바코드예요. 스캔 목록에 오류로 표시됩니다.\n\n입고 처리가 되지 않은 물건인지 확인해주세요.`,
+    [{ label:'확인', class:'btn-primary', fn: closeModal }]);
+}
+
+function addItemToUI(item, prepend = true) {
+  const list = document.getElementById('scan-list');
+  const div = document.createElement('div');
+  div.className = `scan-item${item.is_error ? ' error' : ''}`;
+  div.id = `item-${item.id}`;
+  div.dataset.barcode   = item.barcode;
+  div.dataset.scannedBy = item.scanned_by;
+
+  // 필터 적용
+  if (app.scanFilter === 'mine' && item.scanned_by !== app.scanUser) {
+    div.style.display = 'none';
+  }
+
+  // 직전위치 = 이번 이동 전 이 물건이 있던 위치 (scan 시점 공동판매 엑셀 위치 컬럼)
+  const prevLocMatch = !item.is_error && item.current_location && app.scanTo &&
+    String(item.current_location).trim() === String(app.scanTo).trim();
+  const prevLocHTML = item.is_error ? '' : `
+      <div class="scan-item-prevloc" style="font-size:11px;margin-top:2px;${prevLocMatch ? 'color:var(--err);font-weight:700' : 'color:var(--ink-3)'}">
+        ${prevLocMatch ? '⚠ ' : ''}직전위치: ${item.current_location ? item.current_location : '직전위치값 없음'}${prevLocMatch ? ' (도착지와 동일)' : ''}
+      </div>`;
+
+  div.innerHTML = `
+    <div class="scan-item-num"></div>
+    <div class="scan-item-info">
+      <div class="scan-item-name">${item.is_error ? `⚠ ${item.barcode}` : (item.product_name || item.barcode)}</div>
+      <div class="scan-item-barcode">${item.barcode}${item.category ? ` · ${item.category}` : ''}${item.price ? ` · ${item.price}` : ''}</div>
+      ${item.is_error ? `<div style="font-size:11px;color:var(--danger)">${item.error_msg}</div>` : prevLocHTML}
+    </div>
+    <div class="scan-item-by">${item.scanned_by}</div>
+    ${item.scanned_by === app.scanUser ? `<button class="scan-item-remove" onclick="removeItem('${item.id}')">✕</button>` : ''}
+  `;
+
+  if (prepend && list.firstChild) {
+    list.insertBefore(div, list.firstChild);
+  } else {
+    list.appendChild(div);
+  }
+  updateScanCount();
+}
+
+function submitManualBarcode() {
+  const input = document.getElementById('manual-barcode-input');
+  const val = normalizeBarcode(input.value);
+  input.value = '';
+  if (val) processBarcode(val);
+  else showToast('바코드를 입력해주세요', 'error');
+}
+
+function completeHanger() {
+  if (app.hangerCount === 0) { showToast('아직 찍은 물건이 없어요', 'error'); return; }
+  const count = app.hangerCount;
+  app.hangerCount = 0;
+  app.currentHangerItemIds = [];
+  updateScanCount();
+  showToast(`행거 완료 ✓  ${count}벌 확인`, 'success');
+}
+
+async function deleteCurrentHanger() {
+  if (app.hangerCount === 0) { showToast('현재 행거에 찍은 물건이 없어요', 'error'); return; }
+  const count = app.hangerCount;
+  const idsToDelete = [...app.currentHangerItemIds];
+  showModal(
+    `현재 행거 삭제`,
+    `지금 행거에 찍은 ${count}벌을 모두 삭제할까요?\n되돌릴 수 없어요.`,
+    [
+      { label: '삭제', class: 'btn-danger', fn: async () => {
+        closeModal();
+        const realIds = idsToDelete.filter(id => !String(id).startsWith('temp-'));
+        const tempIds = idsToDelete.filter(id => String(id).startsWith('temp-'));
+        tempIds.forEach(id => app.cancelledTempIds.add(id));
+        if (realIds.length > 0) await app.supabase.from('session_items').delete().in('id', realIds);
+        idsToDelete.forEach(id => {
+          document.getElementById(`item-${id}`)?.remove();
+          app.scannedItems = app.scannedItems.filter(i => i.id !== id);
+        });
+        app.hangerCount = 0;
+        app.currentHangerItemIds = [];
+        updateScanCount();
+        showToast(`행거 ${count}벌 삭제됨`, 'success');
+      }},
+      { label: '취소', class: 'btn-ghost', fn: closeModal },
+    ]
+  );
+}
+
+async function removeItem(itemId) {
+  const item = app.scannedItems.find(i => i.id === itemId);
+  document.getElementById(`item-${itemId}`)?.remove();
+  app.scannedItems = app.scannedItems.filter(i => i.id !== itemId);
+  app.currentHangerItemIds = app.currentHangerItemIds.filter(id => id !== itemId);
+  if (item && !item.is_error) app.hangerCount = Math.max(0, app.hangerCount - 1);
+  updateScanCount();
+  if (String(itemId).startsWith('temp-')) {
+    // 아직 DB에 없음 — .then() 성공 시 cancelledTempIds 보고 삭제 처리
+    app.cancelledTempIds.add(itemId);
+  } else {
+    await app.supabase.from('session_items').delete().eq('id', itemId);
+  }
+}
+
+function updateScanCount() {
+  const total = document.querySelectorAll('#scan-list .scan-item').length;
+  document.getElementById('scan-count').textContent        = total;
+  document.getElementById('scan-count-mine').textContent   = app.scannedItems.length;
+  document.getElementById('scan-count-hanger').textContent = app.hangerCount;
+}
+
+async function updateSessionMemberCount() {
+  try {
+    const { data } = await app.supabase.from('session_items')
+      .select('scanned_by, is_submitted').eq('session_id', app.currentSession.id);
+    if (data) {
+      const memberMap = {};
+      data.forEach(d => {
+        if (!memberMap[d.scanned_by]) memberMap[d.scanned_by] = { total: 0, submitted: false };
+        memberMap[d.scanned_by].total++;
+        if (d.is_submitted) memberMap[d.scanned_by].submitted = true;
+      });
+      const text = Object.entries(memberMap)
+        .map(([name, info]) => `${name}${info.submitted ? ' ✅' : ''}`)
+        .join('  ·  ');
+      document.getElementById('scan-session-members').textContent = text;
+    }
+  } catch{}
+}
+
+async function submitScan() {
+  if (!app.scanUser) { showToast('담당자 이름이 없어요', 'error'); return; }
+
+  // app.scannedItems 대신 DB 직접 조회 → 클라이언트 상태 신뢰 안 함
+  const { data: myItems } = await app.supabase.from('session_items')
+    .select('id')
+    .eq('session_id', app.currentSession.id)
+    .eq('scanned_by', app.scanUser)
+    .eq('is_error', false)
+    .eq('is_submitted', false);
+
+  if (!myItems || myItems.length === 0) {
+    showToast('내가 스캔한 미제출 물건이 없어요', 'error');
+    return;
+  }
+
+  showModal('제출 확인',
+    `${app.scanFrom} → ${app.scanTo}\n내 스캔 항목 ${myItems.length}벌을 제출해요.\n\n제출 후에는 매니저 승인을 기다려요.`,
+    [
+      { label: '제출하기', class: 'btn-primary', fn: async () => {
+        closeModal();
+        try {
+          const { error } = await app.supabase.from('session_items')
+            .update({ is_submitted: true })
+            .eq('session_id', app.currentSession.id)
+            .eq('scanned_by', app.scanUser)
+            .eq('is_error', false)
+            .eq('is_submitted', false);
+          if (error) throw new Error(error.message);
+          if (app.realtimeSub) app.supabase.removeChannel(app.realtimeSub);
+          showToast(`${myItems.length}벌 제출 완료! 매니저 승인을 기다려요`, 'success');
+          showScreen('s-home');
+        } catch(e) { showToast('제출 오류: ' + e.message, 'error'); }
+      }},
+      { label: '계속 스캔', class: 'btn-secondary', fn: closeModal }
+    ]);
+}
+
+function confirmLeaveScanning() {
+  showModal('스캔 중단', '세션은 유지되고 다른 팀원이 계속 스캔할 수 있어요.\n그래도 나가시겠어요?',
+    [
+      { label: '나가기', class: 'btn-danger', fn: () => { closeModal(); if(app.realtimeSub) app.supabase.removeChannel(app.realtimeSub); showScreen('s-home'); }},
+      { label: '계속 스캔', class: 'btn-secondary', fn: closeModal }
+    ]);
+}
+
+
+async function downloadSessionExcel(sessionId) {
+  if (!app.supabase) return;
+  showToast('엑셀 생성 중...', '');
+  try {
+    const { data: session } = await app.supabase
+      .from('move_sessions').select('*').eq('id', sessionId).single();
+    const { data: items } = await app.supabase
+      .from('session_items').select('*').eq('session_id', sessionId).limit(5000);
+
+    const wb = XLSX.utils.book_new();
+
+    // 제출완료 시트
+    const submitted = (items||[]).filter(i => i.is_submitted && !i.is_error);
+    const rows = [['바코드','상품명','카테고리','금액','스캔담당','스캔시간']];
+    submitted.forEach(i => rows.push([
+      i.barcode, i.product_name||'', i.category||'', i.price||'',
+      i.scanned_by, i.scanned_at ? new Date(i.scanned_at).toLocaleString('ko-KR') : ''
+    ]));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), '제출완료');
+
+    // 오류 시트
+    const errors = (items||[]).filter(i => i.is_error);
+    if (errors.length > 0) {
+      const errRows = [['바코드','오류내용']];
+      errors.forEach(i => errRows.push([i.barcode, i.error_msg||'']));
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(errRows), '오류');
+    }
+
+    const date = session.session_date.replace(/-/g, '.');
+    const fname = `${date}_${session.from_location}→${session.to_location}_${submitted.length}벌.xlsx`;
+    XLSX.writeFile(wb, fname);
+  } catch(e) {
+    showToast('오류: ' + e.message, 'error');
+  }
+}
+
+// ══════════════════════════════════════════
+//  LOG
+// ══════════════════════════════════════════
+const logState = { filter: 'today', sessions: [], items: {} };
+
+function initLog() {
+  setLogFilter('today', document.querySelector('.log-filter-btn'));
+}
+
+function setLogFilter(type, btn) {
+  logState.filter = type;
+  document.querySelectorAll('.log-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const customEl = document.getElementById('log-custom-range');
+  if (type === 'custom') {
+    customEl.style.display = 'flex';
+    const today = toDateStr(new Date());
+    document.getElementById('log-date-from').value = today;
+    document.getElementById('log-date-to').value   = today;
+    document.getElementById('log-list').innerHTML =
+      '<div class="empty"><div class="empty-icon">📅</div><div class="empty-text">날짜를 설정해 주세요</div></div>';
+    document.getElementById('log-sub').textContent = '';
+  } else {
+    customEl.style.display = 'none';
+    loadLog();
+  }
+}
+
+function getLogDateRange() {
+  const now = new Date();
+  const today = toDateStr(now);
+  if (logState.filter === 'today') return { from: today, to: today };
+  if (logState.filter === 'week') {
+    const d = new Date(now); d.setDate(d.getDate() - 6);
+    return { from: toDateStr(d), to: today };
+  }
+  if (logState.filter === 'month') {
+    return { from: `${now.getFullYear()}-${pad(now.getMonth()+1)}-01`, to: today };
+  }
+  return {
+    from: document.getElementById('log-date-from').value,
+    to:   document.getElementById('log-date-to').value
+  };
+}
+
+async function loadLog() {
+  if (!app.supabase) return;
+  const listEl = document.getElementById('log-list');
+  listEl.innerHTML = '<div class="loading"><div class="spinner"></div>불러오는 중...</div>';
+
+  const { from, to } = getLogDateRange();
+  document.getElementById('log-sub').textContent = from === to ? from : `${from} ~ ${to}`;
+
+  try {
+    const { data: sessions } = await app.supabase
+      .from('move_sessions')
+      .select('*, session_items(session_id, is_submitted, is_error, category)')
+      .gte('session_date', from)
+      .lte('session_date', to)
+      .order('session_date', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (!sessions || sessions.length === 0) {
+      listEl.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">해당 기간에 이동 내역이 없어요</div></div>';
+      return;
+    }
+
+    // 세션별 아이템 카운트 (joined query로 URL 길이 제한 우회)
+    const countMap = {};
+    (sessions || []).forEach(s => {
+      const items = s.session_items || [];
+      countMap[s.id] = {
+        total:     items.length,
+        submitted: items.filter(i => i.is_submitted && !i.is_error).length,
+      };
+    });
+
+    // 날짜별 요약 (approved 세션만 집계)
+    const dateSummary = {};
+    sessions.filter(s => s.status === 'approved').forEach(s => {
+      if (!dateSummary[s.session_date]) dateSummary[s.session_date] = { total: 0, routes: [], catMap: {} };
+      const ds = dateSummary[s.session_date];
+      const submitted = (s.session_items || []).filter(i => i.is_submitted && !i.is_error);
+      ds.total += submitted.length;
+      if (submitted.length > 0) {
+        // 경로별 카테고리 집계
+        const routeCatMap = {};
+        submitted.forEach(i => {
+          const raw = (i.category || '기타').trim() || '기타';
+          const cat = raw.replace(/[a-zA-Z]+/g, m => m.toUpperCase());
+          routeCatMap[cat] = (routeCatMap[cat] || 0) + 1;
+          ds.catMap[cat]   = (ds.catMap[cat]   || 0) + 1;
+        });
+        ds.routes.push({ from: s.from_location, to: s.to_location, count: submitted.length, catMap: routeCatMap });
+      }
+    });
+
+    logState.sessions = sessions;
+    logState.itemCache = {};
+
+    // 날짜별 그룹핑
+    const grouped = {};
+    sessions.forEach(s => {
+      if (!grouped[s.session_date]) grouped[s.session_date] = [];
+      grouped[s.session_date].push(s);
+    });
+
+    const badgeLbl = { pending:'대기중', approved:'완료', correction:'정정완료' };
+    const badgeCls = { pending:'pending', approved:'approved', correction:'correction' };
+
+    let html = '';
+    Object.entries(grouped).forEach(([date, list]) => {
+      html += `<div class="log-date-group">${formatDate(date)}</div>`;
+
+      const ds = dateSummary[date];
+      if (ds && ds.total > 0) {
+        const fmtCats = (catMap) => Object.entries(catMap)
+          .sort((a, b) => b[1] - a[1])
+          .map(([cat, cnt]) => `<span class="log-sum-cat">${cat} <b>${cnt}</b></span>`)
+          .join('');
+        const routeRows = ds.routes.map(r => `
+          <div class="log-sum-route">
+            <div class="log-sum-route-header">
+              <span class="log-sum-route-label">${r.from} → ${r.to}</span>
+              <span class="log-sum-route-count">${r.count}벌</span>
+            </div>
+            <div class="log-sum-cat-row">${fmtCats(r.catMap)}</div>
+          </div>`).join('');
+        html += `<div class="log-day-summary">
+          <div class="log-day-summary-total">📦 총 ${ds.total}벌 이동완료</div>
+          ${routeRows}
+        </div>`;
+      }
+      list.forEach(s => {
+        const cnt = countMap[s.id] || { total: 0, submitted: 0 };
+        html += `
+        <div class="log-session-card" id="lsc-${s.id}">
+          <div class="log-session-header" onclick="toggleLogSession('${s.id}')">
+            <span class="log-session-chevron" id="chv-${s.id}">▶</span>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:14px;font-weight:700">${s.from_location} → ${s.to_location}</div>
+              <div style="font-size:12px;color:var(--text2);margin-top:2px">
+                ${formatTime(s.created_at)} · ${s.created_by}
+                · <span style="font-family:var(--font-mono)">${cnt.submitted}벌 제출</span>
+                ${cnt.total - cnt.submitted > 0 ? `<span style="color:var(--accent)"> (진행중 ${cnt.total - cnt.submitted})</span>` : ''}
+              </div>
+            </div>
+            <span class="badge badge-${badgeCls[s.status]||'pending'} badge-dot" style="flex-shrink:0">${badgeLbl[s.status]||s.status}</span>
+            <button onclick="event.stopPropagation(); downloadSessionExcel('${s.id}')" style="background:var(--mint-bg);border:1px solid var(--mint-dk);border-radius:6px;color:var(--mint-dk);font-family:inherit;font-size:11px;font-weight:700;padding:4px 8px;cursor:pointer;flex-shrink:0">⬇</button>
+          </div>
+          <div class="log-barcode-list" id="lbl-${s.id}">
+            <div class="loading" style="padding:16px 0"><div class="spinner"></div><span style="margin-left:8px;font-size:13px">불러오는 중...</span></div>
+          </div>
+        </div>`;
+      });
+    });
+
+    listEl.innerHTML = html;
+  } catch(e) { listEl.innerHTML = `<div style="padding:20px;color:var(--danger);font-size:14px">오류: ${e.message}</div>`; }
+}
+
+async function toggleLogSession(sessionId) {
+  const listEl  = document.getElementById(`lbl-${sessionId}`);
+  const chevron = document.getElementById(`chv-${sessionId}`);
+  const isOpen  = listEl.classList.contains('open');
+
+  if (isOpen) {
+    listEl.classList.remove('open');
+    chevron.classList.remove('open');
+    return;
+  }
+
+  listEl.classList.add('open');
+  chevron.classList.add('open');
+
+  // 캐시 있으면 재사용
+  if (logState.itemCache?.[sessionId]) {
+    renderLogItems(sessionId, logState.itemCache[sessionId]);
+    return;
+  }
+
+  try {
+    const { data: items } = await app.supabase
+      .from('session_items').select('*')
+      .eq('session_id', sessionId)
+      .order('scanned_at', { ascending: true })
+      .limit(5000);
+    logState.itemCache[sessionId] = items || [];
+    renderLogItems(sessionId, items || []);
+  } catch(e) {
+    document.getElementById(`lbl-${sessionId}`).innerHTML =
+      `<div style="padding:12px 0;color:var(--danger);font-size:13px">오류: ${e.message}</div>`;
+  }
+}
+
+function renderLogItems(sessionId, items) {
+  const submitted  = items.filter(i => i.is_submitted && !i.is_error);
+  const inProgress = items.filter(i => !i.is_submitted && !i.is_error);
+  const errors     = items.filter(i => i.is_error);
+
+  const row = (item, i) => `
+    <div class="log-barcode-row">
+      <span style="font-family:var(--font-mono);font-size:11px;color:var(--text3);width:22px;flex-shrink:0">${i+1}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.product_name||item.barcode}</div>
+        <div style="font-family:var(--font-mono);font-size:11px;color:var(--text2)">${item.barcode}${item.category?` · ${item.category}`:''}${item.price?` · ${item.price}`:''}</div>
+      </div>
+      <span style="font-size:11px;color:var(--text3);flex-shrink:0">${item.scanned_by}</span>
+    </div>`;
+
+  let html = '';
+  if (submitted.length) {
+    html += `<div style="font-size:11px;font-weight:700;color:var(--success);padding:10px 0 4px">✅ 제출완료 ${submitted.length}벌</div>`;
+    html += submitted.map((item, i) => row(item, i)).join('');
+  }
+  if (inProgress.length) {
+    html += `<div style="font-size:11px;font-weight:700;color:var(--accent);padding:10px 0 4px">🔄 진행중 ${inProgress.length}벌</div>`;
+    html += inProgress.map((item, i) => row(item, i)).join('');
+  }
+  if (errors.length) {
+    html += `<div style="font-size:11px;font-weight:700;color:var(--danger);padding:10px 0 4px">⚠ 오류 ${errors.length}건</div>`;
+    html += errors.map((item, i) => row(item, i)).join('');
+  }
+  if (!html) html = '<div style="padding:12px 0;color:var(--text3);font-size:13px">항목이 없어요</div>';
+  document.getElementById(`lbl-${sessionId}`).innerHTML = html;
+}
+
+async function downloadLogExcel() {
+  if (!app.supabase) { showToast('Supabase 설정이 필요해요', 'error'); return; }
+  showToast('엑셀 생성 중...', '');
+
+  const { from, to } = getLogDateRange();
+
+  try {
+    // 세션 데이터
+    const { data: sessions } = await app.supabase
+      .from('move_sessions').select('*')
+      .gte('session_date', from).lte('session_date', to)
+      .order('session_date', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (!sessions || sessions.length === 0) { showToast('해당 기간에 데이터가 없어요', 'error'); return; }
+
+    // 아이템 데이터
+    const ids = sessions.map(s => s.id);
+    const { data: items } = await app.supabase
+      .from('session_items').select('*').in('session_id', ids).limit(10000);
+
+    const sessionMap = {};
+    sessions.forEach(s => { sessionMap[s.id] = s; });
+
+    const wb = XLSX.utils.book_new();
+
+    // ── 시트 1: 세션 요약 ──
+    const summaryRows = [
+      ['날짜', '출발지', '도착지', '상태', '제출완료', '진행중', '오류', '담당자', '승인자', '승인시간']
+    ];
+    sessions.forEach(s => {
+      const si = (items||[]).filter(i => i.session_id === s.id);
+      summaryRows.push([
+        s.session_date,
+        s.from_location,
+        s.to_location,
+        { pending:'대기중', approved:'완료', correction:'정정완료' }[s.status] || s.status,
+        si.filter(i => i.is_submitted && !i.is_error).length,
+        si.filter(i => !i.is_submitted && !i.is_error).length,
+        si.filter(i => i.is_error).length,
+        s.created_by,
+        s.approved_by || '',
+        s.approved_at ? formatDate(s.approved_at) + ' ' + formatTime(s.approved_at) : ''
+      ]);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryRows), '세션요약');
+
+    // ── 시트 2: 전체 바코드 내역 ──
+    const detailRows = [
+      ['날짜', '출발지', '도착지', '세션상태', '바코드', '상품명', '카테고리', '금액', '담당자', '스캔시간', '제출여부', '오류여부', '오류내용']
+    ];
+    (items||[]).forEach(item => {
+      const s = sessionMap[item.session_id];
+      if (!s) return;
+      detailRows.push([
+        s.session_date,
+        s.from_location,
+        s.to_location,
+        { pending:'대기중', approved:'완료', correction:'정정완료' }[s.status] || s.status,
+        item.barcode,
+        item.product_name || '',
+        item.category || '',
+        item.price || '',
+        item.scanned_by,
+        item.scanned_at ? formatDate(item.scanned_at) + ' ' + formatTime(item.scanned_at) : '',
+        item.is_submitted ? '제출완료' : '진행중',
+        item.is_error ? '오류' : '',
+        item.error_msg || ''
+      ]);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(detailRows), '바코드전체내역');
+
+    // 다운로드
+    const fileName = `이동로그_${from}${from !== to ? '_' + to : ''}.xlsx`;
+    XLSX.writeFile(wb, fileName);
+    showToast('다운로드 완료!', 'success');
+  } catch(e) { showToast('오류: ' + e.message, 'error'); }
+}
+
+// ══════════════════════════════════════════
+//  LOOKUP
+// ══════════════════════════════════════════
+function switchLookupTab(mode) {
+  const isSingle = mode === 'single';
+  document.getElementById('lookup-tab-single').classList.toggle('active', isSingle);
+  document.getElementById('lookup-tab-multi').classList.toggle('active', !isSingle);
+  document.getElementById('lookup-panel-single').style.display = isSingle ? '' : 'none';
+  document.getElementById('lookup-panel-multi').style.display = isSingle ? 'none' : '';
+}
+
+async function doLookupMulti() {
+  if (!requireSupabase()) return;
+  const raw = document.getElementById('lookup-multi-input').value;
+  if (!raw.trim()) return;
+
+  const barcodes = [...new Set(
+    raw.split(/[\n,\s]+/).map(s => s.trim().toUpperCase()).filter(Boolean)
+  )];
+  if (barcodes.length === 0) return;
+
+  const btn = document.getElementById('lookup-multi-btn');
+  const resultEl = document.getElementById('lookup-multi-result');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0 auto"></div>';
+  resultEl.innerHTML = '<div class="loading"><div class="spinner"></div>조회 중...</div>';
+
+  try {
+    // 이동 기록: 바코드 목록 한 번에 조회
+    const { data: items } = await app.supabase
+      .from('session_items')
+      .select('barcode, scanned_at, product_name, move_sessions(to_location, status)')
+      .in('barcode', barcodes)
+      .eq('is_submitted', true)
+      .eq('is_error', false);
+
+    // 판매 기록: 바코드 목록 한 번에 조회
+    const { data: soldItems } = await app.supabase
+      .from('sold_items')
+      .select('barcode, sold_date, store')
+      .in('barcode', barcodes)
+      .order('sold_date', { ascending: false });
+
+    // 바코드별 최신 이동 기록 (scanned_at 기준)
+    const latestMove = {};
+    (items || []).forEach(item => {
+      const bc = (item.barcode || '').toUpperCase();
+      if (!latestMove[bc] || item.scanned_at > latestMove[bc].scanned_at) {
+        latestMove[bc] = item;
+      }
+    });
+
+    // 바코드별 판매 기록 (첫 번째 = 최신)
+    const soldMap = {};
+    (soldItems || []).forEach(item => {
+      const bc = (item.barcode || '').toUpperCase();
+      if (!soldMap[bc]) soldMap[bc] = item;
+    });
+
+    // 결과 렌더링
+    const rows = barcodes.map(bc => {
+      const move = latestMove[bc];
+      const sold = soldMap[bc];
+      const location = move?.move_sessions?.to_location || null;
+      const isPending = move?.move_sessions?.status === 'pending';
+      let locationHtml;
+      if (sold) {
+        locationHtml = `<span style="color:var(--ok);font-weight:700">판매됨</span>`;
+      } else if (location) {
+        locationHtml = `<span style="color:var(--purple);font-weight:700">${location}${isPending ? ' <span style="color:var(--accent);font-size:11px">(대기중)</span>' : ''}</span>`;
+      } else {
+        locationHtml = `<span style="color:var(--ink-3)">기록 없음</span>`;
+      }
+      const soldBadge = sold
+        ? `<span style="font-size:11px;color:var(--ok)">${sold.sold_date || ''} ${sold.store || ''}</span>`
+        : '';
+      return `<div class="card-row" style="flex-direction:column;align-items:flex-start;gap:4px;padding:12px 16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
+          <span style="font-family:var(--font-mono);font-size:12px;color:var(--ink-2)">${bc}</span>
+          ${locationHtml}
+        </div>
+        ${move?.product_name ? `<span style="font-size:12px;color:var(--ink-3)">${move.product_name}</span>` : ''}
+        ${soldBadge}
+      </div>`;
+    }).join('');
+
+    const found = barcodes.filter(bc => latestMove[bc] || soldMap[bc]).length;
+    resultEl.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <h2 class="section-title" style="margin:0">조회 결과</h2>
+        <span style="font-size:12px;color:var(--ink-3);font-family:var(--font-mono)">${found}/${barcodes.length}건</span>
+      </div>
+      <div class="card">${rows}</div>
+    `;
+  } catch(e) {
+    resultEl.innerHTML = `<div style="color:var(--danger);padding:16px;font-size:14px">오류: ${e.message}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>최종 위치 조회 →</span>';
+  }
+}
+
+async function doLookup() {
+  const raw = document.getElementById('lookup-input').value.trim();
+  if (!raw) return;
+  const barcode = normalizeBarcode(raw);
+  const el = document.getElementById('lookup-result');
+  el.innerHTML = '<div class="loading"><div class="spinner"></div>조회 중...</div>';
+
+  try {
+    const { data } = await app.supabase
+      .from('session_items')
+      .select('*, move_sessions(*)')
+      .ilike('barcode', barcode)
+      .order('scanned_at', { ascending: false });
+
+    // 최초 입고 정보 (신규입고앱 데이터, 다른 프로젝트 테이블이라 없을 수 있음)
+    let ingestInfo = null;
+    try {
+      const { data: invRows } = await app.supabase
+        .from('inventory_items')
+        .select('*, inventory_hangers(submitted_by, inventory_sessions(location, session_date, created_by))')
+        .ilike('barcode', barcode)
+        .limit(1);
+      const invItem = invRows?.[0];
+      if (invItem) {
+        const hanger  = invItem.inventory_hangers || {};
+        const isession = hanger.inventory_sessions || {};
+        ingestInfo = {
+          location:     isession.location || invItem.location || null,
+          session_date: isession.session_date || invItem.created_at || null,
+          by:           hanger.submitted_by || isession.created_by || null,
+        };
+      }
+    } catch(e) { /* inventory_items 테이블 없으면 무시 */ }
+
+    if (!data || data.length === 0) {
+      // 이동 기록 없어도 판매/입고 여부 확인
+      let soldInfo = null;
+      try {
+        const { data: soldData } = await app.supabase
+          .from('sold_items')
+          .select('sold_date, store, price, product_name')
+          .ilike('barcode', barcode)
+          .order('sold_date', { ascending: false })
+          .limit(1);
+        if (soldData && soldData.length > 0) soldInfo = soldData[0];
+      } catch(e) {}
+
+      if (!ingestInfo && !soldInfo) {
+        el.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">기록이 없어요<br>${barcode}</div></div>`;
+        return;
+      }
+
+      const currentLoc = soldInfo ? '판매됨' : (ingestInfo?.location || '?');
+      el.innerHTML = `
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-row"><span class="card-row-label">바코드</span><span class="card-row-value" style="font-family:var(--font-mono)">${barcode}</span></div>
+          ${soldInfo?.product_name ? `<div class="card-row"><span class="card-row-label">상품명</span><span class="card-row-value">${soldInfo.product_name}</span></div>` : ''}
+          <div class="card-row"><span class="card-row-label">현재 위치</span><span class="card-row-value" style="color:${soldInfo ? 'var(--ok)' : 'var(--purple)'}">${currentLoc}</span></div>
+          ${soldInfo ? `
+            <div class="card-row"><span class="card-row-label">판매 상태</span><span class="card-row-value" style="color:var(--ok);font-weight:800">✅ 판매 완료</span></div>
+            <div class="card-row"><span class="card-row-label">판매일</span><span class="card-row-value">${soldInfo.sold_date || '-'}</span></div>
+            <div class="card-row"><span class="card-row-label">판매 매장</span><span class="card-row-value">${soldInfo.store || '-'}</span></div>
+          ` : `<div class="card-row"><span class="card-row-label">판매 상태</span><span class="card-row-value" style="color:var(--ink-3)">재고 중</span></div>`}
+        </div>
+        <h2 class="section-title">전체 이력</h2>
+        <div class="card"><div class="card-body" style="padding:8px 16px">
+          ${ingestInfo ? `<div class="history-item">
+            <div class="history-line"></div>
+            <div class="history-info">
+              <div class="history-route">📦 최초 입고</div>
+              <div class="history-date">${formatDate(ingestInfo.session_date)}</div>
+              <div class="history-who">${ingestInfo.by || '-'} 입고</div>
+            </div>
+          </div>` : `<div class="empty" style="padding:16px 0"><div class="empty-text">이동 기록 없음<br>앱 도입 이전 판매된 물건이에요</div></div>`}
+          ${soldInfo ? `<div class="history-item">
+            <div class="history-line"></div>
+            <div class="history-info">
+              <div class="history-route" style="color:var(--ok);font-weight:700">🛍 판매 완료</div>
+              <div class="history-date">${soldInfo.sold_date || ''} · ${soldInfo.store || ''}</div>
+            </div>
+          </div>` : ''}
+        </div></div>
+      `;
+      return;
+    }
+
+    const sorted = [...data].sort((a,b) => new Date(a.scanned_at) - new Date(b.scanned_at));
+    const lastItem = sorted[sorted.length-1];
+    const currentLoc = lastItem.move_sessions?.to_location || '?';
+
+    // 판매 여부 확인 (Supabase sold_items 테이블)
+    let isSold = false;
+    let soldInfo = null;
+    try {
+      const { data: soldData } = await app.supabase
+        .from('sold_items')
+        .select('sold_date, store, price')
+        .ilike('barcode', barcode)
+        .order('sold_date', { ascending: false })
+        .limit(1);
+      if (soldData && soldData.length > 0) {
+        isSold = true;
+        soldInfo = soldData[0];
+      }
+    } catch(e) { /* sold_items 테이블 없으면 무시 */ }
+
+    const soldBadge = isSold
+      ? `<div class="card-row"><span class="card-row-label">판매 상태</span><span class="card-row-value" style="color:var(--ok);font-weight:800">✅ 판매 완료</span></div>
+         <div class="card-row"><span class="card-row-label">판매일</span><span class="card-row-value">${soldInfo?.sold_date || '-'}</span></div>
+         <div class="card-row"><span class="card-row-label">판매 매장</span><span class="card-row-value">${soldInfo?.store || '-'}</span></div>`
+      : `<div class="card-row"><span class="card-row-label">판매 상태</span><span class="card-row-value" style="color:var(--ink-3)">재고 중</span></div>`;
+
+    el.innerHTML = `
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-row"><span class="card-row-label">바코드</span><span class="card-row-value" style="font-family:var(--font-mono)">${barcode}</span></div>
+        <div class="card-row"><span class="card-row-label">상품명</span><span class="card-row-value">${lastItem.product_name || '-'}</span></div>
+        <div class="card-row"><span class="card-row-label">현재 위치</span><span class="card-row-value" style="color:${isSold ? 'var(--ok)' : 'var(--purple)'}">${isSold ? '판매됨' : currentLoc}</span></div>
+        ${soldBadge}
+        <div class="card-row"><span class="card-row-label">이동 횟수</span><span class="card-row-value" style="font-family:var(--font-mono)">${sorted.length}회</span></div>
+      </div>
+      <h2 class="section-title">전체 이력</h2>
+      <div class="card"><div class="card-body" style="padding:8px 16px">
+        ${ingestInfo ? `<div class="history-item">
+          <div class="history-line"></div>
+          <div class="history-info">
+            <div class="history-route">📦 최초 입고</div>
+            <div class="history-date">${formatDate(ingestInfo.session_date)}</div>
+            <div class="history-who">${ingestInfo.by || '-'} 입고</div>
+          </div>
+        </div>` : ''}
+        ${sorted.map((item, i) => {
+          const s = item.move_sessions;
+          const isLast = i === sorted.length - 1;
+          return `<div class="history-item">
+            <div class="history-line" style="${isLast?'':''}"></div>
+            <div class="history-info">
+              <div class="history-route">${s?.from_location||'?'} → ${s?.to_location||'?'}${s?.is_correction?`<span class="correction-tag">정정</span>`:''}${s?.status==='pending'?`<span class="correction-tag" style="color:var(--accent)">대기중</span>`:''}</div>
+              <div class="history-date">${formatDate(s?.session_date)} · ${formatTime(item.scanned_at)}</div>
+              <div class="history-who">${item.scanned_by} 스캔${s?.approved_by ? ` / ${s.approved_by} 승인` : ''}</div>
+            </div>
+          </div>`;
+        }).join('')}
+        ${isSold ? `<div class="history-item">
+          <div class="history-line"></div>
+          <div class="history-info">
+            <div class="history-route" style="color:var(--ok);font-weight:700">🛍 판매 완료</div>
+            <div class="history-date">${soldInfo?.sold_date || ''} · ${soldInfo?.store || ''}</div>
+          </div>
+        </div>` : ''}
+      </div></div>
+    `;
+  } catch(e) { el.innerHTML = `<div style="color:var(--danger);padding:16px;font-size:14px">오류: ${e.message}</div>`; }
+}
+
+// ══════════════════════════════════════════
+//  ADMIN AUTH
+// ══════════════════════════════════════════
+async function startAdminFlow() {
+  if (!requireSupabase()) return;
+  try {
+    // profiles 테이블에서 role 확인 (auth-guard가 비동기로 로드한 window.MIU_PROFILE 우선)
+    let role = window.MIU_PROFILE?.role;
+    if (!role) {
+      const { data: { user } } = await app.supabase.auth.getUser();
+      if (!user) { showToast('로그인이 필요해요', 'error'); return; }
+      const { data: profile } = await app.supabase
+        .from('profiles').select('role').eq('id', user.id).single();
+      role = profile?.role;
+      if (profile) window.MIU_PROFILE = { ...window.MIU_PROFILE, ...profile };
+    }
+    if (role !== 'admin') {
+      showToast('관리자 권한이 없어요', 'error');
+      return;
+    }
+    app.adminAuthed = true;
+    loadAdmin();
+    showScreen('s-admin');
+  } catch(e) { showToast('오류: ' + e.message, 'error'); }
+}
+
+// ══════════════════════════════════════════
+//  ADMIN
+// ══════════════════════════════════════════
+async function loadAdmin() {
+  if (!app.supabase) return;
+
+  // 각 쿼리 독립 실행 — 하나 실패해도 나머지에 영향 없음
+  try {
+    const { data } = await app.supabase.from('locations').select('*').order('is_active', { ascending: false }).order('name');
+    renderLocations(data || []);
+  } catch(e) { renderLocations([]); }
+
+  try {
+    const { data } = await app.supabase.from('handlers').select('*').order('is_active', { ascending: false }).order('name');
+    renderHandlers(data || []);
+  } catch(e) { renderHandlers([]); }
+
+}
+
+function renderHandlers(list) {
+  const el = document.getElementById('handler-list');
+  if (!el) return;
+  if (!list.length) { el.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:12px 0">담당자가 없어요</div>'; return; }
+  el.innerHTML = list.map(h => `
+    <div class="location-item">
+      <span class="location-name ${!h.is_active ? 'location-inactive' : ''}">${h.name}</span>
+      <div class="loc-actions">
+        <button class="loc-btn" onclick="toggleHandler('${h.id}', ${h.is_active})">${h.is_active ? '비활성화' : '활성화'}</button>
+        <button class="loc-btn danger" onclick="deleteHandler('${h.id}', '${h.name}')">삭제</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function addHandler() {
+  const name = document.getElementById('new-handler-input').value.trim();
+  if (!name) return;
+  await sbQuery(sb => sb.from('handlers').insert({ name }));
+  document.getElementById('new-handler-input').value = '';
+  showToast(`'${name}' 추가됐어요`, 'success');
+  loadAdmin();
+}
+
+async function toggleHandler(id, isActive) {
+  await sbQuery(sb => sb.from('handlers').update({ is_active: !isActive }).eq('id', id));
+  loadAdmin();
+}
+
+async function deleteHandler(id, name) {
+  showModal('담당자 삭제', `'${name}'을(를) 삭제할까요?\n기존 이동 로그의 이름은 유지됩니다.`,
+    [
+      { label: '삭제', class: 'btn-danger', fn: async () => { closeModal(); await sbQuery(sb => sb.from('handlers').delete().eq('id', id)); loadAdmin(); showToast('삭제됐어요', 'success'); }},
+      { label: '취소', class: 'btn-secondary', fn: closeModal }
+    ]);
+}
+
+
+function renderLocations(locs) {
+  const el = document.getElementById('location-list');
+  if (!el) return;
+  if (!locs.length) { el.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:12px 0">매장이 없어요</div>'; return; }
+  el.innerHTML = locs.map(l => `
+    <div class="location-item">
+      <span class="location-name ${!l.is_active ? 'location-inactive' : ''}">${l.name}</span>
+      <div class="loc-actions">
+        <button class="loc-btn" onclick="toggleLocation('${l.id}', ${l.is_active})">${l.is_active ? '비활성화' : '활성화'}</button>
+        <button class="loc-btn danger" onclick="deleteLocation('${l.id}')">삭제</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function addLocation() {
+  const name = document.getElementById('new-location-input').value.trim();
+  if (!name) return;
+  await sbQuery(sb => sb.from('locations').insert({ name }));
+  document.getElementById('new-location-input').value = '';
+  showToast(`'${name}' 추가됐어요`, 'success');
+  loadAdmin();
+}
+
+async function toggleLocation(id, isActive) {
+  await sbQuery(sb => sb.from('locations').update({ is_active: !isActive }).eq('id', id));
+  loadAdmin();
+}
+
+async function deleteLocation(id) {
+  showModal('매장 삭제', '정말 삭제할까요?\n과거 이동 기록의 위치 이름은 유지됩니다.',
+    [
+      { label:'삭제', class:'btn-danger', fn: async () => { closeModal(); await sbQuery(sb => sb.from('locations').delete().eq('id', id)); loadAdmin(); showToast('삭제됐어요', 'success'); }},
+      { label:'취소', class:'btn-secondary', fn: closeModal }
+    ]);
+}
+
+// ══════════════════════════════════════════
+//  MODAL / TOAST
+// ══════════════════════════════════════════
+function showModal(title, desc, actions) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-desc').style.whiteSpace = 'pre-line';
+  document.getElementById('modal-desc').textContent = desc;
+  document.getElementById('modal-actions').innerHTML = actions.map((a,i) =>
+    `<button class="btn ${a.class}" onclick="__modalAction(${i})">${a.label}</button>`
+  ).join('');
+  window.__modalActions = actions.map(a => a.fn);
+  document.getElementById('modal').classList.add('show');
+  document.getElementById('modal').style.display = 'flex';
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('show');
+  setTimeout(() => { document.getElementById('modal').style.display = 'none'; }, 200);
+}
+window.__modalAction = (i) => { closeModal(); window.__modalActions[i]?.(); };
+
+let toastTimer;
+function showToast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast show${type ? ' ' + type : ''}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.classList.remove('show'); }, 3000);
+}
+
+// ══════════════════════════════════════════
+//  UTILITIES
+// ══════════════════════════════════════════
+function pad(n) { return String(n).padStart(2, '0'); }
+function toDateStr(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function formatDate(s) {
+  if (!s) return '';
+  const d = new Date(s);
+  return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}`;
+}
+function formatTime(s) {
+  if (!s) return '';
+  const d = new Date(s);
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// close modal on overlay click
+document.getElementById('modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// Shake animation for PIN
+const styleEl = document.createElement('style');
+styleEl.textContent = `@keyframes shake{0%,100%{transform:none}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}`;
+document.head.appendChild(styleEl);
+</script>
 </body>
 </html>
+

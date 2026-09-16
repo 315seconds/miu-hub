@@ -7,6 +7,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+  <link rel="stylesheet" href="/shared/tokens.css">
+  <link rel="stylesheet" href="/shared/layout.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -14,40 +17,40 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      /* WDS 기반 메인 팔레트 */
-      --canvas:       #F7F7F8;
-      --surface-soft: #FAFAFA;
-      --surface-card: #F4F4F5;
-      --surface-strong:#EBEBEC;
+      /* 마켓인유 크림 팔레트 */
+      --canvas:       #faf9f5;   /* miu-canvas */
+      --surface-soft: #f5f0e8;
+      --surface-card: #efe9de;
+      --surface-strong:#e8e0d2;
 
-      /* 사이드바 다크 (유지) */
-      --tile:         #0f1923;
-      --tile-elevated:#1a2633;
-      --on-dark:      #ffffff;
-      --muted-dk:     rgba(255,255,255,0.48);
+      /* 사이드바 다크 (miu-surface-dark) */
+      --tile:         #181715;
+      --tile-elevated:#252320;
+      --on-dark:      #faf9f5;
+      --muted-dk:     rgba(250,249,245,0.48);
 
-      /* WDS 텍스트 */
-      --ink:          #171719;
-      --ink-strong:   #171719;
-      --body:         rgba(70,71,76,0.86);
-      --muted:        #989BA2;
-      --muted-soft:   #C2C4C8;
-      --hairline:     rgba(112,115,124,0.22);
-      --hairline-soft:rgba(112,115,124,0.12);
+      /* 텍스트 (miu 토큰) */
+      --ink:          #141413;
+      --ink-strong:   #141413;
+      --body:         #3d3d3a;
+      --muted:        #6c6a64;
+      --muted-soft:   #8e8b82;
+      --hairline:     #e6dfd8;
+      --hairline-soft:#ebe6df;
 
-      /* 차트/통계 강조색 (유지) */
-      --pink:         #ff4d8b;
-      --teal:         #1a3a3a;
+      /* 차트 강조색 (warm 톤으로 톤다운) */
+      --pink:         #cc785c;   /* coral */
+      --teal:         #5db8a6;
       --lavender:     #b8a4ed;
-      --peach:        #ffb084;
-      --ochre:        #e8b94a;
-      --mint:         #a4d4c5;
-      --coral:        #ff6b5a;
+      --peach:        #d4784a;
+      --ochre:        #d4a017;
+      --mint:         #6b8e6b;
+      --coral:        #cc785c;
 
-      /* WDS 시맨틱 */
-      --success:      #00BF40;
-      --warning:      #FF5E00;
-      --error:        #E52222;
+      /* 시맨틱 */
+      --success:      #5db872;
+      --warning:      #d4a017;
+      --error:        #c64545;
 
       /* Radius */
       --r-xs:   6px;
@@ -421,11 +424,16 @@
     #mobile-header {
       display: none;
       flex-direction: column;
-      background: var(--tile);
+      background: var(--miu-canvas);
       flex-shrink: 0;
       position: sticky;
       top: 0;
       z-index: 50;
+      border-bottom: 1px solid var(--miu-hairline);
+    }
+    #mobile-tab-bar {
+      background: var(--miu-canvas);
+      padding: 0 4px;
     }
     .mob-header-top {
       display: flex;
@@ -466,19 +474,45 @@
     #mobile-tab-bar::-webkit-scrollbar { display: none; }
     .mob-tab {
       flex-shrink: 0;
-      padding: 10px 16px;
+      padding: 10px 14px;
       font-size: 13px;
       font-weight: 500;
-      color: rgba(255,255,255,0.5);
+      color: var(--miu-muted);
       text-decoration: none;
       border-bottom: 2px solid transparent;
       white-space: nowrap;
       -webkit-tap-highlight-color: transparent;
+      transition: color .12s;
     }
+    .mob-tab:active { color: var(--miu-ink); }
     .mob-tab.active {
-      color: var(--peach);
-      border-bottom-color: var(--peach);
+      color: var(--miu-primary);
+      border-bottom-color: var(--miu-primary);
       font-weight: 600;
+    }
+
+    /* ── Dashboard section (receiving 스타일) ── */
+    .dash-section { margin-bottom: 28px; }
+    .dash-section .miu-section-head { margin-bottom: 14px; }
+    .dash-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .dash-stat-sub {
+      font-size: 12px;
+      color: var(--miu-muted);
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+    .dash-panel {
+      background: var(--miu-canvas);
+      border: 1px solid var(--miu-hairline);
+      border-radius: var(--miu-r-lg);
+      padding: 16px;
+    }
+    @media (min-width: 640px) {
+      .dash-stats { grid-template-columns: repeat(4, 1fr); }
     }
 
     /* ── Closure button ── */
@@ -644,17 +678,27 @@
       .btn-refresh { font-size: 12px; padding: 6px 10px; }
     }
   </style>
+  <!-- auth-migration: 로그인 가드 -->
+  <script src="/shared/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/shared/supabase-client.js"></script>
+  <script src="/shared/auth-guard.js"></script>
 </head>
 <body>
 
 <div id="mobile-header">
-  <div class="mob-header-top">
-    <a href="../" class="mob-hub-back">← 허브로</a>
-    <span class="mob-header-title">매장 현황판</span>
-    <button class="mob-refresh-btn" onclick="route()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-    </button>
-  </div>
+  <header class="miu-header">
+    <a href="/" class="miu-header-back" aria-label="허브로">
+      <i class="ph-bold ph-caret-left"></i>
+    </a>
+    <div class="miu-header-title">      <h1 class="miu-header-h1">매장 현황판</h1>
+    </div>
+    <div class="miu-header-actions">
+      <button class="miu-icon-btn" onclick="route()" aria-label="새로고침">
+        <i class="ph-bold ph-arrow-clockwise"></i>
+      </button>
+    </div>
+  </header>
   <div id="mobile-tab-bar"></div>
 </div>
 

@@ -2,86 +2,139 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-  <title>입고관리</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>입고 관리 · 마켓인유</title>
+
+  <link rel="stylesheet" href="/shared/tokens.css">
+  <link rel="stylesheet" href="/shared/layout.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+
+  <!-- auth-migration: 로그인 가드 -->
+  <script src="/shared/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/shared/supabase-client.js"></script>
+  <script src="/shared/auth-guard.js"></script>
+
+  <style>
+    /* receiving/index 전용 미세 조정 */
+    .stats-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+    .stats-3 .miu-stat { padding: 14px 12px; }
+    .stats-3 .miu-stat-label { font-size: 10px; }
+    .stats-3 .miu-stat-value { font-size: 24px; }
+    /* 대기중 강조 */
+    .stat-pending-active { color: var(--miu-warning); }
+    .stat-value-muted { color: var(--miu-muted); }
+  </style>
 </head>
-<body>
-  <div class="page-wrap">
-    <div class="home-header">
-      <div class="home-header-date" id="today-label"></div>
-      <div class="home-header-title">입고관리</div>
+<body class="miu-app">
+
+  <header class="miu-header">
+    <a href="/" class="miu-header-back" aria-label="허브로">
+      <i class="ph-bold ph-caret-left"></i>
+    </a>
+    <div class="miu-header-title">      <h1 class="miu-header-h1">입고 관리</h1>
     </div>
+    <div class="miu-header-actions" id="today-label"
+         style="font-size:12px;color:var(--miu-muted);padding-right:4px"></div>
+  </header>
+
+  <div class="miu-app-body" style="padding-bottom:40px">
 
     <!-- 통계 -->
-    <div class="stats-row" id="stats-row">
-      <div class="stat-card">
-        <div class="stat-label">오늘 입고</div>
-        <div class="stat-value" id="stat-today" style="color:var(--brand-primary)">—</div>
-        <div class="stat-unit">벌</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">미승인 세션</div>
-        <div class="stat-value" id="stat-pending" style="color:var(--fg-primary)">—</div>
-        <div class="stat-unit">개</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">이번 주 입고</div>
-        <div class="stat-value" id="stat-week" style="color:var(--fg-secondary)">—</div>
-        <div class="stat-unit">벌</div>
+    <div class="miu-section" style="margin-top:20px">
+      <div class="stats-3">
+        <div class="miu-stat">
+          <div class="miu-stat-label">오늘 입고</div>
+          <div class="miu-stat-value stat-value-muted" id="stat-today">—</div>
+        </div>
+        <div class="miu-stat">
+          <div class="miu-stat-label">미승인</div>
+          <div class="miu-stat-value stat-value-muted" id="stat-pending">—</div>
+        </div>
+        <div class="miu-stat">
+          <div class="miu-stat-label">이번 주</div>
+          <div class="miu-stat-value stat-value-muted" id="stat-week">—</div>
+        </div>
       </div>
     </div>
 
-    <div style="padding: 0 16px 88px;">
-      <div class="section-label">입고</div>
+    <!-- 01. 입고 -->
+    <div class="miu-section">
+      <div class="miu-section-head">
+        <span class="miu-section-num">01</span>
+        <span class="miu-section-label">입고</span>
+        <span class="miu-section-divider"></span>
+      </div>
+      <div class="miu-tile-grid">
+        <a href="session-list.html" class="miu-tile miu-tile-wide" style="--tile-accent:#4a6b8a">
+          <div class="miu-tile-icon"><i class="ph-bold ph-package"></i></div>
+          <div class="miu-tile-body">
+            <div class="miu-tile-title">
+              신규입고
+              <span id="pending-badge" class="miu-chip warn"
+                    style="display:none;margin-left:6px;font-size:10px;vertical-align:middle"></span>
+            </div>
+            <div class="miu-tile-desc">행거별 상품 등록 및 세션 참여</div>
+          </div>
+          <span class="miu-tile-arrow"><i class="ph-bold ph-caret-right"></i></span>
+        </a>
 
-      <a href="session-list.html" class="menu-card">
-        <div class="menu-icon-wrap blue">📦</div>
-        <div>
-          <div class="menu-label">신규입고</div>
-          <div class="menu-desc">행거별 상품 등록 및 세션 참여</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;margin-left:auto;">
-          <span id="pending-badge" class="menu-badge" style="display:none"></span>
-          <span class="menu-arrow">›</span>
-        </div>
-      </a>
-
-      <a href="approve.html" class="menu-card">
-        <div class="menu-icon-wrap green">✅</div>
-        <div>
-          <div class="menu-label">입고 승인</div>
-          <div class="menu-desc">대기 중인 세션 확인 및 승인</div>
-        </div>
-        <span class="menu-arrow" style="margin-left:auto;">›</span>
-      </a>
-
-      <div class="section-label">조회</div>
-
-      <a href="logs.html" class="menu-card">
-        <div class="menu-icon-wrap slate">📋</div>
-        <div>
-          <div class="menu-label">입고 로그</div>
-          <div class="menu-desc">날짜별 입고 기록 및 요약</div>
-        </div>
-        <span class="menu-arrow" style="margin-left:auto;">›</span>
-      </a>
-
-      <div class="section-label">작업</div>
-
-      <a href="labels.html?daily=1" class="menu-card">
-        <div class="menu-icon-wrap slate">📋</div>
-        <div>
-          <div class="menu-label">오늘 입고 일괄출력</div>
-          <div class="menu-desc">담당자·행거별로 묶어 한번에 라벨 출력</div>
-        </div>
-        <span class="menu-arrow" style="margin-left:auto;">›</span>
-      </a>
+        <a href="approve.html" class="miu-tile miu-tile-wide" style="--tile-accent:#6b8e6b">
+          <div class="miu-tile-icon"><i class="ph-bold ph-check-circle"></i></div>
+          <div class="miu-tile-body">
+            <div class="miu-tile-title">입고 승인</div>
+            <div class="miu-tile-desc">대기 중인 세션 확인 및 승인</div>
+          </div>
+          <span class="miu-tile-arrow"><i class="ph-bold ph-caret-right"></i></span>
+        </a>
+      </div>
     </div>
+
+    <!-- 02. 조회 -->
+    <div class="miu-section">
+      <div class="miu-section-head">
+        <span class="miu-section-num">02</span>
+        <span class="miu-section-label">조회</span>
+        <span class="miu-section-divider"></span>
+      </div>
+      <div class="miu-tile-grid">
+        <a href="logs.html" class="miu-tile miu-tile-wide" style="--tile-accent:#3c4e75">
+          <div class="miu-tile-icon"><i class="ph-bold ph-clipboard-text"></i></div>
+          <div class="miu-tile-body">
+            <div class="miu-tile-title">입고 로그</div>
+            <div class="miu-tile-desc">날짜별 입고 기록 및 요약</div>
+          </div>
+          <span class="miu-tile-arrow"><i class="ph-bold ph-caret-right"></i></span>
+        </a>
+      </div>
+    </div>
+
+    <!-- 03. 작업 -->
+    <div class="miu-section">
+      <div class="miu-section-head">
+        <span class="miu-section-num">03</span>
+        <span class="miu-section-label">작업</span>
+        <span class="miu-section-divider"></span>
+      </div>
+      <div class="miu-tile-grid">
+        <a href="labels.html?daily=1" class="miu-tile miu-tile-wide" style="--tile-accent:#6c6a64">
+          <div class="miu-tile-icon"><i class="ph-bold ph-printer"></i></div>
+          <div class="miu-tile-body">
+            <div class="miu-tile-title">오늘 입고 일괄출력</div>
+            <div class="miu-tile-desc">담당자·행거별로 묶어 한번에 라벨 출력</div>
+          </div>
+          <span class="miu-tile-arrow"><i class="ph-bold ph-caret-right"></i></span>
+        </a>
+      </div>
+    </div>
+
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- 기존 receiving JS 스택 유지 (통계 로드 + bottom-nav 자동 삽입) -->
   <script src="js/supabase-client.js"></script>
   <script src="js/api.js"></script>
   <script src="js/shared.js"></script>
@@ -105,11 +158,13 @@
 
       if (pendingRes.status === "fulfilled" && !pendingRes.value.error) {
         const count = pendingRes.value.count || 0;
-        document.getElementById('stat-pending').textContent = count;
+        const el = document.getElementById('stat-pending');
+        el.textContent = count;
+        el.classList.remove('stat-value-muted');
         if (count > 0) {
-          document.getElementById('stat-pending').style.color = 'var(--status-warning)';
+          el.classList.add('stat-pending-active');
           const badge = document.getElementById('pending-badge');
-          badge.textContent = count;
+          badge.textContent = count + '건 대기';
           badge.style.display = '';
         }
       }
@@ -118,18 +173,18 @@
         const total = (todayRes.value.data || []).flatMap(s =>
           (s.inventory_hangers || []).flatMap(h => h.inventory_items || [])
         ).length;
-        document.getElementById('stat-today').textContent = total;
-      } else {
-        document.getElementById('stat-today').textContent = '—';
+        const el = document.getElementById('stat-today');
+        el.textContent = total;
+        el.classList.remove('stat-value-muted');
       }
 
       if (weekRes.status === "fulfilled" && !weekRes.value.error) {
         const total = (weekRes.value.data || []).flatMap(s =>
           (s.inventory_hangers || []).flatMap(h => h.inventory_items || [])
         ).length;
-        document.getElementById('stat-week').textContent = total;
-      } else {
-        document.getElementById('stat-week').textContent = '—';
+        const el = document.getElementById('stat-week');
+        el.textContent = total;
+        el.classList.remove('stat-value-muted');
       }
     }
 

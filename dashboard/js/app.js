@@ -120,51 +120,70 @@ async function renderHome() {
   const totalSold    = Object.values(sales).reduce((s, v) => s + v.count, 0);
 
   document.getElementById('content').innerHTML = `
-    <div class="page-header">
-      <div>
-        <div class="page-title">전체 현황</div>
-        <div class="page-sub">모든 매장 · 창고 통합 요약</div>
+    <div class="dash-section">
+      <div class="miu-section-head" style="padding:0">
+        <span class="miu-section-num">01</span>
+        <span class="miu-section-label">전체 요약</span>
+        <span class="miu-section-divider"></span>
+        <button class="miu-icon-btn" onclick="route()" aria-label="새로고침" style="margin-left:6px">
+          <i class="ph-bold ph-arrow-clockwise"></i>
+        </button>
       </div>
-      <button class="btn-refresh" onclick="route()">${iconRefresh()} 새로고침</button>
+      <div class="dash-stats">
+        <div class="miu-stat">
+          <div class="miu-stat-label">전체 재고</div>
+          <div class="miu-stat-value">${fmt(totalStock)}</div>
+          <div class="dash-stat-sub">모든 위치 합산</div>
+        </div>
+        <div class="miu-stat">
+          <div class="miu-stat-label">이달 매출</div>
+          <div class="miu-stat-value">${fmtMoney(totalRevenue)}</div>
+          <div class="dash-stat-sub">${thisMonth()} · ${fmt(totalSold)}건</div>
+        </div>
+        <div class="miu-stat">
+          <div class="miu-stat-label">장기재고 365일+</div>
+          <div class="miu-stat-value">${fmt(totalOld)}</div>
+          <div class="dash-stat-sub">전체 대비 ${totalStock ? pct(totalOld, totalStock) : '0%'}</div>
+        </div>
+        <div class="miu-stat">
+          <div class="miu-stat-label">운영 매장</div>
+          <div class="miu-stat-value">${stores.length}</div>
+          <div class="dash-stat-sub">창고 ${WAREHOUSE.filter(w => names.includes(w)).length}개 별도</div>
+        </div>
+      </div>
     </div>
 
-    <div class="cards-row">
-      <div class="stat-card stat-card-peach">
-        <div class="stat-label">전체 재고</div>
-        <div class="stat-value">${fmt(totalStock)}</div>
-        <div class="stat-sub">모든 위치 합산</div>
+    <div class="dash-section">
+      <div class="miu-section-head" style="padding:0">
+        <span class="miu-section-num">02</span>
+        <span class="miu-section-label">위치별 현재 재고</span>
+        <span class="miu-section-divider"></span>
       </div>
-      <div class="stat-card stat-card-teal">
-        <div class="stat-label">이달 매출</div>
-        <div class="stat-value">${fmtMoney(totalRevenue)}</div>
-        <div class="stat-sub">${thisMonth()} · ${fmt(totalSold)}건</div>
-      </div>
-      <div class="stat-card stat-card-pink">
-        <div class="stat-label">장기재고 365일+</div>
-        <div class="stat-value">${fmt(totalOld)}</div>
-        <div class="stat-sub">전체 대비 ${totalStock ? pct(totalOld, totalStock) : '0%'} · 최초 입고일 기준</div>
-      </div>
-      <div class="stat-card stat-card-lavender">
-        <div class="stat-label">운영 매장</div>
-        <div class="stat-value">${stores.length}</div>
-        <div class="stat-sub">창고 ${WAREHOUSE.filter(w => names.includes(w)).length}개 별도</div>
-      </div>
-    </div>
-
-    <div class="charts-row">
-      <div class="section-card" style="margin-bottom:0">
-        <h3>위치별 현재 재고</h3>
+      <div class="dash-panel">
         <div class="chart-wrap"><canvas id="chart-stock"></canvas></div>
       </div>
-      <div class="section-card" style="margin-bottom:0">
-        <h3>이달 매장별 매출</h3>
+    </div>
+
+    <div class="dash-section">
+      <div class="miu-section-head" style="padding:0">
+        <span class="miu-section-num">03</span>
+        <span class="miu-section-label">이달 매장별 매출</span>
+        <span class="miu-section-divider"></span>
+      </div>
+      <div class="dash-panel">
         <div class="chart-wrap"><canvas id="chart-sales"></canvas></div>
       </div>
     </div>
 
-    <div class="section-card" style="margin-top:18px">
-      <h3>장기재고 현황 (365일 이상, 최초 입고일 기준)</h3>
-      ${renderOldTable(counts, oldCounts)}
+    <div class="dash-section">
+      <div class="miu-section-head" style="padding:0">
+        <span class="miu-section-num">04</span>
+        <span class="miu-section-label">장기재고 · 365일 이상</span>
+        <span class="miu-section-divider"></span>
+      </div>
+      <div class="dash-panel">
+        ${renderOldTable(counts, oldCounts)}
+      </div>
     </div>
   `;
 

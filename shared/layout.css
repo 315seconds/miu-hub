@@ -1,0 +1,908 @@
+/* ============================================================================
+ * 마켓인유 레이아웃 & 컴포넌트 시스템 (v1)
+ * shared/tokens.css 필수 선행 로드
+ *
+ * 사용법:
+ *   <link rel="stylesheet" href="/shared/tokens.css">
+ *   <link rel="stylesheet" href="/shared/layout.css">
+ *   <link rel="stylesheet"
+ *         href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+ *
+ * 클래스 prefix: `miu-`
+ * ============================================================================ */
+
+
+/* ===========================================================================
+ * 1. App Shell — 페이지 기본 구조
+ * =========================================================================== */
+
+/* body에 넣으면 전체 페이지가 통일된 크림 캔버스 + 컨텐츠 영역 확보 */
+.miu-app {
+  min-height: 100dvh;
+  background: var(--miu-canvas);
+  color: var(--miu-ink);
+  font-family: var(--miu-sans);
+  display: flex;
+  flex-direction: column;
+}
+
+/* 스크롤 영역 (헤더 아래) */
+.miu-app-body {
+  flex: 1;
+  padding-bottom: 32px;
+}
+
+
+/* ===========================================================================
+ * 2. Page Header — 모든 서브앱 공통 상단
+ *
+ * 구성: [뒤로가기 버튼] [타이틀 영역: eyebrow + title] [우측 액션 슬롯]
+ *
+ * <header class="miu-header">
+ *   <a href="/" class="miu-header-back" aria-label="허브로">
+ *     <i class="ph-bold ph-caret-left"></i>
+ *   </a>
+ *   <div class="miu-header-title">
+ *     <div class="miu-header-eyebrow">RECEIVING</div>
+ *     <h1 class="miu-header-h1">신규 입고</h1>
+ *   </div>
+ *   <div class="miu-header-actions">
+ *     <button class="miu-icon-btn"><i class="ph-bold ph-plus"></i></button>
+ *   </div>
+ * </header>
+ * =========================================================================== */
+
+.miu-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--miu-canvas);
+  border-bottom: 1px solid var(--miu-hairline);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.miu-header-back {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--miu-r-md);
+  color: var(--miu-ink);
+  text-decoration: none;
+  transition: background .12s;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 22px;
+}
+.miu-header-back:hover { background: var(--miu-surface-soft); }
+.miu-header-back:active { background: var(--miu-surface-card); }
+
+.miu-header-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.miu-header-eyebrow {
+  font-family: var(--miu-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--miu-primary);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.miu-header-h1 {
+  font-family: var(--miu-serif);
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.5px;
+  color: var(--miu-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.miu-header-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+
+/* ===========================================================================
+ * 3. Hero (서브페이지가 아닌 랜딩용, 뒤로가기 없음)
+ *
+ * <div class="miu-hero">
+ *   <div class="miu-hero-eyebrow">
+ *     <svg class="miu-spike-mark">...</svg>
+ *     MARKET IN U
+ *   </div>
+ *   <h1 class="miu-hero-title">관리툴</h1>
+ *   <div class="miu-hero-sub">오늘 9월 14일</div>
+ * </div>
+ * =========================================================================== */
+
+.miu-hero {
+  padding: 40px 24px 32px;
+}
+.miu-hero-eyebrow {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--miu-primary);
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+.miu-hero-title {
+  font-family: var(--miu-serif);
+  font-size: 34px;
+  font-weight: 500;
+  line-height: 1.12;
+  letter-spacing: -1.2px;
+  color: var(--miu-ink);
+  margin-bottom: 6px;
+}
+.miu-hero-sub {
+  font-size: 14px;
+  color: var(--miu-muted);
+}
+
+
+/* ===========================================================================
+ * 4. Section — 컨텐츠 구획 (에디토리얼 넘버링)
+ *
+ * <div class="miu-section">
+ *   <div class="miu-section-head">
+ *     <span class="miu-section-num">01</span>
+ *     <span class="miu-section-label">정기 작업</span>
+ *     <span class="miu-section-divider"></span>
+ *   </div>
+ *   ... 컨텐츠 ...
+ * </div>
+ * =========================================================================== */
+
+.miu-section {
+  padding: 0 24px;
+  margin-bottom: 32px;
+}
+.miu-section-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.miu-section-num {
+  font-family: var(--miu-serif);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--miu-muted-soft);
+  letter-spacing: -0.2px;
+}
+.miu-section-label {
+  font-family: var(--miu-sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  color: var(--miu-ink);
+  text-transform: uppercase;
+}
+.miu-section-divider {
+  flex: 1;
+  height: 1px;
+  background: var(--miu-hairline);
+  margin-left: 8px;
+}
+
+
+/* ===========================================================================
+ * 5. Card & Tile — 카드형 컴포넌트
+ * =========================================================================== */
+
+/* 기본 크림 카드 */
+.miu-card {
+  background: var(--miu-surface-card);
+  border-radius: var(--miu-r-lg);
+  padding: 20px;
+  text-decoration: none;
+  color: var(--miu-ink);
+  display: block;
+  transition: transform .12s, background .15s;
+}
+.miu-card:active {
+  transform: scale(0.98);
+  background: var(--miu-surface-strong);
+}
+
+/* 아이콘 + 타이틀 + 설명 타일 (허브용) */
+.miu-tile {
+  background: var(--miu-surface-card);
+  border-radius: var(--miu-r-lg);
+  padding: 20px 18px 18px;
+  text-decoration: none;
+  color: var(--miu-ink);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: transform .12s, background .15s;
+  min-height: 130px;
+  border-left: 3px solid var(--tile-accent, var(--miu-primary));
+}
+.miu-tile:active {
+  transform: scale(0.98);
+  background: var(--miu-surface-strong);
+}
+
+.miu-tile-icon {
+  font-size: 26px;
+  line-height: 1;
+  margin-bottom: 6px;
+  color: var(--tile-accent, var(--miu-ink));
+}
+
+.miu-tile-title {
+  font-family: var(--miu-sans);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--miu-ink);
+  line-height: 1.35;
+  letter-spacing: -0.2px;
+  margin-top: auto;
+}
+
+.miu-tile-desc {
+  font-size: 12px;
+  color: var(--miu-body);
+  line-height: 1.5;
+  margin-top: 4px;
+}
+
+/* 그리드 컨테이너 */
+.miu-tile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.miu-tile-full { grid-column: span 2; }
+
+/* 넓은 타일 (가로 배치) */
+.miu-tile-wide {
+  grid-column: span 2;
+  flex-direction: row;
+  align-items: center;
+  min-height: auto;
+  padding: 18px 20px 18px 18px;
+  gap: 16px;
+}
+.miu-tile-wide .miu-tile-icon { margin-bottom: 0; font-size: 24px; }
+.miu-tile-wide .miu-tile-body { flex: 1; min-width: 0; }
+.miu-tile-wide .miu-tile-title { margin-top: 0; }
+.miu-tile-wide .miu-tile-arrow {
+  color: var(--miu-muted);
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+/* 전면 코랄 콜아웃 */
+.miu-callout {
+  margin: 0 24px 32px;
+  background: var(--miu-primary);
+  color: var(--miu-on-primary);
+  border-radius: var(--miu-r-lg);
+  padding: 24px 22px;
+  text-decoration: none;
+  display: block;
+  transition: transform .12s;
+}
+.miu-callout:active { transform: scale(0.98); }
+.miu-callout-eyebrow {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.75);
+  margin-bottom: 10px;
+}
+.miu-callout-title {
+  font-family: var(--miu-serif);
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.5px;
+  margin-bottom: 6px;
+}
+.miu-callout-desc {
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(255,255,255,0.85);
+}
+
+/* 다크 카드 (데이터/코드용) */
+.miu-card-dark {
+  background: var(--miu-surface-dark);
+  color: var(--miu-on-dark);
+  border-radius: var(--miu-r-lg);
+  padding: 20px;
+}
+
+
+/* ===========================================================================
+ * 6. List Item — 리스트 형태 (테이블 대체)
+ *
+ * <ul class="miu-list">
+ *   <li class="miu-list-item">
+ *     <div class="miu-list-icon"><i class="ph-bold ph-package"></i></div>
+ *     <div class="miu-list-main">
+ *       <div class="miu-list-title">아이템 제목</div>
+ *       <div class="miu-list-sub">부제 · 메타</div>
+ *     </div>
+ *     <div class="miu-list-meta">15,000원</div>
+ *     <div class="miu-list-arrow"><i class="ph-bold ph-caret-right"></i></div>
+ *   </li>
+ * </ul>
+ * =========================================================================== */
+
+.miu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  background: var(--miu-canvas);
+  border: 1px solid var(--miu-hairline);
+  border-radius: var(--miu-r-lg);
+  overflow: hidden;
+}
+.miu-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--miu-hairline-soft);
+  text-decoration: none;
+  color: inherit;
+  transition: background .12s;
+}
+.miu-list-item:last-child { border-bottom: none; }
+.miu-list-item:active { background: var(--miu-surface-soft); }
+
+.miu-list-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--miu-r-md);
+  background: var(--miu-surface-card);
+  color: var(--miu-body);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.miu-list-main {
+  flex: 1;
+  min-width: 0;
+}
+.miu-list-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--miu-ink);
+  letter-spacing: -0.2px;
+}
+.miu-list-sub {
+  font-size: 12px;
+  color: var(--miu-muted);
+  margin-top: 2px;
+}
+.miu-list-meta {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--miu-ink);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.miu-list-arrow {
+  color: var(--miu-muted-soft);
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+
+/* ===========================================================================
+ * 7. Stats / KPI Card (dashboard용)
+ * =========================================================================== */
+
+.miu-stat {
+  background: var(--miu-surface-card);
+  border-radius: var(--miu-r-lg);
+  padding: 18px 20px;
+}
+.miu-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--miu-muted);
+  margin-bottom: 8px;
+}
+.miu-stat-value {
+  font-family: var(--miu-serif);
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.6px;
+  color: var(--miu-ink);
+  font-variant-numeric: tabular-nums;
+}
+.miu-stat-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+.miu-stat-delta.up   { color: var(--miu-success); }
+.miu-stat-delta.down { color: var(--miu-error); }
+
+
+/* ===========================================================================
+ * 8. Buttons (tokens.css 확장)
+ * =========================================================================== */
+
+/* icon-only 원형 버튼 */
+.miu-icon-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--miu-r-md);
+  border: none;
+  background: transparent;
+  color: var(--miu-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  transition: background .12s;
+}
+.miu-icon-btn:hover { background: var(--miu-surface-soft); }
+.miu-icon-btn:active { background: var(--miu-surface-card); }
+
+/* 작은 버튼 (테이블 액션용) */
+.miu-btn-sm {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+  border-radius: var(--miu-r-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--miu-sans);
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+.miu-btn-sm.miu-btn-primary   { background: var(--miu-primary); color: white; }
+.miu-btn-sm.miu-btn-secondary { background: var(--miu-canvas); color: var(--miu-ink); border: 1px solid var(--miu-hairline); }
+.miu-btn-sm.miu-btn-ghost     { background: transparent; color: var(--miu-body); }
+
+/* 하단 고정 액션 바 */
+.miu-action-bar {
+  position: sticky;
+  bottom: 0;
+  background: var(--miu-canvas);
+  border-top: 1px solid var(--miu-hairline);
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+  display: flex;
+  gap: 8px;
+  z-index: 5;
+}
+.miu-action-bar .miu-btn { flex: 1; }
+
+
+/* ===========================================================================
+ * 9. Form (tokens.css 확장)
+ * =========================================================================== */
+
+/* 필드 그룹 */
+.miu-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.miu-field-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--miu-body-strong);
+  letter-spacing: -0.1px;
+}
+.miu-field-hint {
+  font-size: 12px;
+  color: var(--miu-muted);
+}
+.miu-field-error {
+  font-size: 12px;
+  color: var(--miu-error);
+  font-weight: 500;
+}
+.miu-field-optional::after {
+  content: "선택";
+  font-size: 11px;
+  color: var(--miu-muted-soft);
+  font-weight: 500;
+  margin-left: 6px;
+  padding: 2px 6px;
+  background: var(--miu-surface-soft);
+  border-radius: var(--miu-r-pill);
+}
+
+/* textarea */
+.miu-textarea {
+  width: 100%;
+  min-height: 88px;
+  padding: 12px 14px;
+  background: var(--miu-canvas);
+  border: 1px solid var(--miu-hairline);
+  border-radius: var(--miu-r-md);
+  font-family: var(--miu-sans);
+  font-size: 15px;
+  color: var(--miu-ink);
+  resize: vertical;
+}
+.miu-textarea:focus {
+  outline: none;
+  border-color: var(--miu-primary);
+  box-shadow: 0 0 0 3px rgba(204,120,92,0.15);
+}
+
+/* select */
+.miu-select {
+  width: 100%;
+  height: 44px;
+  padding: 0 40px 0 14px;
+  background: var(--miu-canvas);
+  border: 1px solid var(--miu-hairline);
+  border-radius: var(--miu-r-md);
+  font-family: var(--miu-sans);
+  font-size: 15px;
+  color: var(--miu-ink);
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7' fill='none'%3E%3Cpath d='M1 1L6 6L11 1' stroke='%236c6a64' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+}
+.miu-select:focus {
+  outline: none;
+  border-color: var(--miu-primary);
+  box-shadow: 0 0 0 3px rgba(204,120,92,0.15);
+}
+
+/* 체크박스 / 라디오 */
+.miu-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--miu-ink);
+}
+.miu-check input[type=checkbox],
+.miu-check input[type=radio] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--miu-primary);
+  cursor: pointer;
+}
+
+/* 세그먼트 컨트롤 (탭 대체) */
+.miu-segment {
+  display: inline-flex;
+  padding: 3px;
+  background: var(--miu-surface-card);
+  border-radius: var(--miu-r-md);
+}
+.miu-segment-item {
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--miu-muted);
+  border-radius: var(--miu-r-sm);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.miu-segment-item.active {
+  background: var(--miu-canvas);
+  color: var(--miu-ink);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+
+/* ===========================================================================
+ * 10. Empty / Loading / Error States
+ *
+ * <div class="miu-state">
+ *   <div class="miu-state-icon"><i class="ph-bold ph-package"></i></div>
+ *   <div class="miu-state-title">아직 데이터가 없어요</div>
+ *   <div class="miu-state-desc">첫 입고 세션을 시작해보세요.</div>
+ *   <button class="miu-btn miu-btn-primary">시작하기</button>
+ * </div>
+ * =========================================================================== */
+
+.miu-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--miu-body);
+}
+.miu-state-icon {
+  font-size: 40px;
+  color: var(--miu-muted-soft);
+  margin-bottom: 16px;
+}
+.miu-state-title {
+  font-family: var(--miu-serif);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--miu-ink);
+  letter-spacing: -0.3px;
+  margin-bottom: 6px;
+}
+.miu-state-desc {
+  font-size: 14px;
+  color: var(--miu-muted);
+  line-height: 1.55;
+  margin-bottom: 20px;
+  max-width: 300px;
+}
+
+/* 로딩 스피너 */
+.miu-spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 2.5px solid var(--miu-hairline);
+  border-top-color: var(--miu-primary);
+  border-radius: 50%;
+  animation: miu-spin .8s linear infinite;
+}
+@keyframes miu-spin {
+  to { transform: rotate(360deg); }
+}
+
+.miu-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px;
+  color: var(--miu-muted);
+  font-size: 14px;
+}
+
+
+/* ===========================================================================
+ * 11. Badges & Chips
+ *
+ * <span class="miu-chip">RE: 재입고</span>
+ * <span class="miu-chip success">완료</span>
+ * <span class="miu-chip warn">대기</span>
+ * =========================================================================== */
+
+.miu-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--miu-r-pill);
+  background: var(--miu-surface-card);
+  color: var(--miu-body-strong);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+.miu-chip.primary { background: var(--miu-primary); color: white; }
+.miu-chip.success { background: color-mix(in srgb, var(--miu-success) 15%, transparent); color: #2e6b3a; }
+.miu-chip.warn    { background: color-mix(in srgb, var(--miu-warning) 20%, transparent); color: #6b5210; }
+.miu-chip.danger  { background: color-mix(in srgb, var(--miu-error) 15%, transparent); color: #7a2a2a; }
+.miu-chip.muted   { background: var(--miu-surface-soft); color: var(--miu-muted); }
+
+
+/* ===========================================================================
+ * 12. Modal / Bottom Sheet / Toast
+ *
+ * <div class="miu-overlay" id="modal-overlay">
+ *   <div class="miu-modal">
+ *     <div class="miu-modal-head">
+ *       <div class="miu-modal-title">타이틀</div>
+ *       <button class="miu-icon-btn" onclick="close()">
+ *         <i class="ph-bold ph-x"></i>
+ *       </button>
+ *     </div>
+ *     <div class="miu-modal-body">... 컨텐츠 ...</div>
+ *     <div class="miu-modal-actions">
+ *       <button class="miu-btn miu-btn-ghost">취소</button>
+ *       <button class="miu-btn miu-btn-primary">확인</button>
+ *     </div>
+ *   </div>
+ * </div>
+ * =========================================================================== */
+
+.miu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20,20,19,0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+  animation: miu-fade .15s ease-out;
+}
+@keyframes miu-fade { from { opacity: 0; } }
+
+/* 데스크톱: 중앙, 모바일: 하단 */
+@media (min-width: 640px) {
+  .miu-overlay { align-items: center; }
+}
+
+.miu-modal {
+  background: var(--miu-canvas);
+  border-radius: var(--miu-r-xl);
+  width: 100%;
+  max-width: 440px;
+  max-height: 85dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: miu-slide-up .2s ease-out;
+}
+@keyframes miu-slide-up { from { transform: translateY(20px); opacity: 0; } }
+
+.miu-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--miu-hairline);
+}
+.miu-modal-title {
+  font-family: var(--miu-serif);
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.3px;
+  color: var(--miu-ink);
+}
+.miu-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+.miu-modal-actions {
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--miu-hairline);
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* 바텀 시트 (풀너비 상승형) */
+.miu-sheet {
+  background: var(--miu-canvas);
+  border-radius: var(--miu-r-xl) var(--miu-r-xl) 0 0;
+  width: 100%;
+  max-height: 85dvh;
+  padding: 0;
+  animation: miu-slide-up .22s ease-out;
+}
+
+/* 토스트 (하단 스낵바) */
+.miu-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--miu-surface-dark);
+  color: var(--miu-on-dark);
+  padding: 12px 18px;
+  border-radius: var(--miu-r-pill);
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+  z-index: 200;
+  animation: miu-toast-in .25s ease-out;
+}
+@keyframes miu-toast-in {
+  from { transform: translate(-50%, 20px); opacity: 0; }
+}
+
+
+/* ===========================================================================
+ * 13. Utility (여백 · 정렬)
+ * =========================================================================== */
+
+.miu-mt-xs { margin-top: var(--miu-sp-xs); }
+.miu-mt-sm { margin-top: var(--miu-sp-sm); }
+.miu-mt-md { margin-top: var(--miu-sp-md); }
+.miu-mt-lg { margin-top: var(--miu-sp-lg); }
+.miu-mt-xl { margin-top: var(--miu-sp-xl); }
+
+.miu-mb-xs { margin-bottom: var(--miu-sp-xs); }
+.miu-mb-sm { margin-bottom: var(--miu-sp-sm); }
+.miu-mb-md { margin-bottom: var(--miu-sp-md); }
+.miu-mb-lg { margin-bottom: var(--miu-sp-lg); }
+.miu-mb-xl { margin-bottom: var(--miu-sp-xl); }
+
+.miu-flex     { display: flex; }
+.miu-flex-1   { flex: 1; }
+.miu-flex-col { flex-direction: column; }
+.miu-items-center { align-items: center; }
+.miu-justify-between { justify-content: space-between; }
+.miu-gap-xs { gap: var(--miu-sp-xs); }
+.miu-gap-sm { gap: var(--miu-sp-sm); }
+.miu-gap-md { gap: var(--miu-sp-md); }
+
+.miu-text-center { text-align: center; }
+.miu-text-right  { text-align: right; }
+.miu-text-muted  { color: var(--miu-muted); }
+.miu-text-primary { color: var(--miu-primary); }
+
+.miu-hidden { display: none !important; }
+
+
+/* ===========================================================================
+ * 14. Bottom Navigation (receiving 4-tab, shared.js가 자동 삽입)
+ * 클래스명은 shared.js와 호환 위해 그대로 (.bottom-nav) 유지
+ * =========================================================================== */
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--miu-canvas);
+  border-top: 1px solid var(--miu-hairline);
+  z-index: 10;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.bottom-nav-inner {
+  max-width: 500px;
+  margin: 0 auto;
+  display: flex;
+  padding: 6px 4px;
+}
+.bottom-nav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  color: var(--miu-muted);
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 500;
+  transition: color .12s;
+  border-radius: var(--miu-r-sm);
+}
+.bottom-nav-btn:active { background: var(--miu-surface-soft); }
+.bottom-nav-btn.active { color: var(--miu-primary); }
+.bottom-nav-btn svg {
+  width: 22px;
+  height: 22px;
+}
+.miu-sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}

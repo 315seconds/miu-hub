@@ -6,17 +6,29 @@
     <title>재고조사 — 마켓인유</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+    <link rel="stylesheet" href="/shared/tokens.css">
+    <link rel="stylesheet" href="/shared/layout.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
     :root {
-        --bg: #0D1117; --surface: #161B22; --surface-hover: #1C2128;
-        --border: #30363D; --border-subtle: #21262D;
-        --text-primary: #E6EDF3; --text-secondary: #8B949E; --text-muted: #484F58;
-        --accent: #E8973A; --accent-dim: rgba(232,151,58,0.12); --accent-border: rgba(232,151,58,0.3);
-        --success: #3FB950; --success-dim: rgba(63,185,80,0.12);
-        --danger: #F85149; --danger-dim: rgba(248,81,73,0.12);
-        --radius: 10px; --radius-sm: 6px;
+        --bg: #faf9f5;   /* miu-canvas */
+        --surface: #efe9de;   /* miu-surface-card */
+        --surface-hover: #e8e0d2;
+        --border: #e6dfd8;   /* miu-hairline */
+        --border-subtle: #ebe6df;
+        --text-primary: #141413;   /* miu-ink */
+        --text-secondary: #3d3d3a;
+        --text-muted: #6c6a64;
+        --accent: #cc785c;   /* miu-primary coral */
+        --accent-dim: rgba(204,120,92,0.10);
+        --accent-border: rgba(204,120,92,0.30);
+        --success: #5db872;
+        --success-dim: rgba(93,184,114,0.12);
+        --danger: #c64545;
+        --danger-dim: rgba(198,69,69,0.10);
+        --radius: 12px; --radius-sm: 8px;
         --mono: 'JetBrains Mono', monospace;
         --sans: 'Pretendard Variable', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     }
@@ -128,10 +140,21 @@
     .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%) translateY(12px); background: var(--surface); border: 1px solid var(--border); color: var(--text-primary); padding: 9px 20px; border-radius: 20px; font-size: 12px; font-weight: 600; font-family: var(--mono); letter-spacing: 0.5px; opacity: 0; transition: all 0.25s cubic-bezier(0.16,1,0.3,1); z-index: 8000; pointer-events: none; box-shadow: 0 8px 24px rgba(0,0,0,0.4); white-space: nowrap; }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
     </style>
+  <!-- auth-migration: 로그인 가드 -->
+  <script src="/shared/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/shared/supabase-client.js"></script>
+  <script src="/shared/auth-guard.js"></script>
 </head>
 <body>
 
-<a href="../" class="hub-back">← 허브로</a>
+<header class="miu-header">
+  <a href="/" class="miu-header-back" aria-label="허브로">
+    <i class="ph-bold ph-caret-left"></i>
+  </a>
+  <div class="miu-header-title">    <h1 class="miu-header-h1">재고 조사</h1>
+  </div>
+</header>
 
 <div id="dupOverlay" class="dup-overlay">
     <div class="dup-icon">⚠</div>
@@ -215,8 +238,8 @@
 </div>
 
 <script>
-    const SUPABASE_URL = "https://yqnocnzjrcsrwrvsvsyg.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlxbm9jbnpqcmNzcndydnN2c3lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNjExNzgsImV4cCI6MjA5MTgzNzE3OH0.u172XxuUcRF7WhT0UmLq-xQjoeDjBt95Qgbstln8mMs";
+    const SUPABASE_URL = "https://rakfyvxpysmfuzkdoevc.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJha2Z5dnhweXNtZnV6a2RvZXZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzMjEyOTYsImV4cCI6MjEwNDg5NzI5Nn0.nEv6bpAmN7aIBy_ZWeyObSChidvGCE3XNlWR4SyjkZw";
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     const SESSION_META_KEY = 'miu_stocktake_meta_v1';

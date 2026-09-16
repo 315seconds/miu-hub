@@ -1,0 +1,327 @@
+/* ============================================================================
+ * 마켓인유 디자인 토큰 (v1 - alpha)
+ * Claude.com 시스템 기반, 한글화 (Noto Serif KR + Pretendard)
+ * ============================================================================ */
+
+/* ---- 웹폰트 로드 ---- */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* ─── Colors: Brand & Accent ─── */
+  --miu-primary:          #cc785c;   /* 코랄 - CTA, 강조 */
+  --miu-primary-active:   #a9583e;
+  --miu-primary-disabled: #e6dfd8;
+  --miu-accent-teal:      #5db8a6;
+  --miu-accent-amber:     #e8a55a;
+
+  /* ─── Colors: Surface (크림 계열) ─── */
+  --miu-canvas:             #faf9f5;   /* 배경 기본 */
+  --miu-surface-soft:       #f5f0e8;   /* 섹션 분리 */
+  --miu-surface-card:       #efe9de;   /* 카드/타일 */
+  --miu-surface-strong:     #e8e0d2;   /* 강조 카드 */
+
+  /* ─── Colors: Surface (다크 계열) ─── */
+  --miu-surface-dark:          #181715;
+  --miu-surface-dark-elevated: #252320;
+  --miu-surface-dark-soft:     #1f1e1b;
+
+  /* ─── Colors: Text ─── */
+  --miu-ink:          #141413;
+  --miu-body-strong:  #252523;
+  --miu-body:         #3d3d3a;
+  --miu-muted:        #6c6a64;
+  --miu-muted-soft:   #8e8b82;
+  --miu-on-primary:   #ffffff;
+  --miu-on-dark:      #faf9f5;
+  --miu-on-dark-soft: #a09d96;
+
+  /* ─── Colors: Border ─── */
+  --miu-hairline:      #e6dfd8;
+  --miu-hairline-soft: #ebe6df;
+
+  /* ─── Colors: Semantic ─── */
+  --miu-success: #5db872;
+  --miu-warning: #d4a017;
+  --miu-error:   #c64545;
+
+  /* ─── Typography Families ─── */
+  --miu-serif: "Noto Serif KR", "KoPub Batang", "리디바탕", "Nanum Myeongjo", ui-serif, Georgia, serif;
+  --miu-sans:  "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+  --miu-mono:  "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* ─── Border Radius ─── */
+  --miu-r-xs:   4px;
+  --miu-r-sm:   6px;
+  --miu-r-md:   8px;
+  --miu-r-lg:  12px;
+  --miu-r-xl:  16px;
+  --miu-r-pill: 9999px;
+
+  /* ─── Spacing (base 4px) ─── */
+  --miu-sp-xxs:  4px;
+  --miu-sp-xs:   8px;
+  --miu-sp-sm:  12px;
+  --miu-sp-md:  16px;
+  --miu-sp-lg:  24px;
+  --miu-sp-xl:  32px;
+  --miu-sp-xxl: 48px;
+  --miu-sp-section: 64px;  /* 모바일 내부툴 특성상 96px → 64px로 축소 */
+}
+
+/* ============================================================================
+ * Base
+ * ============================================================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--miu-canvas);
+  color: var(--miu-ink);
+  font-family: var(--miu-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================================================
+ * Typography Utility Classes
+ * ============================================================================ */
+
+.miu-display-lg {
+  font-family: var(--miu-serif);
+  font-size: 36px;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -1px;
+  color: var(--miu-ink);
+}
+
+.miu-display-md {
+  font-family: var(--miu-serif);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.6px;
+  color: var(--miu-ink);
+}
+
+.miu-display-sm {
+  font-family: var(--miu-serif);
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1.25;
+  letter-spacing: -0.4px;
+  color: var(--miu-ink);
+}
+
+.miu-title-lg {
+  font-family: var(--miu-sans);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.2px;
+  color: var(--miu-ink);
+}
+
+.miu-title-md {
+  font-family: var(--miu-sans);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--miu-ink);
+}
+
+.miu-body-md {
+  font-family: var(--miu-sans);
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--miu-body);
+}
+
+.miu-body-sm {
+  font-family: var(--miu-sans);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--miu-body);
+}
+
+.miu-caption {
+  font-family: var(--miu-sans);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--miu-muted);
+}
+
+.miu-caption-eyebrow {
+  font-family: var(--miu-sans);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--miu-primary);
+}
+
+/* ============================================================================
+ * Components
+ * ============================================================================ */
+
+/* ── Header Band ── */
+.miu-header {
+  background: var(--miu-canvas);
+  padding: var(--miu-sp-xl) var(--miu-sp-lg) var(--miu-sp-lg);
+}
+
+/* ── Section Label (구획 표시) ── */
+.miu-section-label {
+  font-family: var(--miu-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--miu-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: var(--miu-sp-lg) var(--miu-sp-xs) var(--miu-sp-sm);
+}
+
+/* ── Feature Card (기본 크림 카드) ── */
+.miu-card {
+  background: var(--miu-surface-card);
+  border-radius: var(--miu-r-lg);
+  padding: var(--miu-sp-lg);
+  text-decoration: none;
+  color: var(--miu-ink);
+  display: block;
+  transition: transform .12s, background .15s;
+}
+.miu-card:active {
+  transform: scale(0.98);
+  background: var(--miu-surface-strong);
+}
+
+/* ── Callout Card (전면 코랄) ── */
+.miu-callout {
+  background: var(--miu-primary);
+  color: var(--miu-on-primary);
+  border-radius: var(--miu-r-lg);
+  padding: var(--miu-sp-xl);
+}
+.miu-callout .miu-eyebrow,
+.miu-callout .miu-caption-eyebrow { color: rgba(255,255,255,0.75); }
+
+/* ── Dark Card (데이터 헤비 화면용) ── */
+.miu-card-dark {
+  background: var(--miu-surface-dark);
+  color: var(--miu-on-dark);
+  border-radius: var(--miu-r-lg);
+  padding: var(--miu-sp-lg);
+}
+
+/* ── Buttons ── */
+.miu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--miu-sp-xs);
+  height: 44px;
+  padding: 0 var(--miu-sp-lg);
+  font-family: var(--miu-sans);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.1px;
+  border: none;
+  border-radius: var(--miu-r-md);
+  cursor: pointer;
+  transition: background .12s, transform .1s;
+  text-decoration: none;
+}
+.miu-btn:active { transform: scale(0.98); }
+
+.miu-btn-primary {
+  background: var(--miu-primary);
+  color: var(--miu-on-primary);
+}
+.miu-btn-primary:hover { background: var(--miu-primary-active); }
+.miu-btn-primary:disabled {
+  background: var(--miu-primary-disabled);
+  color: var(--miu-muted);
+  cursor: not-allowed;
+}
+
+.miu-btn-secondary {
+  background: var(--miu-canvas);
+  color: var(--miu-ink);
+  border: 1px solid var(--miu-hairline);
+}
+.miu-btn-secondary:hover { background: var(--miu-surface-soft); }
+
+.miu-btn-ghost {
+  background: transparent;
+  color: var(--miu-body);
+  border: 1px solid transparent;
+}
+.miu-btn-ghost:hover { background: var(--miu-surface-soft); }
+
+/* ── Badges / Pills ── */
+.miu-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: var(--miu-r-pill);
+  background: var(--miu-surface-card);
+  color: var(--miu-ink);
+  font-family: var(--miu-sans);
+  font-size: 12px;
+  font-weight: 600;
+}
+.miu-badge-coral {
+  background: var(--miu-primary);
+  color: var(--miu-on-primary);
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+/* ── Input ── */
+.miu-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 var(--miu-sp-md);
+  background: var(--miu-canvas);
+  border: 1px solid var(--miu-hairline);
+  border-radius: var(--miu-r-md);
+  font-family: var(--miu-sans);
+  font-size: 16px;
+  color: var(--miu-ink);
+}
+.miu-input:focus {
+  outline: none;
+  border-color: var(--miu-primary);
+  box-shadow: 0 0 0 3px rgba(204,120,92,0.15);
+}
+
+/* ── Hairline divider ── */
+.miu-hr {
+  border: none;
+  height: 1px;
+  background: var(--miu-hairline);
+  margin: var(--miu-sp-lg) 0;
+}
+
+/* ── Spike mark (브랜드 마크 대체 - 4방향 별) ── */
+.miu-spike {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  color: var(--miu-primary);
+  vertical-align: middle;
+}

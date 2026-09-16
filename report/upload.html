@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>새 리포트 · 마켓인유</title>
+
+<link rel="stylesheet" href="/shared/tokens.css">
+<link rel="stylesheet" href="/shared/layout.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+
+<script src="/shared/config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/shared/supabase-client.js"></script>
+<script src="/shared/auth-guard.js"></script>
+<!-- Phase 3: xlsx 파싱 + 집계 + 저장 -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="js/xlsx-parse.js"></script>
+<script src="js/join.js"></script>
+<script src="js/analyze.js"></script>
+<script src="js/save-report.js"></script>
+
+<style>
+  .type-choice {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 0 20px;
+    margin: 20px 0 32px;
+  }
+  .type-card {
+    background: var(--miu-surface-card);
+    border: 2px solid transparent;
+    border-radius: var(--miu-r-lg);
+    padding: 16px 14px;
+    cursor: pointer;
+    transition: border-color .15s, background .12s;
+    text-align: left;
+    font-family: var(--miu-sans);
+  }
+  .type-card.active {
+    border-color: var(--miu-primary);
+    background: var(--miu-canvas);
+  }
+  .type-card-icon {
+    font-size: 26px;
+    color: var(--miu-primary);
+    margin-bottom: 8px;
+  }
+  .type-card.type-main .type-card-icon { color: #4a6b8a; }
+  .type-card.type-main.active { border-color: #4a6b8a; }
+  .type-card-title {
+    font-family: var(--miu-serif);
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--miu-ink);
+    margin-bottom: 4px;
+  }
+  .type-card-desc {
+    font-size: 12px;
+    color: var(--miu-muted);
+    line-height: 1.4;
+  }
+
+  /* 파일 업로드 카드 */
+  .upload-card {
+    background: var(--miu-surface-card);
+    border-radius: var(--miu-r-lg);
+    padding: 16px 18px;
+    margin: 0 20px 10px;
+  }
+  .upload-card-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .upload-num {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--miu-primary);
+    color: white;
+    font-size: 12px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .upload-num.done { background: var(--miu-success); }
+  .upload-card-title {
+    font-family: var(--miu-sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--miu-ink);
+  }
+  .upload-card-hint {
+    font-size: 11px;
+    color: var(--miu-muted);
+    margin-left: 34px;
+    margin-bottom: 8px;
+  }
+
+  /* 실제 파일 입력 (숨김) */
+  .file-input { display: none; }
+
+  /* 파일 선택 라벨 */
+  .file-label {
+    display: block;
+    padding: 14px 16px;
+    background: var(--miu-canvas);
+    border: 1.5px dashed var(--miu-hairline);
+    border-radius: var(--miu-r-md);
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+    text-align: center;
+    font-size: 13px;
+    color: var(--miu-muted);
+    font-family: var(--miu-sans);
+  }
+  .file-label:hover { border-color: var(--miu-primary); color: var(--miu-primary); }
+  .file-label.has-file {
+    border-style: solid;
+    border-color: var(--miu-success);
+    background: color-mix(in srgb, var(--miu-success) 6%, transparent);
+    color: var(--miu-ink);
+    text-align: left;
+  }
+  .file-label .file-icon { margin-right: 8px; }
+
+  /* 다중 파일 (키오스크별) */
+  .kiosk-row {
+    display: grid;
+    grid-template-columns: 60px 1fr 1fr;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .kiosk-label {
+    font-family: var(--miu-serif);
+    font-size: 13px;
+    color: var(--miu-muted);
+    text-align: center;
+  }
+  .kiosk-row .file-label { padding: 10px 12px; font-size: 12px; }
+
+  .kiosk-count-row {
+    display: flex; align-items: center; gap: 10px;
+    margin-left: 34px;
+    margin-bottom: 14px;
+  }
+  .kiosk-count-row label {
+    font-size: 12px; color: var(--miu-muted);
+  }
+  .kiosk-count-row select {
+    height: 32px; padding: 0 10px;
+    background: var(--miu-canvas);
+    border: 1px solid var(--miu-hairline);
+    border-radius: var(--miu-r-sm);
+    font-family: var(--miu-sans);
+    font-size: 13px;
+    color: var(--miu-ink);
+  }
+
+  /* 두 달 입고 옵션 */
+  .radio-group {
+    margin-left: 34px;
+    margin-bottom: 12px;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .radio-option {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px;
+    background: var(--miu-canvas);
+    border: 1px solid var(--miu-hairline);
+    border-radius: var(--miu-r-sm);
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--miu-body);
+  }
+  .radio-option input { accent-color: var(--miu-primary); }
+  .radio-option:has(input:checked) {
+    border-color: var(--miu-primary);
+    background: color-mix(in srgb, var(--miu-primary) 5%, transparent);
+    color: var(--miu-ink);
+  }
+
+  /* 지점 · 기간 입력 */
+  .field-row {
+    padding: 0 20px;
+    margin-bottom: 16px;
+  }
+  .field-row label {
+    display: block;
+    font-family: var(--miu-sans);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--miu-body-strong);
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+  }
+  .field-row input,
+  .field-row select {
+    width: 100%;
+    height: 44px;
+    padding: 0 14px;
+    background: var(--miu-canvas);
+    border: 1px solid var(--miu-hairline);
+    border-radius: var(--miu-r-md);
+    font-family: var(--miu-sans);
+    font-size: 15px;
+    color: var(--miu-ink);
+  }
+  .field-row input:focus,
+  .field-row select:focus {
+    outline: none;
+    border-color: var(--miu-primary);
+    box-shadow: 0 0 0 3px rgba(204,120,92,0.15);
+  }
+
+  .action-bar {
+    position: sticky;
+    bottom: 0;
+    padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+    background: var(--miu-canvas);
+    border-top: 1px solid var(--miu-hairline);
+  }
+
+  #global-msg {
+    margin: 10px 20px 0;
+    padding: 10px 14px;
+    border-radius: var(--miu-r-md);
+    font-size: 13px;
+    display: none;
+  }
+  #global-msg.err {
+    display: block;
+    background: color-mix(in srgb, var(--miu-error) 10%, transparent);
+    color: var(--miu-error);
+  }
+  #global-msg.info {
+    display: block;
+    background: var(--miu-surface-soft);
+    color: var(--miu-body);
+  }
+</style>
+</head>
+<body class="miu-app">
+
+  <header class="miu-header">
+    <a href="index.html" class="miu-header-back" aria-label="목록으로">
+      <i class="ph-bold ph-caret-left"></i>
+    </a>
+    <div class="miu-header-title">
+      <h1 class="miu-header-h1">새 리포트</h1>
+    </div>
+  </header>
+
+  <div class="miu-app-body" style="padding-bottom:20px">
+
+    <!-- 리포트 타입 선택 -->
+    <div class="miu-section-head" style="padding: 20px 20px 4px;">
+      <span class="miu-section-num">01</span>
+      <span class="miu-section-label">리포트 종류</span>
+      <span class="miu-section-divider"></span>
+    </div>
+
+    <div class="type-choice">
+      <button class="type-card type-main active" data-type="main">
+        <div class="type-card-icon"><i class="ph-bold ph-storefront"></i></div>
+        <div class="type-card-title">성수본점</div>
+        <div class="type-card-desc">월별 매출 정산</div>
+      </button>
+      <button class="type-card type-popup" data-type="popup">
+        <div class="type-card-icon"><i class="ph-bold ph-tent"></i></div>
+        <div class="type-card-title">팝업 매장</div>
+        <div class="type-card-desc">종료 후 리포트</div>
+      </button>
+    </div>
+
+    <!-- 지점 · 기간 -->
+    <div class="miu-section-head" style="padding: 0 20px 4px;">
+      <span class="miu-section-num">02</span>
+      <span class="miu-section-label">기본 정보</span>
+      <span class="miu-section-divider"></span>
+    </div>
+
+    <div style="margin-top:14px">
+      <!-- 성수본점: 지점명 필드 숨김 (자동 "성수") -->
+      <div class="field-row" id="store-field" style="display:none">
+        <label for="store-input">지점명</label>
+        <input id="store-input" type="text" placeholder="예: 강남팝업">
+      </div>
+
+      <!-- 성수본점 전용: 월 선택 -->
+      <div class="field-row" id="month-field">
+        <label for="month-select">정산 월</label>
+        <select id="month-select"></select>
+      </div>
+
+      <!-- 팝업 전용: 시작일/종료일 -->
+      <div class="field-row" id="date-range-field" style="display:none;grid-template-columns:1fr 1fr;gap:10px">
+        <div>
+          <label for="start-date">시작일</label>
+          <input id="start-date" type="date">
+        </div>
+        <div>
+          <label for="end-date">종료일</label>
+          <input id="end-date" type="date">
+        </div>
+      </div>
+
+      <div class="field-row" id="location-field" style="display:none">
+        <label for="location-input">위치 (선택)</label>
+        <input id="location-input" type="text" placeholder="예: 서울 마포구 연남동">
+      </div>
+    </div>
+
+    <!-- 파일 업로드 -->
+    <div class="miu-section-head" style="padding: 20px 20px 4px;">
+      <span class="miu-section-num">03</span>
+      <span class="miu-section-label">파일 업로드</span>
+      <span class="miu-section-divider"></span>
+    </div>
+
+    <div style="margin-top:14px">
+
+      <!-- 3-A. 키오스크 파일 -->
+      <div class="upload-card">
+        <div class="upload-card-head">
+          <span class="upload-num" id="num-kiosk">A</span>
+          <span class="upload-card-title">키오스크 파일 (영수증 + 카드)</span>
+        </div>
+        <div class="upload-card-hint">키오스크 관리자 페이지에서 다운받은 xlsx</div>
+
+        <div class="kiosk-count-row">
+          <label>키오스크 수</label>
+          <select id="kiosk-count">
+            <option value="1">1대</option>
+            <option value="2" selected>2대</option>
+            <option value="3">3대</option>
+            <option value="4">4대</option>
+            <option value="5">5대</option>
+            <option value="6">6대</option>
+          </select>
+        </div>
+
+        <div id="kiosk-rows"></div>
+      </div>
+
+      <!-- 3-B. 입고 파일 -->
+      <div class="upload-card">
+        <div class="upload-card-head">
+          <span class="upload-num" id="num-ingo">B</span>
+          <span class="upload-card-title">입고 파일</span>
+        </div>
+        <div class="upload-card-hint">내부 raw 데이터 xlsx (입고 시트 포함)</div>
+
+        <!-- 팝업만 두 달 합본 옵션 노출 -->
+        <div class="radio-group" id="ingo-mode-group" style="display:none">
+          <label class="radio-option">
+            <input type="radio" name="ingo-mode" value="single" checked>
+            <span>단일 월 (파일 1개)</span>
+          </label>
+          <label class="radio-option">
+            <input type="radio" name="ingo-mode" value="double">
+            <span>두 달 합본 (팝업이 두 달 걸침)</span>
+          </label>
+        </div>
+
+        <div style="margin-left:34px">
+          <label for="ingo-main-file" class="file-label" id="ingo-main-label">
+            <span class="file-icon"><i class="ph-bold ph-file-xls"></i></span>
+            <span class="file-label-text" id="ingo-main-text">입고 파일 선택</span>
+          </label>
+          <input type="file" id="ingo-main-file" class="file-input" accept=".xlsx">
+
+          <div id="ingo-prev-wrap" style="display:none;margin-top:8px">
+            <label for="ingo-prev-file" class="file-label" id="ingo-prev-label">
+              <span class="file-icon"><i class="ph-bold ph-file-xls"></i></span>
+              <span class="file-label-text">이전 달 입고 파일 선택</span>
+            </label>
+            <input type="file" id="ingo-prev-file" class="file-input" accept=".xlsx">
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="global-msg"></div>
+
+  </div>
+
+  <!-- 하단 액션 -->
+  <div class="action-bar">
+    <button class="miu-btn miu-btn-primary" id="generate-btn" disabled>
+      <i class="ph-bold ph-magic-wand"></i> 리포트 생성
+    </button>
+  </div>
+
+<script>
+// 상태
+let selectedType = 'main';
+let kiosks = [];      // [{receipt: File|null, card: File|null}, ...]
+let ingoMain = null;
+let ingoPrev = null;
+let ingoMode = 'single';
+
+const $ = (id) => document.getElementById(id);
+
+// 리포트 타입 선택
+document.querySelectorAll('.type-card').forEach(card => {
+  card.addEventListener('click', () => {
+    document.querySelectorAll('.type-card').forEach(c => c.classList.remove('active'));
+    card.classList.add('active');
+    selectedType = card.dataset.type;
+    applyTypeUI();
+    revalidate();
+  });
+});
+
+function applyTypeUI() {
+  const isPopup = selectedType === 'popup';
+
+  // 성수 → 월 선택, 팝업 → 시작일/종료일
+  $('month-field').style.display     = isPopup ? 'none' : 'block';
+  $('date-range-field').style.display = isPopup ? 'grid' : 'none';
+
+  // 지점명 · 위치 · 두 달 옵션 모두 팝업일 때만
+  $('store-field').style.display    = isPopup ? 'block' : 'none';
+  $('location-field').style.display = isPopup ? 'block' : 'none';
+  $('ingo-mode-group').style.display = isPopup ? 'flex' : 'none';
+
+  // 성수는 단일 월 강제
+  if (!isPopup) {
+    ingoMode = 'single';
+    document.querySelector('input[name="ingo-mode"][value="single"]').checked = true;
+    $('ingo-prev-wrap').style.display = 'none';
+    ingoPrev = null;
+    $('ingo-main-text').textContent = '입고 파일 선택';
+    syncMonthToDates();  // 성수 진입 시 선택된 월의 날짜로 세팅
+  } else {
+    $('ingo-main-text').textContent = ingoMode === 'double'
+      ? '현재 달 입고 파일 선택'
+      : '입고 파일 선택';
+    // 팝업으로 왔을 때 빈 값이면 오늘 기준 기본값
+    if (!$('start-date').value) {
+      const today = new Date().toISOString().slice(0, 10);
+      const first = today.slice(0, 8) + '01';
+      $('start-date').value = first;
+      $('end-date').value = today;
+    }
+  }
+}
+
+// 성수 월 선택 드롭다운 세팅 (최근 12개월)
+function initMonthOptions() {
+  const sel = $('month-select');
+  const now = new Date();
+  const options = [];
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    const value = `${y}-${String(m).padStart(2, '0')}`;
+    const label = `${y}년 ${m}월` + (i === 0 ? ' (이번 달)' : i === 1 ? ' (지난 달)' : '');
+    options.push(`<option value="${value}">${label}</option>`);
+  }
+  sel.innerHTML = options.join('');
+  // 기본값: 지난 달 (정산은 보통 다음 달 초에)
+  sel.value = options.length > 1
+    ? options[1].match(/value="([^"]+)"/)[1]
+    : options[0].match(/value="([^"]+)"/)[1];
+
+  sel.addEventListener('change', () => {
+    syncMonthToDates();
+    revalidate();
+  });
+}
+
+// 선택된 월 → 그 달의 1일 ~ 말일로 date 값 세팅
+function syncMonthToDates() {
+  const val = $('month-select').value;   // "YYYY-MM"
+  if (!val) return;
+  const [y, m] = val.split('-').map(Number);
+  const start = `${val}-01`;
+  const lastDay = new Date(y, m, 0).getDate();  // 다음 달 0일 = 이번 달 말일
+  const end = `${val}-${String(lastDay).padStart(2, '0')}`;
+  $('start-date').value = start;
+  $('end-date').value = end;
+}
+
+// 키오스크 개수 · 파일 필드 렌더
+function renderKiosks() {
+  const n = parseInt($('kiosk-count').value, 10);
+  // 기존 파일 상태 보존
+  const preserved = kiosks.slice(0, n);
+  while (preserved.length < n) preserved.push({ receipt: null, card: null });
+  kiosks = preserved;
+
+  $('kiosk-rows').innerHTML = kiosks.map((_, i) => `
+    <div class="kiosk-row">
+      <div class="kiosk-label">${i+1}번</div>
+      <label class="file-label" id="receipt-label-${i}">
+        <span class="file-label-text">영수증</span>
+      </label>
+      <input type="file" id="receipt-${i}" class="file-input" accept=".xlsx">
+      <label class="file-label" id="card-label-${i}">
+        <span class="file-label-text">카드</span>
+      </label>
+      <input type="file" id="card-${i}" class="file-input" accept=".xlsx">
+    </div>
+  `).join('');
+
+  // Label을 클릭 시 실제 input 트리거
+  kiosks.forEach((_, i) => {
+    $(`receipt-label-${i}`).setAttribute('for', `receipt-${i}`);
+    $(`card-label-${i}`).setAttribute('for', `card-${i}`);
+    $(`receipt-${i}`).addEventListener('change', e => {
+      kiosks[i].receipt = e.target.files[0] || null;
+      updateFileLabel(`receipt-label-${i}`, kiosks[i].receipt, '영수증');
+      revalidate();
+    });
+    $(`card-${i}`).addEventListener('change', e => {
+      kiosks[i].card = e.target.files[0] || null;
+      updateFileLabel(`card-label-${i}`, kiosks[i].card, '카드');
+      revalidate();
+    });
+  });
+
+  revalidate();
+}
+
+function updateFileLabel(labelId, file, defaultText) {
+  const el = $(labelId);
+  const textEl = el.querySelector('.file-label-text');
+  if (file) {
+    el.classList.add('has-file');
+    textEl.textContent = file.name.length > 20 ? file.name.slice(0, 18) + '…' : file.name;
+  } else {
+    el.classList.remove('has-file');
+    textEl.textContent = defaultText;
+  }
+}
+
+$('kiosk-count').addEventListener('change', renderKiosks);
+
+// 입고 파일 모드
+document.querySelectorAll('input[name="ingo-mode"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    ingoMode = radio.value;
+    $('ingo-prev-wrap').style.display = ingoMode === 'double' ? 'block' : 'none';
+    $('ingo-main-text').textContent = ingoMode === 'double'
+      ? '현재 달 입고 파일 선택'
+      : '입고 파일 선택';
+    revalidate();
+  });
+});
+
+$('ingo-main-file').addEventListener('change', e => {
+  ingoMain = e.target.files[0] || null;
+  updateFileLabel('ingo-main-label', ingoMain, '현재 달 입고 파일 선택');
+  revalidate();
+});
+$('ingo-prev-file').addEventListener('change', e => {
+  ingoPrev = e.target.files[0] || null;
+  updateFileLabel('ingo-prev-label', ingoPrev, '이전 달 입고 파일 선택');
+  revalidate();
+});
+
+// 검증
+function revalidate() {
+  const isPopup = selectedType === 'popup';
+  const store = isPopup ? $('store-input').value.trim() : '성수';
+  const startD = $('start-date').value;
+  const endD = $('end-date').value;
+
+  const allKioskFiles = kiosks.every(k => k.receipt && k.card);
+  const ingoOK = ingoMain && (ingoMode === 'single' || ingoPrev);
+
+  const ok = store && startD && endD && allKioskFiles && ingoOK && startD <= endD;
+
+  $('generate-btn').disabled = !ok;
+
+  // 진행 상황 넘버링
+  const kioskDone = allKioskFiles;
+  const ingoDone = ingoOK;
+  $('num-kiosk').classList.toggle('done', kioskDone);
+  $('num-ingo').classList.toggle('done', ingoDone);
+}
+
+['store-input', 'start-date', 'end-date'].forEach(id => {
+  $(id).addEventListener('input', revalidate);
+});
+
+// Phase 3: 실제 파싱 → 집계 → 저장 → 리다이렉트
+$('generate-btn').addEventListener('click', async () => {
+  const btn = $('generate-btn');
+  const msg = $('global-msg');
+  const originalHtml = btn.innerHTML;
+
+  const setProgress = (text) => {
+    btn.disabled = true;
+    btn.innerHTML = `<div class="miu-spinner" style="width:16px;height:16px;border-width:2px"></div> ${text}`;
+  };
+  const showErr = (err) => {
+    msg.className = 'err';
+    msg.innerHTML = `<i class="ph-bold ph-warning-circle"></i> ${escapeHtml(String(err))}`;
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
+  };
+
+  try {
+    const isPopup = selectedType === 'popup';
+    const storeLabel = isPopup ? $('store-input').value.trim() : '성수';
+    const startDate = $('start-date').value;
+    const endDate = $('end-date').value;
+    const location = isPopup ? $('location-input').value.trim() : '';
+
+    // 1. 키오스크 파일 파싱
+    setProgress('영수증 · 카드 파일 읽는 중...');
+    const kioskDataArr = [];
+    for (let i = 0; i < kiosks.length; i++) {
+      const { receipt, card } = kiosks[i];
+      const [receipts, cards] = await Promise.all([
+        parseReceipt(receipt, storeLabel),
+        parseCard(card),
+      ]);
+      kioskDataArr.push({ receipts, cards });
+    }
+
+    // 2. 입고 파일 파싱
+    setProgress('입고 파일 읽는 중...');
+    const mainIngo = await parseIngo(ingoMain);
+    const prevIngo = ingoPrev ? await parseIngo(ingoPrev) : null;
+    const { items: ingoItems, soaked } = mergeIngo(mainIngo, prevIngo);
+
+    // 3. 조인 · 바코드 리졸브
+    setProgress('데이터 조인 중...');
+    const resolve = buildResolveFn(ingoItems);
+    const { transactions } = combineAllKiosks(kioskDataArr, storeLabel, resolve);
+
+    // 4. 집계 (해외판정·시간대·TOP3)
+    setProgress('집계 · 분석 중...');
+    const reportData = analyzeReport({
+      transactions,
+      ingoItems,
+      storeLabel,
+      startDate,
+      endDate,
+      foreignKeywords: DEFAULT_FOREIGN_KEYWORDS,
+      location,
+      reportType: selectedType,
+    });
+
+    // 5. Supabase 저장
+    setProgress('리포트 저장 중...');
+    const reportId = await saveReport(reportData);
+
+    // 6. 이동
+    setProgress('완료. 리포트로 이동...');
+    window.location.href = `view.html?id=${reportId}`;
+
+  } catch (err) {
+    console.error(err);
+    showErr(err.message || err);
+  }
+});
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+initMonthOptions();
+renderKiosks();
+applyTypeUI();   // 초기 타입(성수)에 맞춰 UI + 월 → 날짜 세팅
+revalidate();
+</script>
+</body>
+</html>
