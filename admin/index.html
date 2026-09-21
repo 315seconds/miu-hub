@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>통합 관리 · 마켓인유</title>
+
+<link rel="stylesheet" href="/shared/tokens.css?v=202609210706">
+<link rel="stylesheet" href="/shared/layout.css?v=202609210706">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+
+<script src="/shared/config.js?v=202609210706"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/shared/supabase-client.js?v=202609210706"></script>
+<script src="/shared/auth-guard.js?v=202609210706"></script>
+
+<style>
+.admin-body { padding: 20px 16px 60px; max-width: 720px; margin: 0 auto; }
+.admin-tabs {
+  display: flex; gap: 6px; margin-bottom: 20px;
+  background: var(--miu-surface-soft); padding: 4px; border-radius: 12px;
+}
+.admin-tab {
+  flex: 1; padding: 10px 12px; border: none; background: transparent;
+  border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600;
+  color: var(--miu-muted); cursor: pointer; transition: all .15s;
+}
+.admin-tab.active { background: var(--miu-canvas); color: var(--miu-ink); box-shadow: 0 1px 3px rgba(20,20,19,.08); }
+
+.admin-section { display: none; }
+.admin-section.active { display: block; }
+
+.add-form {
+  display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+}
+.add-form input, .add-form select {
+  flex: 1; min-width: 120px;
+  padding: 10px 12px; border: 1px solid var(--miu-hairline);
+  border-radius: 8px; font-family: inherit; font-size: 14px;
+  background: var(--miu-canvas); color: var(--miu-ink);
+}
+.add-form button {
+  padding: 10px 16px; border: none; border-radius: 8px;
+  background: var(--miu-primary); color: #fff;
+  font-family: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+  white-space: nowrap;
+}
+.add-form button:disabled { opacity: .5; cursor: not-allowed; }
+
+.list-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px; background: var(--miu-canvas);
+  border: 1px solid var(--miu-hairline); border-radius: 10px;
+  margin-bottom: 8px;
+}
+.list-item.inactive { opacity: 0.55; }
+.list-item .name {
+  flex: 1; font-size: 14px; font-weight: 600; color: var(--miu-ink);
+}
+.list-item .name-sub {
+  font-size: 12px; color: var(--miu-muted); font-weight: 400; margin-top: 2px;
+}
+.list-item .role-badge {
+  font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px;
+  background: var(--miu-surface-soft); color: var(--miu-muted);
+}
+.list-item .role-badge.admin {
+  background: var(--miu-primary); color: #fff;
+}
+.list-item .actions { display: flex; gap: 6px; flex-shrink: 0; }
+.list-item .actions button {
+  padding: 6px 10px; border: 1px solid var(--miu-hairline);
+  background: var(--miu-canvas); color: var(--miu-body);
+  border-radius: 6px; font-family: inherit; font-size: 12px;
+  font-weight: 600; cursor: pointer;
+}
+.list-item .actions button:hover { background: var(--miu-surface-soft); }
+.list-item .actions button.danger { color: var(--miu-error); border-color: #f0c8c8; }
+.list-item .actions button.danger:hover { background: #fef2f2; }
+
+.section-hint { font-size: 12px; color: var(--miu-muted); margin-bottom: 12px; }
+
+.gate-block {
+  padding: 60px 20px; text-align: center; color: var(--miu-muted);
+}
+.gate-block h2 {
+  font-family: var(--miu-serif); font-size: 22px; color: var(--miu-ink);
+  margin-bottom: 8px;
+}
+
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--miu-ink); color: var(--miu-on-dark);
+  padding: 12px 20px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  box-shadow: 0 6px 20px rgba(20,20,19,.2); z-index: 100;
+  opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.error { background: var(--miu-error); }
+</style>
+</head>
+<body class="miu-app">
+
+<header class="miu-header">
+  <a href="/" class="miu-header-back" aria-label="허브로">
+    <i class="ph-bold ph-caret-left"></i>
+  </a>
+  <div class="miu-header-title">
+    <h1 class="miu-header-h1">통합 관리</h1>
+  </div>
+</header>
+
+<div id="gate" class="gate-block" style="display:none">
+  <h2>접근 권한 없음</h2>
+  <p>관리자만 접근할 수 있어요.</p>
+</div>
+
+<div id="body" class="admin-body" style="display:none">
+  <div class="admin-tabs">
+    <button class="admin-tab active" data-tab="locations">매장</button>
+    <button class="admin-tab" data-tab="staff">직원</button>
+    <button class="admin-tab" data-tab="sources">거래처</button>
+  </div>
+
+  <!-- 매장 -->
+  <section class="admin-section active" data-section="locations">
+    <div class="section-hint">매장을 추가·삭제·비활성화하세요. 비활성화된 매장은 신규입고/이동에서 선택할 수 없어요.</div>
+    <form class="add-form" id="loc-form">
+      <input type="text" id="loc-name" placeholder="매장명" required maxlength="40">
+      <button type="submit">추가</button>
+    </form>
+    <div id="loc-list"></div>
+  </section>
+
+  <!-- 직원 -->
+  <section class="admin-section" data-section="staff">
+    <div class="section-hint">
+      기존 직원의 이름 · 역할 · 담당자 여부를 편집할 수 있어요.<br>
+      <strong>새 계정 추가나 삭제는 Supabase 대시보드에서 진행</strong>하세요 (로그인 계정 생성이 필요한 작업).
+    </div>
+    <div id="staff-list"></div>
+  </section>
+
+  <!-- 거래처 -->
+  <section class="admin-section" data-section="sources">
+    <div class="section-hint">거래처(사업자명 또는 대표명)를 관리하세요. 여기 추가한 목록이 행거 등록 시 "출처" 드롭다운에 나타나요.</div>
+    <form class="add-form" id="src-form">
+      <input type="text" id="src-name" placeholder="거래처명" required maxlength="40">
+      <button type="submit">추가</button>
+    </form>
+    <div id="src-list"></div>
+  </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/admin.js?v=202609210706"></script>
+</body>
+</html>

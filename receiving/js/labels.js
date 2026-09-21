@@ -415,19 +415,10 @@ function renderPreview(items) {
   });
 }
 
-function downloadZpl(zplText, filename) {
-  const blob = new Blob([zplText], { type: "text/plain" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 100);
-}
-
 async function zebraPrint(zplText, totalCount, onSuccess) {
   const btn = document.getElementById("zebra-btn");
   btn.disabled = true;
-  btn.textContent = "⏳ 프린터 연결 중…";
+  btn.innerHTML = '<i class="ph-bold ph-hourglass"></i> 프린터 연결 중…';
 
   if (typeof BrowserPrint === "undefined") {
     await appAlert("❌ BrowserPrint SDK 로드 실패");
@@ -435,34 +426,30 @@ async function zebraPrint(zplText, totalCount, onSuccess) {
     return;
   }
 
+  const restoreLabel = () => { btn.innerHTML = '<i class="ph-bold ph-printer"></i> Zebra 직접 출력'; };
   BrowserPrint.getDefaultDevice("printer",
     printer => {
       if (!printer) {
         appAlert("❌ 연결된 Zebra 프린터 없음\nUSB 케이블 및 전원을 확인하세요.");
-        btn.textContent = "🦓 Zebra 직접 출력"; btn.disabled = false;
+        restoreLabel(); btn.disabled = false;
         return;
       }
       btn.textContent = `⏳ 전송 중… (${totalCount}장)`;
       printer.send(zplText,
         () => {
-          btn.textContent = "✓ 출력 완료!";
-          btn.style.background = "#166534";
+          btn.innerHTML = '<i class="ph-bold ph-check"></i> 출력 완료!';
           if (typeof onSuccess === "function") onSuccess();
-          setTimeout(() => {
-            btn.textContent = "🦓 Zebra 직접 출력";
-            btn.style.background = "#22c55e";
-            btn.disabled = false;
-          }, 3000);
+          setTimeout(() => { restoreLabel(); btn.disabled = false; }, 3000);
         },
         err => {
           appAlert("❌ 전송 실패: " + (err || "알 수 없는 오류"));
-          btn.textContent = "🦓 Zebra 직접 출력"; btn.disabled = false;
+          restoreLabel(); btn.disabled = false;
         }
       );
     },
     err => {
       appAlert("❌ Browser Print 연결 실패\nBrowser Print 앱이 실행 중인지 확인하세요.\n오류: " + (err || "unknown"));
-      btn.textContent = "🦓 Zebra 직접 출력"; btn.disabled = false;
+      restoreLabel(); btn.disabled = false;
     }
   );
 }
@@ -474,9 +461,8 @@ async function main() {
   const barcodesParam = params.get("barcodes");
   const isDaily = params.get("daily") === "1";
 
-  const zplBtn = document.getElementById("zpl-btn");
   const zebraBtn = document.getElementById("zebra-btn");
-  let items, notFound = [], sess = null, zplFilename = "labels.zpl", hangerIds = [];
+  let items, notFound = [], sess = null, hangerIds = [];
 
   if (isDaily) {
     document.getElementById("daily-controls").style.display = "flex";
@@ -492,7 +478,6 @@ async function main() {
       try {
         const result = await buildItemsFromDaily(dateStr, includePrinted);
         items = result.items; hangerIds = result.hangerIds;
-        zplFilename = `labels_daily_${dateStr}.zpl`;
         const labelCount = items.filter(it => !it.isSeparator).length;
         document.getElementById("header-sub").textContent = labelCount
           ? `총 ${labelCount}장 (미출력 기준${includePrinted ? " · 출력완료건 포함" : ""})`
@@ -506,7 +491,6 @@ async function main() {
     function bindDailyPrintButtons() {
       const zplText = generateZpl(items);
       const labelCount = items.filter(it => !it.isSeparator).length;
-      zplBtn.onclick = () => { downloadZpl(zplText, zplFilename); markHangersPrinted(hangerIds); };
       zebraBtn.onclick = () => zebraPrint(zplText, labelCount, () => markHangersPrinted(hangerIds));
     }
     document.getElementById("daily-reload-btn").onclick = loadDaily;
@@ -530,9 +514,9 @@ async function main() {
       labelItems.forEach(it => { it.kioskExportedAt = now; });
     };
 
-    document.querySelectorAll(".team-btn").forEach(btn => {
+    document.querySelectorAll(".tb-btn--team").forEach(btn => {
       btn.onclick = () => {
-        document.querySelectorAll(".team-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".tb-btn--team").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
         ZPL = ZPL_CONFIGS[btn.dataset.team];
         renderPreview(items);
@@ -549,7 +533,6 @@ async function main() {
       ({ items, sess } = await buildItemsFromSession(sessionId));
       hangerIds = [...new Set(items.filter(it => !it.isSeparator && it.hangerId).map(it => it.hangerId))];
       const date = sess.session_date || new Date().toISOString().slice(0, 10);
-      zplFilename = `labels_${date}_${sess.barcode_prefix}.zpl`;
       const labelCount = items.filter(it => !it.isSeparator).length;
       document.getElementById("header-title").textContent = `🖨 라벨 출력 — ${date}`;
       document.getElementById("header-sub").textContent =
@@ -564,13 +547,13 @@ async function main() {
       document.getElementById("header-sub").textContent = `총 ${items.length}장`;
     } else {
       document.getElementById("header-title").textContent = "잘못된 접근";
-      zplBtn.disabled = true; zebraBtn.disabled = true;
+      zebraBtn.disabled = true;
       return;
     }
   } catch (e) {
     document.getElementById("header-title").textContent = "오류";
     document.getElementById("header-sub").textContent = e.message;
-    zplBtn.disabled = true; zebraBtn.disabled = true;
+    zebraBtn.disabled = true;
     return;
   }
 
@@ -588,13 +571,12 @@ async function main() {
 
   function bindPrintButtons() {
     const zplText = generateZpl(items);
-    zplBtn.onclick = () => { downloadZpl(zplText, zplFilename); markHangersPrinted(hangerIds); };
     zebraBtn.onclick = () => zebraPrint(zplText, labelItems.length, () => markHangersPrinted(hangerIds));
   }
 
-  document.querySelectorAll(".team-btn").forEach(btn => {
+  document.querySelectorAll(".tb-btn--team").forEach(btn => {
     btn.onclick = () => {
-      document.querySelectorAll(".team-btn").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll(".tb-btn--team").forEach(b => b.classList.remove("active"));
       btn.classList.add("active");
       ZPL = ZPL_CONFIGS[btn.dataset.team];
       bindPrintButtons();

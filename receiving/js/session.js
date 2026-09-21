@@ -1,18 +1,21 @@
 const SESSION_ID = getParam("id");
 const STATUS_LABEL = { pending: "대기중", approved: "승인됨", processed: "처리완료" };
 let HANDLERS = [];
+let SOURCES  = [];
 
 async function load() {
   if (!SESSION_ID) { showError("세션 ID 없음"); return; }
   try {
-    const [{ data: sess, error: se }, { data: hangers, error: he }, { data: handlers }] = await Promise.all([
+    const [{ data: sess, error: se }, { data: hangers, error: he }, { data: handlers }, { data: sources }] = await Promise.all([
       sb.from("inventory_sessions").select("*").eq("id", SESSION_ID).single(),
       sb.from("inventory_hangers").select("*, inventory_items(*)").eq("session_id", SESSION_ID).order("created_at", { ascending: false }),
-      sb.from("handlers").select("name").eq("is_active", true).order("name"),
+      sb.from("profiles").select("name").eq("is_handler", true).not("name", "is", null).order("name"),
+      sb.from("sources").select("name").eq("is_active", true).order("name"),
     ]);
     if (se) throw se;
     if (he) throw he;
     HANDLERS = handlers || [];
+    SOURCES  = sources  || [];
 
     const total = hangers.reduce((s, h) => s + (h.inventory_items || []).length, 0);
     render({ session: sess, hangers, total });
@@ -64,6 +67,13 @@ function render({ session: sess, hangers, total }) {
             ${HANDLERS.map(h => `<option value="${escapeHtml(h.name)}"${h.name === getMyName() ? " selected" : ""}>${escapeHtml(h.name)}</option>`).join("")}
           </select>
         </div>
+        <div class="form-group mt8">
+          <label>출처</label>
+          <select id="source-select">
+            <option value="">거래처를 선택하세요</option>
+            ${SOURCES.map(s => `<option value="${escapeHtml(s.name)}">${escapeHtml(s.name)}</option>`).join("")}
+          </select>
+        </div>
         <button id="add-hanger-btn" class="btn btn-success btn-block">행거 추가 →</button>
       </div>`;
   }
@@ -79,6 +89,7 @@ function render({ session: sess, hangers, total }) {
           <div class="flex" style="align-items:center; margin-bottom:8px">
             <span style="font-size:17px; font-weight:700; margin-right:8px">행거 ${escapeHtml(h.hanger_number)}</span>
             <span style="font-weight:600; color:var(--fg-secondary)">${cats.length ? escapeHtml(cats.join(" · ")) : '<span class="muted">카테고리 미정</span>'}</span>
+            ${h.source ? `<span style="margin-left:8px;padding:2px 8px;font-size:11px;border-radius:6px;background:var(--miu-surface-soft);color:var(--miu-body)">${escapeHtml(h.source)}</span>` : ""}
             ${sess.location === "온라인" ? '<span class="tag-online" style="margin-left:8px">온라인</span>' : ""}
             <span class="muted text-sm" style="margin-left:auto">${items.length}벌</span>
             ${sess.status === "pending" && isMine ? `
@@ -126,8 +137,10 @@ async function deleteHanger(id, num, btn) {
 async function addHanger() {
   const hanger_number = document.getElementById("hanger-number").value.trim();
   const submitted_by  = document.getElementById("submitted-by").value;
+  const source        = document.getElementById("source-select").value;
   if (!hanger_number) { showError("행거 번호를 입력하세요"); return; }
   if (!submitted_by) { showError("담당자를 선택하세요"); return; }
+  if (!source)       { showError("출처(거래처)를 선택하세요"); return; }
   try {
     const { data: dup, error: dupErr } = await sb
       .from("inventory_hangers")
@@ -141,7 +154,7 @@ async function addHanger() {
     const { data, error } = await sb
       .from("inventory_hangers")
       // category는 DB상 NOT NULL이라 빈 문자열로 채움 — 실제 카테고리는 item 단위로만 관리됨
-      .insert({ session_id: SESSION_ID, hanger_number, category: "", submitted_by })
+      .insert({ session_id: SESSION_ID, hanger_number, category: "", submitted_by, source })
       .select()
       .single();
     if (error) throw error;

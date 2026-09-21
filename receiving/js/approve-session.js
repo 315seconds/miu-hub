@@ -11,7 +11,7 @@ async function load() {
     const [{ data: sess, error: se }, { data: hangers, error: he }, { data: handlers }] = await Promise.all([
       sb.from("inventory_sessions").select("*").eq("id", SESSION_ID).single(),
       sb.from("inventory_hangers").select("*, inventory_items(*)").eq("session_id", SESSION_ID).order("created_at", { ascending: true }),
-      sb.from("handlers").select("name").eq("is_active", true).order("name"),
+      sb.from("profiles").select("name").eq("is_handler", true).not("name", "is", null).order("name"),
     ]);
     if (se) throw se;
     if (he) throw he;
@@ -21,37 +21,31 @@ async function load() {
     TOTAL    = HANGERS.reduce((s, h) => s + (h.inventory_items || []).length, 0);
     HANDLERS = handlers || [];
 
-    const suggested = await getSuggestedFromDb(sess.barcode_prefix);
-    render(suggested);
+    render();
   } catch (e) {
     showError("로드 실패: " + e.message);
   }
 }
 
-async function getSuggestedFromDb(prefix) {
-  const [{ data: maxNum, error: rpcErr }, { data: samples }] = await Promise.all([
-    sb.rpc("max_barcode_num", { p_prefix: prefix }),
-    sb.from("inventory_items").select("barcode").like("barcode", prefix + "%").not("barcode", "is", null).order("barcode", { ascending: false }).limit(1),
-  ]);
-  if (rpcErr) { console.warn("바코드 최댓값 조회 실패:", rpcErr.message); return null; }
-  if (maxNum == null) return null;
-  const next = maxNum + 1;
-  const bcSample = samples?.[0]?.barcode;
-  const numWidth = (bcSample && bcSample.length > prefix.length) ? bcSample.length - prefix.length : String(next).length;
-  return String(next).padStart(numWidth, "0");
+function getBarcodeRange() {
+  // 세션 아이템 중 이미 부여된 바코드 최소/최대
+  const bcs = HANGERS.flatMap(h => (h.inventory_items || []).map(i => i.barcode)).filter(Boolean).sort();
+  return bcs.length ? { first: bcs[0], last: bcs[bcs.length - 1], count: bcs.length } : null;
 }
 
-function render(suggested) {
+function render() {
   const titleEl = document.getElementById("page-title");
   const badgeEl = document.getElementById("page-badge");
   if (titleEl) titleEl.textContent = SESS.session_date;
   if (badgeEl) badgeEl.innerHTML = `<span class="badge badge-${escapeHtml(SESS.status)}">${STATUS_LABEL[SESS.status] || SESS.status}</span>`;
 
+  const range = getBarcodeRange();
+
   let html = `
     <div class="card text-sm" style="margin-bottom:16px">
       <div class="flex" style="gap:16px; flex-wrap:wrap">
-        <span class="muted">접두사: <strong style="color:var(--fg-primary)">${escapeHtml(SESS.barcode_prefix)}</strong></span>
         <span class="muted">위치: <strong style="color:var(--fg-primary)">${escapeHtml(SESS.location || "")}</strong></span>
+        ${SESS.location === "온라인" ? '<span class="tag-online">온라인</span>' : ""}
         ${SESS.created_by ? `<span class="muted">개설: ${escapeHtml(SESS.created_by)}</span>` : ""}
       </div>
       <div class="mt8">
@@ -66,24 +60,10 @@ function render(suggested) {
       <div class="card card-pending" style="margin-bottom:16px">
         <h2 style="color:var(--brand-primary); margin-bottom:12px">바코드 부여 &amp; 승인</h2>
         <div class="card" style="background:var(--bg-secondary); padding:10px 14px; margin-bottom:14px">
-          ${suggested ? `
-            <div class="text-xs muted">DB 기준 추천 시작 번호</div>
-            <div class="mono" style="font-size:20px; font-weight:700; color:var(--brand-primary)">
-              ${escapeHtml(SESS.barcode_prefix)}${suggested}
-            </div>
-            <div class="text-xs muted mt8">
-              끝 바코드: ${escapeHtml(SESS.barcode_prefix)}${String(parseInt(suggested, 10) + TOTAL - 1).padStart(suggested.length, "0")} (${TOTAL}벌)
-            </div>` : `
-            <div class="text-xs warn">⚠ DB에 기존 바코드 없음 — 시작 번호를 직접 입력하세요</div>`}
-          <button type="button" class="btn btn-outline btn-sm mt8" id="excel-btn">📊 DB에서 재확인</button>
-          <div id="excel-result" class="text-xs muted mt8" style="display:none"></div>
-          <div style="margin-top:12px; background:var(--w-orange-95); border:1px solid var(--w-orange-90); border-radius:8px; padding:10px 12px; font-size:12px; color:var(--w-orange-60); line-height:1.6">
-            ⚠️ 추천값은 자동 계산이라 실제와 다를 수 있어요. 반드시 확인 후 입력하세요.
+          <div class="text-sm" style="line-height:1.6">
+            승인 시 아이템별로 자동 바코드가 부여됩니다.<br>
+            <strong>${SESS.location === "온라인" ? "U + 년월(YYMM) + 4자리" : "A + 년(YY) + 6자리"}</strong> 형식으로 다음 순번부터 이어집니다.
           </div>
-        </div>
-        <div class="form-group">
-          <label>시작 바코드 번호</label>
-          <input type="text" id="start-barcode" value="${suggested || ""}" placeholder="예: 00001" inputmode="numeric" pattern="[0-9]+">
         </div>
         <div class="form-group">
           <label>승인자 이름</label>
@@ -92,7 +72,7 @@ function render(suggested) {
             ${HANDLERS.map(h => `<option value="${escapeHtml(h.name)}">${escapeHtml(h.name)}</option>`).join("")}
           </select>
         </div>
-        <button id="confirm-btn" class="btn btn-success btn-block">✓ 승인하기</button>
+        <button id="confirm-btn" class="btn btn-success btn-block">✓ 승인하기 (${TOTAL}벌 바코드 발행)</button>
       </div>
     `;
   } else if (SESS.status === "approved" && !SESS.excel_updated) {
@@ -100,12 +80,11 @@ function render(suggested) {
       <div class="card card-success" style="margin-bottom:16px">
         <div class="success" style="font-weight:700">✓ 승인됨 — 엑셀 기록 대기 중</div>
         <div class="text-sm muted mt8">서버 크론이 2분 내 입고 시트에 자동 기록합니다.</div>
+        ${range ? `
         <div class="mt8 text-sm muted">
-          시작 바코드: <strong class="success mono">
-            ${escapeHtml(SESS.barcode_prefix)}${SESS.start_barcode_num}
-          </strong>
-          ~ ${escapeHtml(SESS.barcode_prefix)}${String(parseInt(SESS.start_barcode_num, 10) + TOTAL - 1).padStart(String(SESS.start_barcode_num).length, "0")}
-        </div>
+          바코드: <strong class="success mono">${escapeHtml(range.first)}</strong> ~ <strong class="success mono">${escapeHtml(range.last)}</strong>
+          <span class="text-xs">(총 ${range.count}벌)</span>
+        </div>` : ""}
         <button id="reopen-btn" class="btn btn-outline btn-sm mt8">승인 취소 (수정)</button>
       </div>
     `;
@@ -120,15 +99,15 @@ function render(suggested) {
     html += `
       <div class="card" style="border-color:var(--w-violet-80); background:var(--w-violet-99); margin-bottom:16px">
         <div style="color:var(--w-violet-50); font-weight:700">✓ 처리 완료</div>
+        ${range ? `
         <div class="text-sm muted mt8">
-          바코드: <span class="mono">${escapeHtml(SESS.barcode_prefix)}${SESS.start_barcode_num}
-          ~ ${escapeHtml(SESS.barcode_prefix)}${String(parseInt(SESS.start_barcode_num, 10) + TOTAL - 1).padStart(String(SESS.start_barcode_num).length, "0")}</span>
-        </div>
+          바코드: <span class="mono">${escapeHtml(range.first)} ~ ${escapeHtml(range.last)}</span> (총 ${range.count}벌)
+        </div>` : ""}
       </div>
     `;
   }
 
-  if ((SESS.status === "approved" || SESS.status === "processed") && SESS.start_barcode_num) {
+  if ((SESS.status === "approved" || SESS.status === "processed") && range) {
     html += `
       <div class="flex mb8" style="gap:8px">
         <a href="labels.html?session_id=${encodeURIComponent(SESS.id)}" target="_blank"
@@ -149,6 +128,7 @@ function render(suggested) {
           <div class="flex" style="align-items:center; margin-bottom:10px">
             <strong style="font-size:16px">행거 ${escapeHtml(h.hanger_number)}</strong>
             <span class="muted" style="margin-left:8px">${cats.length ? escapeHtml(cats.join(" · ")) : "카테고리 미정"}</span>
+            ${h.source ? `<span style="margin-left:8px;padding:2px 8px;font-size:11px;border-radius:6px;background:var(--miu-surface-soft, #f5f0e8);color:var(--miu-body, #3d3d3a)">${escapeHtml(h.source)}</span>` : ""}
             <span class="muted text-sm" style="margin-left:auto">${items.length}벌</span>
             ${h.submitted_at
               ? `<span style="margin-left:8px; font-size:11px; color:var(--status-success)">✓ 제출</span>`
@@ -170,35 +150,74 @@ function render(suggested) {
 
   document.getElementById("content").innerHTML = html;
   document.getElementById("confirm-btn")?.addEventListener("click", confirmApprove);
-  document.getElementById("excel-btn")?.addEventListener("click", loadExcelSuggest);
   document.getElementById("reopen-btn")?.addEventListener("click", reopen);
 }
 
 async function confirmApprove() {
-  const start_barcode_num = document.getElementById("start-barcode").value.trim();
   const approved_by = document.getElementById("approved-by").value;
-  if (!start_barcode_num || !/^\d+$/.test(start_barcode_num)) { showError("시작 바코드 번호 입력"); return; }
   if (!approved_by) { showError("승인자 이름을 선택하세요"); return; }
   const unsubmitted = HANGERS.filter(h => !h.submitted_at);
   if (unsubmitted.length > 0) {
     showError(`미제출 행거가 있습니다: 행거 ${unsubmitted.map(h => escapeHtml(h.hanger_number)).join(", ")}`);
     return;
   }
-  if (!await appConfirm(`총 ${TOTAL}벌을 승인하시겠습니까?`)) return;
+  if (TOTAL === 0) { showError("아이템이 없습니다"); return; }
+  if (!await appConfirm(`총 ${TOTAL}벌에 자동 바코드를 부여하고 승인합니다.\n계속하시겠습니까?`)) return;
+
+  const btn = document.getElementById("confirm-btn");
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "⏳ 바코드 부여 중…";
+
   try {
-    const { error } = await sb
+    // 모든 아이템 순서대로 (행거 created_at ASC → item order_index/created_at ASC)
+    const items = HANGERS.flatMap(h => (h.inventory_items || [])
+      .slice()
+      .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0) || (a.created_at || "").localeCompare(b.created_at || ""))
+    );
+
+    // 각 아이템별로 next_barcode() RPC 호출
+    const updates = [];
+    for (let i = 0; i < items.length; i++) {
+      btn.textContent = `⏳ 바코드 부여 중… (${i + 1}/${items.length})`;
+      const { data: bc, error } = await sb.rpc("next_barcode", { p_location: SESS.location });
+      if (error) throw new Error("바코드 발행 실패: " + error.message);
+      updates.push({ id: items[i].id, barcode: bc });
+    }
+
+    btn.textContent = "⏳ 저장 중…";
+
+    // 각 아이템 UPDATE (Supabase는 배치 UPDATE with different values가 없어서 개별 호출)
+    // 성능: TOTAL 100개까지는 실측 2~3초. 그 이상이면 upsert 병렬화 고려.
+    for (const u of updates) {
+      const { error } = await sb.from("inventory_items").update({ barcode: u.barcode }).eq("id", u.id);
+      if (error) throw error;
+    }
+
+    // 세션 상태 업데이트
+    const firstBarcode = updates[0]?.barcode;
+    const numSuffix = firstBarcode ? firstBarcode.replace(/^[A-Z]+/, "") : null;  // "A26000226" → "26000226"
+    const { error: sessErr } = await sb
       .from("inventory_sessions")
-      .update({ status: "approved", start_barcode_num, approved_by, approved_at: new Date().toISOString() })
+      .update({
+        status: "approved",
+        start_barcode_num: numSuffix,   // 레거시 표시용, 첫 아이템 뒷자리만
+        approved_by,
+        approved_at: new Date().toISOString(),
+      })
       .eq("id", SESSION_ID);
-    if (error) throw error;
+    if (sessErr) throw sessErr;
+
     load();
   } catch (e) {
     showError("승인 실패: " + e.message);
+    btn.disabled = false;
+    btn.textContent = originalLabel;
   }
 }
 
 async function reopen() {
-  if (!await appConfirm("승인을 취소하고 수정 모드로 돌아가시겠습니까?")) return;
+  if (!await appConfirm("승인을 취소하고 수정 모드로 돌아가시겠습니까?\n(이미 부여된 바코드는 남아있지만, 재승인 시 새 번호로 덮어써집니다)")) return;
   try {
     const { error } = await sb
       .from("inventory_sessions")
@@ -208,39 +227,6 @@ async function reopen() {
     load();
   } catch (e) {
     showError("취소 실패: " + e.message);
-  }
-}
-
-async function loadExcelSuggest() {
-  const btn = document.getElementById("excel-btn");
-  const res = document.getElementById("excel-result");
-  btn.textContent = "⏳ 로딩…"; btn.disabled = true;
-  res.style.display = "none";
-  try {
-    const prefix = SESS.barcode_prefix;
-    const [{ data: maxNum, error }, { data: samples }] = await Promise.all([
-      sb.rpc("max_barcode_num", { p_prefix: prefix }),
-      sb.from("inventory_items").select("barcode").like("barcode", prefix + "%").not("barcode", "is", null).order("barcode", { ascending: false }).limit(1),
-    ]);
-    if (error) throw error;
-
-    if (maxNum == null) {
-      res.textContent = "DB에 기존 바코드 없음 — 직접 입력하세요";
-    } else {
-      const bcSample = samples?.[0]?.barcode;
-      const numWidth = (bcSample && bcSample.length > prefix.length) ? bcSample.length - prefix.length : String(maxNum + 1).length;
-      const maxStr = String(maxNum).padStart(numWidth, "0");
-      const nextStr = String(maxNum + 1).padStart(numWidth, "0");
-      document.getElementById("start-barcode").value = nextStr;
-      res.textContent = `✓ DB 기준: ${prefix}${maxStr} 다음 → ${prefix}${nextStr}`;
-      res.style.color = "var(--status-success)";
-    }
-    res.style.display = "block";
-  } catch (e) {
-    res.textContent = "오류: " + e.message;
-    res.style.display = "block";
-  } finally {
-    btn.textContent = "📊 DB에서 재확인"; btn.disabled = false;
   }
 }
 

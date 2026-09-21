@@ -7,9 +7,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="js/BrowserPrint.min.js" onerror="console.warn('BrowserPrint SDK 없음')"></script>
-<script src="js/BrowserPrint-Zebra.min.js" onerror="console.warn('BrowserPrint-Zebra SDK 없음')"></script>
-<script src="js/supabase-client.js"></script>
+<script src="js/BrowserPrint.min.js?v=202609210706" onerror="console.warn('BrowserPrint SDK 없음')"></script>
+<script src="js/BrowserPrint-Zebra.min.js?v=202609210706" onerror="console.warn('BrowserPrint-Zebra SDK 없음')"></script>
+<script src="js/supabase-client.js?v=202609210706"></script>
 <script>
 function escapeHtml(s) {
   return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -89,10 +89,10 @@ body { background: #f1f5f9; font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', 
 .label-barcode-num { font-size: 7pt; font-weight: 900; color: #000; text-align: center; font-family: 'Courier New', monospace; letter-spacing: 1px; flex-shrink: 0; line-height: 1.2; padding-bottom: 2px; }
 </style>
   <!-- auth-migration: 로그인 가드 -->
-  <script src="/shared/config.js"></script>
+  <script src="/shared/config.js?v=202609210706"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/shared/supabase-client.js"></script>
-  <script src="/shared/auth-guard.js"></script>
+  <script src="/shared/supabase-client.js?v=202609210706"></script>
+  <script src="/shared/auth-guard.js?v=202609210706"></script>
 </head>
 <body>
 <div class="screen-header">
@@ -120,6 +120,6 @@ body { background: #f1f5f9; font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', 
   <div id="not-found-list" style="font-family:monospace;font-size:13px;line-height:1.8;margin-top:4px"></div>
 </div>
 <div class="label-grid" id="label-grid"></div>
-<script src="js/labels.js"></script>
+<script src="js/labels.js?v=202609210706"></script>
 </body>
 </html>

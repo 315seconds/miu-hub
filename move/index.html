@@ -10,15 +10,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#FFF8EE">
 <title>물류 이동</title>
-<link rel="stylesheet" href="/shared/tokens.css">
-<link rel="stylesheet" href="/shared/layout.css">
+<link rel="stylesheet" href="/shared/tokens.css?v=202609210706">
+<link rel="stylesheet" href="/shared/layout.css?v=202609210706">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <!-- auth-migration: 마켓인유 통합 로그인 가드 -->
-<script src="/shared/config.js"></script>
-<script src="/shared/supabase-client.js"></script>
-<script src="/shared/auth-guard.js"></script>
+<script src="/shared/config.js?v=202609210706"></script>
+<script src="/shared/supabase-client.js?v=202609210706"></script>
+<script src="/shared/auth-guard.js?v=202609210706"></script>
 <style>
 /* ════════════════════════════════════════════════════
    MIU MOVE · PLAYBLOCK
@@ -751,11 +751,11 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
     <div class="miu-section" style="margin-top:20px">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
         <div class="miu-stat" style="padding:14px 12px">
-          <div class="miu-stat-label" style="font-size:10px">오늘 이동</div>
+          <div class="miu-stat-label" style="font-size:10px">오늘 예상 이동</div>
           <div class="miu-stat-value" id="stat-today-move" style="color:var(--miu-muted);font-size:24px">—</div>
         </div>
         <div class="miu-stat" style="padding:14px 12px">
-          <div class="miu-stat-label" style="font-size:10px">대기 승인</div>
+          <div class="miu-stat-label" style="font-size:10px">승인 대기 세션</div>
           <div class="miu-stat-value" id="stat-pending-move" style="color:var(--miu-muted);font-size:24px">—</div>
         </div>
         <div class="miu-stat" style="padding:14px 12px">
@@ -812,27 +812,10 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
     </div>
 
     <!-- 03 관리 -->
-    <div class="miu-section">
-      <div class="miu-section-head">
-        <span class="miu-section-num">03</span>
-        <span class="miu-section-label">관리</span>
-        <span class="miu-section-divider"></span>
-      </div>
-      <div class="miu-tile-grid">
-        <a href="javascript:void(0)" onclick="startAdminFlow()" class="miu-tile miu-tile-wide" style="--tile-accent:var(--miu-muted)">
-          <div class="miu-tile-icon"><i class="ph-bold ph-users-three"></i></div>
-          <div>
-            <div class="miu-tile-title">관리자</div>
-            <div class="miu-tile-desc">매장 · 승인자</div>
-          </div>
-        </a>
-      </div>
-    </div>
-
     <!-- 오늘 진행 중 세션 -->
     <div class="miu-section" id="home-sessions-section">
       <div class="miu-section-head">
-        <span class="miu-section-num">04</span>
+        <span class="miu-section-num">03</span>
         <span class="miu-section-label">오늘 진행 중</span>
         <span class="miu-section-divider"></span>
         <button onclick="loadHomeSessions(); this.disabled=true; setTimeout(()=>this.disabled=false, 800)" class="miu-icon-btn" aria-label="새로고침" style="margin-left:6px">
@@ -1061,36 +1044,6 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
   </div>
 </div>
 
-<!-- ════════════════ ADMIN ════════════════ -->
-<div class="screen" id="s-admin">
-  <div class="topbar">
-    <div class="topbar-back" onclick="showScreen('s-home')"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg></div>
-    <div><div class="topbar-title">관리자</div></div>
-  </div>
-  <div class="content">
-    <div id="admin-need-auth" style="display:none;margin-bottom:14px">
-      <div class="callout err">변경은 매니저 인증 후 가능해요.</div>
-    </div>
-
-    <h2 class="section-title">매장 / 창고</h2>
-    <div id="location-list"></div>
-    <div style="display:flex;gap:8px;margin-top:12px">
-      <input class="form-input" id="new-location-input" placeholder="새 매장 이름" style="flex:1">
-      <button class="btn btn-primary btn-sm" onclick="addLocation()" style="width:72px">추가</button>
-    </div>
-
-    <div class="divider"></div>
-
-    <h2 class="section-title" style="margin-top:0">물류팀 담당자</h2>
-    <div id="handler-list"></div>
-    <div style="display:flex;gap:8px;margin-top:12px">
-      <input class="form-input" id="new-handler-input" placeholder="담당자 이름" style="flex:1">
-      <button class="btn btn-primary btn-sm" onclick="addHandler()" style="width:72px">추가</button>
-    </div>
-
-  </div>
-</div>
-
 <!-- ════════════════ MODAL ════════════════ -->
 <div class="modal-overlay" id="modal">
   <div class="modal-box">
@@ -1129,7 +1082,6 @@ const app = {
   selectedSession: null,
 
   // pin state
-  adminAuthed: false,
 };
 
 const DEFAULT_SETTINGS = {};
@@ -1295,7 +1247,6 @@ function goBack() {
 
 function onScreenEnter(id) {
   if (id === 's-home') {
-    app.adminAuthed = false;
     loadHomeSessions();
     subscribeHomeRealtime();
   } else {
@@ -1307,7 +1258,6 @@ function onScreenEnter(id) {
   }
   if (id === 's-scan-info') initScanInfo();
   if (id === 's-bulk') initBulk();
-  if (id === 's-admin') loadAdmin();
   if (id === 's-log') initLog();
   if (id === 's-scanning') focusBarcodeInput();
 }
@@ -1347,7 +1297,7 @@ async function homeSessionClick(sessionId, status) {
       // 담당자 드롭다운 동적 삽입
       setTimeout(async () => {
         const desc = document.getElementById('modal-desc');
-        const { data: handlers } = await app.supabase.from('handlers').select('*').eq('is_active', true).order('name');
+        const { data: handlers } = await app.supabase.from('profiles').select('id, name').eq('is_handler', true).not('name', 'is', null).order('name');
         const sel = document.createElement('select');
         sel.id = 'join-name-select';
         sel.className = 'form-input form-select';
@@ -1384,9 +1334,10 @@ async function loadMoveStats() {
   monday.setUTCDate(monday.getUTCDate() + daysToMonday);
   const weekStart = monday.toISOString().slice(0, 10);
 
-  const [pendingRes, todayRes, weekRes] = await Promise.allSettled([
-    app.supabase.from("move_sessions").select("status", { count: "exact", head: true }).eq("status", "pending"),
-    app.supabase.from("move_sessions").select("session_items(id)").eq("session_date", today).in("status", ["approved", "processed"]),
+  const [pendingRes, weekRes] = await Promise.allSettled([
+    // 승인 대기 세션 (세션 수 + 벌 수 함께 계산)
+    app.supabase.from("move_sessions").select("session_items(id)").eq("status", "pending"),
+    // 이번 주 실제 이동 완료 벌 수
     app.supabase.from("move_sessions").select("session_items(id)").gte("session_date", weekStart).in("status", ["approved", "processed"]),
   ]);
 
@@ -1398,12 +1349,10 @@ async function loadMoveStats() {
   };
 
   if (pendingRes.status === 'fulfilled' && !pendingRes.value.error) {
-    const count = pendingRes.value.count || 0;
-    setStat('stat-pending-move', count, count > 0);
-  }
-  if (todayRes.status === 'fulfilled' && !todayRes.value.error) {
-    const total = (todayRes.value.data || []).flatMap(s => s.session_items || []).length;
-    setStat('stat-today-move', total);
+    const sessions  = pendingRes.value.data || [];
+    const itemCount = sessions.flatMap(s => s.session_items || []).length;
+    setStat('stat-today-move',   itemCount);                       // 오늘 예상 이동 = pending 벌 수
+    setStat('stat-pending-move', sessions.length, sessions.length > 0);  // 승인 대기 세션 = pending 세션 수
   }
   if (weekRes.status === 'fulfilled' && !weekRes.value.error) {
     const total = (weekRes.value.data || []).flatMap(s => s.session_items || []).length;
@@ -1493,7 +1442,7 @@ const bulkState = { barcodes: [], validItems: [], errorItems: [], sessionId: nul
 async function initBulk() {
   if (!app.supabase) { showToast('Supabase 설정이 필요해요', 'error'); return; }
   // 담당자 로드
-  const { data: handlers } = await app.supabase.from('handlers').select('id,name').eq('is_active', true).order('name');
+  const { data: handlers } = await app.supabase.from('profiles').select('id, name').eq('is_handler', true).not('name', 'is', null).order('name');
   const { data: locations } = await app.supabase.from('locations').select('id,name').eq('is_active', true).order('name');
 
   const nameEl = document.getElementById('bulk-name');
@@ -1691,7 +1640,7 @@ async function initScanInfo() {
   try {
     const [locRes, handlerRes] = await Promise.all([
       app.supabase.from('locations').select('*').eq('is_active', true).order('name'),
-      app.supabase.from('handlers').select('*').eq('is_active', true).order('name'),
+      app.supabase.from('profiles').select('id, name').eq('is_handler', true).not('name', 'is', null).order('name'),
     ]);
     const locs     = locRes.data     || [];
     const handlers = handlerRes.data || [];
@@ -2742,126 +2691,6 @@ async function doLookup() {
       </div></div>
     `;
   } catch(e) { el.innerHTML = `<div style="color:var(--danger);padding:16px;font-size:14px">오류: ${e.message}</div>`; }
-}
-
-// ══════════════════════════════════════════
-//  ADMIN AUTH
-// ══════════════════════════════════════════
-async function startAdminFlow() {
-  if (!requireSupabase()) return;
-  try {
-    // profiles 테이블에서 role 확인 (auth-guard가 비동기로 로드한 window.MIU_PROFILE 우선)
-    let role = window.MIU_PROFILE?.role;
-    if (!role) {
-      const { data: { user } } = await app.supabase.auth.getUser();
-      if (!user) { showToast('로그인이 필요해요', 'error'); return; }
-      const { data: profile } = await app.supabase
-        .from('profiles').select('role').eq('id', user.id).single();
-      role = profile?.role;
-      if (profile) window.MIU_PROFILE = { ...window.MIU_PROFILE, ...profile };
-    }
-    if (role !== 'admin') {
-      showToast('관리자 권한이 없어요', 'error');
-      return;
-    }
-    app.adminAuthed = true;
-    loadAdmin();
-    showScreen('s-admin');
-  } catch(e) { showToast('오류: ' + e.message, 'error'); }
-}
-
-// ══════════════════════════════════════════
-//  ADMIN
-// ══════════════════════════════════════════
-async function loadAdmin() {
-  if (!app.supabase) return;
-
-  // 각 쿼리 독립 실행 — 하나 실패해도 나머지에 영향 없음
-  try {
-    const { data } = await app.supabase.from('locations').select('*').order('is_active', { ascending: false }).order('name');
-    renderLocations(data || []);
-  } catch(e) { renderLocations([]); }
-
-  try {
-    const { data } = await app.supabase.from('handlers').select('*').order('is_active', { ascending: false }).order('name');
-    renderHandlers(data || []);
-  } catch(e) { renderHandlers([]); }
-
-}
-
-function renderHandlers(list) {
-  const el = document.getElementById('handler-list');
-  if (!el) return;
-  if (!list.length) { el.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:12px 0">담당자가 없어요</div>'; return; }
-  el.innerHTML = list.map(h => `
-    <div class="location-item">
-      <span class="location-name ${!h.is_active ? 'location-inactive' : ''}">${h.name}</span>
-      <div class="loc-actions">
-        <button class="loc-btn" onclick="toggleHandler('${h.id}', ${h.is_active})">${h.is_active ? '비활성화' : '활성화'}</button>
-        <button class="loc-btn danger" onclick="deleteHandler('${h.id}', '${h.name}')">삭제</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-async function addHandler() {
-  const name = document.getElementById('new-handler-input').value.trim();
-  if (!name) return;
-  await sbQuery(sb => sb.from('handlers').insert({ name }));
-  document.getElementById('new-handler-input').value = '';
-  showToast(`'${name}' 추가됐어요`, 'success');
-  loadAdmin();
-}
-
-async function toggleHandler(id, isActive) {
-  await sbQuery(sb => sb.from('handlers').update({ is_active: !isActive }).eq('id', id));
-  loadAdmin();
-}
-
-async function deleteHandler(id, name) {
-  showModal('담당자 삭제', `'${name}'을(를) 삭제할까요?\n기존 이동 로그의 이름은 유지됩니다.`,
-    [
-      { label: '삭제', class: 'btn-danger', fn: async () => { closeModal(); await sbQuery(sb => sb.from('handlers').delete().eq('id', id)); loadAdmin(); showToast('삭제됐어요', 'success'); }},
-      { label: '취소', class: 'btn-secondary', fn: closeModal }
-    ]);
-}
-
-
-function renderLocations(locs) {
-  const el = document.getElementById('location-list');
-  if (!el) return;
-  if (!locs.length) { el.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:12px 0">매장이 없어요</div>'; return; }
-  el.innerHTML = locs.map(l => `
-    <div class="location-item">
-      <span class="location-name ${!l.is_active ? 'location-inactive' : ''}">${l.name}</span>
-      <div class="loc-actions">
-        <button class="loc-btn" onclick="toggleLocation('${l.id}', ${l.is_active})">${l.is_active ? '비활성화' : '활성화'}</button>
-        <button class="loc-btn danger" onclick="deleteLocation('${l.id}')">삭제</button>
-      </div>
-    </div>
-  `).join('');
-}
-
-async function addLocation() {
-  const name = document.getElementById('new-location-input').value.trim();
-  if (!name) return;
-  await sbQuery(sb => sb.from('locations').insert({ name }));
-  document.getElementById('new-location-input').value = '';
-  showToast(`'${name}' 추가됐어요`, 'success');
-  loadAdmin();
-}
-
-async function toggleLocation(id, isActive) {
-  await sbQuery(sb => sb.from('locations').update({ is_active: !isActive }).eq('id', id));
-  loadAdmin();
-}
-
-async function deleteLocation(id) {
-  showModal('매장 삭제', '정말 삭제할까요?\n과거 이동 기록의 위치 이름은 유지됩니다.',
-    [
-      { label:'삭제', class:'btn-danger', fn: async () => { closeModal(); await sbQuery(sb => sb.from('locations').delete().eq('id', id)); loadAdmin(); showToast('삭제됐어요', 'success'); }},
-      { label:'취소', class:'btn-secondary', fn: closeModal }
-    ]);
 }
 
 // ══════════════════════════════════════════

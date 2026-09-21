@@ -13,8 +13,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/shared/tokens.css">
-<link rel="stylesheet" href="/shared/layout.css">
+<link rel="stylesheet" href="/shared/tokens.css?v=202609210706">
+<link rel="stylesheet" href="/shared/layout.css?v=202609210706">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
 :root{
@@ -103,10 +103,10 @@ button{touch-action:manipulation}
 @media (prefers-reduced-motion:no-preference){.modal{animation:modal-in .14s ease-out}@keyframes modal-in{from{transform:translateY(8px);opacity:.7}to{transform:none;opacity:1}}}
 </style>
   <!-- auth-migration: 로그인 가드 -->
-  <script src="/shared/config.js"></script>
+  <script src="/shared/config.js?v=202609210706"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/shared/supabase-client.js"></script>
-  <script src="/shared/auth-guard.js"></script>
+  <script src="/shared/supabase-client.js?v=202609210706"></script>
+  <script src="/shared/auth-guard.js?v=202609210706"></script>
 </head>
 <body>
 <header class="miu-header">
@@ -281,8 +281,8 @@ button{touch-action:manipulation}
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.112.3/+esm';
 
 // miu-hub/receiving/js/supabase-client.js 와 동일한 값(anon key, 이미 공개된 클라이언트 키).
-const SUPABASE_URL = 'https://rakfyvxpysmfuzkdoevc.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJha2Z5dnhweXNtZnV6a2RvZXZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkzMjEyOTYsImV4cCI6MjEwNDg5NzI5Nn0.nEv6bpAmN7aIBy_ZWeyObSChidvGCE3XNlWR4SyjkZw';
+const SUPABASE_URL = 'https://yqnocnzjrcsrwrvsvsyg.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlxbm9jbnpqcmNzcndydnN2c3lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNjExNzgsImV4cCI6MjA5MTgzNzE3OH0.u172XxuUcRF7WhT0UmLq-xQjoeDjBt95Qgbstln8mMs';
 
 const STORAGE_BUCKET = 'item-photos';
 const EXCELJS_MODULE_URL = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/+esm';

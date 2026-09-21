@@ -3,19 +3,24 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>라벨 출력</title>
+<title>라벨 출력 · 마켓인유</title>
+
+<link rel="stylesheet" href="/shared/tokens.css?v=202609210706">
+<link rel="stylesheet" href="/shared/layout.css?v=202609210706">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="js/BrowserPrint.min.js" onerror="console.warn('BrowserPrint SDK 없음')"></script>
-<script src="js/BrowserPrint-Zebra.min.js" onerror="console.warn('BrowserPrint-Zebra SDK 없음')"></script>
-<script src="js/supabase-client.js"></script>
+<script src="js/BrowserPrint.min.js?v=202609210706" onerror="console.warn('BrowserPrint SDK 없음')"></script>
+<script src="js/BrowserPrint-Zebra.min.js?v=202609210706" onerror="console.warn('BrowserPrint-Zebra SDK 없음')"></script>
+<script src="js/supabase-client.js?v=202609210706"></script>
 <script>
 function appAlert(msg) {
   return new Promise(resolve => {
     const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
-    overlay.innerHTML = `<div style="background:#1e293b;border-radius:14px;padding:24px 20px;max-width:320px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.5)"><div style="color:#f1f5f9;font-size:15px;line-height:1.6;white-space:pre-line;margin-bottom:20px">${String(msg).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div><button id="_modal-ok" style="width:100%;padding:11px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">확인</button></div>`;
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(20,20,19,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+    overlay.innerHTML = `<div style="background:var(--miu-canvas);border-radius:16px;padding:24px 20px;max-width:340px;width:100%;box-shadow:0 12px 32px rgba(20,20,19,.2);border:1px solid var(--miu-hairline)"><div style="color:var(--miu-ink);font-size:15px;line-height:1.6;white-space:pre-line;margin-bottom:20px">${String(msg).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div><button id="_modal-ok" style="width:100%;padding:12px;background:var(--miu-primary);border:none;border-radius:10px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">확인</button></div>`;
     document.body.appendChild(overlay);
     const close = () => { overlay.remove(); resolve(); };
     overlay.querySelector('#_modal-ok').addEventListener('click', close);
@@ -23,68 +28,80 @@ function appAlert(msg) {
   });
 }
 </script>
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  background: #f1f5f9;
-  font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', Arial, sans-serif;
-}
 
-.screen-header {
-  background: #1e293b; color: #e2e8f0; padding: 10px 16px;
-  display: flex; align-items: center; gap: 12px;
+<!-- auth-migration: 로그인 가드 -->
+<script src="/shared/config.js?v=202609210706"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/shared/supabase-client.js?v=202609210706"></script>
+<script src="/shared/auth-guard.js?v=202609210706"></script>
+
+<style>
+/* ── 툴바 (미유 톤) ── */
+.labels-toolbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; flex-wrap: wrap;
+  background: var(--miu-canvas); border-bottom: 1px solid var(--miu-hairline);
   position: sticky; top: 0; z-index: 10;
 }
-.screen-header h1 { font-size: 15px; font-weight: 700; }
-.screen-header .sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
-.back-link {
-  display: flex; align-items: center; justify-content: center;
-  width: 32px; height: 32px; flex-shrink: 0;
-  color: #94a3b8; text-decoration: none; border-radius: 6px;
+.labels-sub {
+  font-size: 12px; color: var(--miu-muted);
+  padding: 0 16px 12px; background: var(--miu-canvas);
+  border-bottom: 1px solid var(--miu-hairline);
+  position: sticky; top: 57px; z-index: 9;
 }
-.back-link:hover { background: #334155; color: #e2e8f0; }
-.btn-group { display: flex; gap: 8px; margin-left: auto; align-items: center; }
-.team-btn {
-  background: #1e3a5f; color: #93c5fd; border: 1px solid #3b82f6;
-  border-radius: 6px; padding: 7px 12px; font-size: 13px;
+.tb-btn {
+  border-radius: 8px; padding: 8px 14px; font-size: 13px;
   font-weight: 600; cursor: pointer; white-space: nowrap;
+  border: 1px solid var(--miu-hairline); background: var(--miu-canvas);
+  color: var(--miu-ink); font-family: inherit;
 }
-.team-btn.active { background: #3b82f6; color: #fff; }
-.zpl-btn {
-  background: #334155; color: #93c5fd; border: 1px solid #475569;
-  border-radius: 6px; padding: 7px 12px; font-size: 13px;
-  font-weight: 600; cursor: pointer; white-space: nowrap;
+.tb-btn:hover:not(:disabled) { background: var(--miu-surface-soft); }
+.tb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.tb-btn.tb-btn--team { color: var(--miu-muted); }
+.tb-btn.tb-btn--team.active {
+  background: var(--miu-primary); color: #fff; border-color: var(--miu-primary);
 }
-.zpl-btn:hover { background: #475569; }
-.print-btn {
-  background: #22c55e; color: #fff; border: none; border-radius: 6px;
-  padding: 7px 14px; font-size: 14px; font-weight: 600; cursor: pointer;
-  white-space: nowrap;
+.tb-btn.tb-btn--primary {
+  background: var(--miu-primary); color: #fff; border-color: var(--miu-primary);
 }
-.print-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.tb-btn.tb-btn--primary:hover:not(:disabled) { filter: brightness(0.95); }
+.tb-spacer { flex: 1; }
+
+.daily-controls { display: none; align-items: center; gap: 8px; flex-wrap: wrap; }
+.daily-controls input[type="date"] {
+  background: var(--miu-canvas); color: var(--miu-ink);
+  border: 1px solid var(--miu-hairline); border-radius: 8px;
+  padding: 7px 10px; font-size: 13px; font-family: inherit;
+}
+.daily-toggle {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 12px; color: var(--miu-muted); white-space: nowrap;
+}
 
 .not-found-box {
   display: none;
-  background: #7f1d1d; color: #fca5a5;
-  border: 1px solid #ef4444; border-radius: 8px;
+  background: #fef2f2; color: #991b1b;
+  border: 1px solid #fca5a5; border-radius: 10px;
   padding: 12px 16px; margin: 12px 16px 0;
 }
-.not-found-box strong { display: block; margin-bottom: 6px; }
-.not-found-list { font-family: monospace; font-size: 13px; line-height: 1.8; }
+.not-found-box strong { display: block; margin-bottom: 6px; font-weight: 700; }
+.not-found-list { font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.8; }
 
+/* ── 라벨 (인쇄 원본 유지) ── */
 .label-grid {
   display: flex; flex-wrap: wrap; gap: 12px;
   padding: 20px; justify-content: flex-start;
+  background: var(--miu-canvas);
 }
 
 .label-separator {
   width: 4cm; height: 3cm;
-  background: #1e293b; border: 2px solid #475569; border-radius: 2px;
+  background: var(--miu-ink); border: 2px solid var(--miu-muted); border-radius: 2px;
   display: flex; align-items: center; justify-content: center;
   page-break-inside: avoid; break-inside: avoid;
 }
 .label-separator .sep-num {
-  font-size: 52pt; font-weight: 900; color: #f1f5f9; line-height: 1;
+  font-size: 52pt; font-weight: 900; color: var(--miu-on-dark); line-height: 1;
 }
 .label-separator .sep-num.sep-num-op {
   font-size: 13pt; line-height: 1.3; padding: 4px; text-align: center;
@@ -95,12 +112,6 @@ body {
     margin-right: calc(4cm * 0.9); margin-bottom: calc(3cm * 0.9);
   }
 }
-.daily-controls { display: none; align-items: center; gap: 8px; margin-left: auto; flex-wrap: wrap; }
-.daily-controls input[type="date"] {
-  background: #334155; color: #e2e8f0; border: 1px solid #475569;
-  border-radius: 6px; padding: 6px 8px; font-size: 13px; font-family: inherit;
-}
-.daily-toggle { display: flex; align-items: center; gap: 4px; font-size: 12px; color: #93c5fd; white-space: nowrap; }
 
 .label {
   width: 4cm; height: 3cm;
@@ -143,37 +154,39 @@ body {
   text-align: center; font-family: 'Courier New', monospace;
   letter-spacing: 1px; flex-shrink: 0; line-height: 1.2; padding-bottom: 2px;
 }
-</style>
-  <!-- auth-migration: 로그인 가드 -->
-  <script src="/shared/config.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/shared/supabase-client.js"></script>
-  <script src="/shared/auth-guard.js"></script>
-</head>
-<body>
 
-<div class="screen-header">
-  <a href="index.html" class="back-link" aria-label="입고관리로 돌아가기">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><polyline points="15 18 9 12 15 6"/></svg>
+@media print {
+  .miu-header, .labels-toolbar, .labels-sub, .not-found-box { display: none !important; }
+  .label-grid { padding: 0; gap: 0; }
+  .label, .label-separator { transform: none !important; margin: 0 !important; }
+}
+</style>
+</head>
+<body class="miu-app">
+
+<header class="miu-header">
+  <a href="index.html" class="miu-header-back" aria-label="입고관리로">
+    <i class="ph-bold ph-caret-left"></i>
   </a>
-  <div>
-    <h1 id="header-title">라벨 로드 중…</h1>
-    <div class="sub" id="header-sub"></div>
+  <div class="miu-header-title">
+    <h1 class="miu-header-h1" id="header-title">라벨 로드 중…</h1>
   </div>
+</header>
+
+<div class="labels-toolbar">
+  <button class="tb-btn tb-btn--team active" data-team="online">온라인</button>
+  <button class="tb-btn tb-btn--team" data-team="logistics">물류</button>
   <div class="daily-controls" id="daily-controls">
     <input type="date" id="daily-date">
     <label class="daily-toggle"><input type="checkbox" id="daily-include-printed"> 출력완료건 포함</label>
     <label class="daily-toggle"><input type="checkbox" id="daily-include-kiosk-exported"> 이미 다운로드한 건 포함</label>
-    <button class="zpl-btn" id="daily-reload-btn">🔄 조회</button>
-    <button class="zpl-btn" id="daily-kiosk-btn">📥 키오스크 업로드 파일</button>
+    <button class="tb-btn" id="daily-reload-btn"><i class="ph-bold ph-arrow-clockwise"></i> 조회</button>
+    <button class="tb-btn" id="daily-kiosk-btn"><i class="ph-bold ph-download-simple"></i> 키오스크 업로드 파일</button>
   </div>
-  <div class="btn-group">
-    <button class="team-btn active" data-team="online">온라인</button>
-    <button class="team-btn" data-team="logistics">물류</button>
-    <button class="zpl-btn" id="zpl-btn">⬇ ZPL 다운로드</button>
-    <button class="print-btn" id="zebra-btn">🦓 Zebra 직접 출력</button>
-  </div>
+  <div class="tb-spacer"></div>
+  <button class="tb-btn tb-btn--primary" id="zebra-btn"><i class="ph-bold ph-printer"></i> Zebra 직접 출력</button>
 </div>
+<div class="labels-sub" id="header-sub"></div>
 
 <div class="not-found-box" id="not-found-box">
   <strong id="not-found-title">⚠ DB에서 찾지 못한 바코드</strong>
@@ -182,7 +195,7 @@ body {
 
 <div class="label-grid" id="label-grid"></div>
 
-<script src="js/api.js"></script>
-<script src="js/labels.js"></script>
+<script src="js/api.js?v=202609210706"></script>
+<script src="js/labels.js?v=202609210706"></script>
 </body>
 </html>

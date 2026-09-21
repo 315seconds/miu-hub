@@ -104,8 +104,8 @@ async function initSetup() {
   if (forceDirect) {
     document.body.classList.add('direct-mode');
     document.getElementById('threshold-group').style.display = 'none';
-    document.querySelector('#step-setup .app-header h1').textContent = '가격수정';
-    document.querySelector('#step-setup .app-title-sub').textContent = '바코드 스캔 → 바로 가격수정';
+    const h1 = document.querySelector('#step-setup .miu-header-h1');
+    if (h1) h1.textContent = '가격 수정';
   }
 
   const sel = document.getElementById('store-select');

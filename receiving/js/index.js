@@ -29,7 +29,6 @@ const DONE_LIMIT = 10;
 async function load() {
   try {
     const today = todayKST();
-    document.getElementById("session-date").value = today;
 
     await cleanupOldPendingSessions(today);
 
@@ -127,41 +126,41 @@ document.getElementById("pending-section").addEventListener("click", async e => 
   load();
 });
 
-async function loadHandlers() {
-  const sel = document.getElementById("created-by");
-  const { data, error } = await sb.from("handlers").select("name").eq("is_active", true).order("name");
-  if (error || !data?.length) {
-    sel.innerHTML = '<option value="">담당자 정보 로드 실패</option>';
-    return;
-  }
-  sel.innerHTML = '<option value="">담당자를 선택하세요</option>' +
-    data.map(h => `<option value="${escapeHtml(h.name)}">${escapeHtml(h.name)}</option>`).join("");
-}
-loadHandlers();
+// 두 버튼(공동물류 / 온라인) → 즉시 세션 생성
+document.querySelectorAll(".new-session-btn").forEach(btn => {
+  btn.addEventListener("click", async () => {
+    clearError();
+    const loc = btn.dataset.loc;                       // 공동물류 or 온라인
+    const prefix = loc === "온라인" ? "U" : "A";        // 레거시 컬럼용
+    const onlineToggle = loc === "온라인";
 
-document.getElementById("toggle-create").addEventListener("click", () => {
-  const f = document.getElementById("create-form");
-  f.style.display = f.style.display === "none" ? "block" : "none";
-});
+    // 오늘 (KST)
+    const nowKst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    const today = nowKst.toISOString().slice(0, 10);
 
-document.getElementById("create-btn").addEventListener("click", async () => {
-  clearError();
-  const created_by = document.getElementById("created-by").value;
-  if (!created_by) { showError("담당자 이름을 선택하세요"); return; }
-  const body = {
-    session_date:   document.getElementById("session-date").value,
-    barcode_prefix: document.getElementById("barcode-prefix").value.trim().toUpperCase() || "C",
-    location:       document.getElementById("location").value,
-    created_by,
-    status:         "pending",
-  };
-  try {
-    const { data, error } = await sb.from("inventory_sessions").insert(body).select().single();
-    if (error) throw error;
-    location.href = "session.html?id=" + encodeURIComponent(data.id);
-  } catch (e) {
-    showError("세션 생성 실패: " + e.message);
-  }
+    // 세션 만드는 사람 = 로그인 사용자 (참고용)
+    const createdBy = window.MIU_PROFILE?.name || window.MIU_USER?.email || null;
+
+    document.querySelectorAll(".new-session-btn").forEach(b => b.disabled = true);
+    btn.querySelector(".ns-label").textContent = "세션 만드는 중…";
+
+    try {
+      const { data, error } = await sb.from("inventory_sessions").insert({
+        session_date:   today,
+        barcode_prefix: prefix,
+        location:       loc,
+        online_toggle:  onlineToggle,
+        created_by:     createdBy,
+        status:         "pending",
+      }).select().single();
+      if (error) throw error;
+      location.href = "session.html?id=" + encodeURIComponent(data.id);
+    } catch (e) {
+      showError("세션 생성 실패: " + e.message);
+      document.querySelectorAll(".new-session-btn").forEach(b => b.disabled = false);
+      btn.querySelector(".ns-label").textContent = (loc === "온라인" ? "온라인" : "공동물류") + " 세션 만들기";
+    }
+  });
 });
 
 load();

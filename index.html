@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="마켓인유">
 
-<link rel="stylesheet" href="/shared/tokens.css">
+<link rel="stylesheet" href="/shared/tokens.css?v=202609210706">
 <!-- Phosphor Icons (Bold 스타일 — 살짝 두꺼운 라인) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
@@ -157,6 +157,8 @@
   .accent-scanner    { --tile-accent: #c99a94; }  /* dusty pink */
   .accent-inventory  { --tile-accent: var(--miu-accent-teal); }  /* teal */
   .accent-calendar   { --tile-accent: var(--miu-primary); }
+  .accent-admin      { --tile-accent: var(--miu-body-strong); }
+  #admin-section { display: none; }
 
   /* ── Callout (전면 코랄) ── */
   .callout {
@@ -370,16 +372,35 @@
   </div>
 </div>
 
+<!-- 섹션 5: 관리 (admin only) -->
+<div class="section" id="admin-section">
+  <div class="section-head">
+    <span class="num">05</span>
+    <span class="label">관리</span>
+    <span class="divider"></span>
+  </div>
+  <div class="tiles">
+    <a href="admin/" class="tile tile-wide accent-admin">
+      <div class="tile-icon"><i class="ph-bold ph-gear-six"></i></div>
+      <div>
+        <div class="tile-title">통합 관리</div>
+        <div class="tile-desc">매장 · 직원 · 거래처</div>
+      </div>
+      <span class="tile-arrow">›</span>
+    </a>
+  </div>
+</div>
+
 <div class="footer">
   <div class="user" id="user-label"></div>
   <button class="logout" id="logout-btn">로그아웃</button>
   <div class="brand-tag">— 마켓인유 관리툴 —</div>
 </div>
 
-<script src="/shared/config.js"></script>
+<script src="/shared/config.js?v=202609210706"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/shared/supabase-client.js"></script>
-<script src="/shared/auth-guard.js"></script>
+<script src="/shared/supabase-client.js?v=202609210706"></script>
+<script src="/shared/auth-guard.js?v=202609210706"></script>
 
 <script>
 const days = ['일','월','화','수','목','금','토'];
@@ -390,6 +411,17 @@ document.getElementById('today-label').textContent =
 if (window.MIU_USER) {
   document.getElementById('user-label').textContent = window.MIU_USER.email;
 }
+
+// admin role이면 관리 섹션 노출 (auth-guard가 profiles 비동기 로드하므로 폴링)
+(async function showAdminIfEligible() {
+  for (let i = 0; i < 30; i++) {
+    if (window.MIU_PROFILE !== undefined) break;
+    await new Promise(r => setTimeout(r, 100));
+  }
+  if (window.MIU_PROFILE?.role === 'admin') {
+    document.getElementById('admin-section').style.display = 'block';
+  }
+})();
 document.getElementById('logout-btn').addEventListener('click', async () => {
   if (!confirm('로그아웃하시겠습니까?')) return;
   await window.sb.auth.signOut();
