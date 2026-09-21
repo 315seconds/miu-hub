@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>장기재고 처리 — 마켓인유</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/shared/tokens.css?v=202609210706">
-<link rel="stylesheet" href="/shared/layout.css?v=202609210706">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202609210710">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202609210710">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="js/supabase-client.js?v=202609210706"></script>
+<script src="js/supabase-client.js?v=202609210710"></script>
 <style>
 /* ── tokens — WDS 기반, 마켓인유 오렌지 오버라이드 ── */
 :root {
@@ -437,17 +437,17 @@ body {
 .input-tab.active { background: var(--surface-card); color: var(--ink); font-weight: 600; }
 </style>
   <!-- auth-migration: 로그인 가드 -->
-  <script src="/shared/config.js?v=202609210706"></script>
+  <script src="/miu-hub/shared/config.js?v=202609210710"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/shared/supabase-client.js?v=202609210706"></script>
-  <script src="/shared/auth-guard.js?v=202609210706"></script>
+  <script src="/miu-hub/shared/supabase-client.js?v=202609210710"></script>
+  <script src="/miu-hub/shared/auth-guard.js?v=202609210710"></script>
 </head>
 <body>
 
 <!-- STEP 1: 설정 -->
 <div id="step-setup">
   <header class="miu-header">
-    <a href="/" class="miu-header-back" aria-label="허브로">
+    <a href="/miu-hub/" class="miu-header-back" aria-label="허브로">
       <i class="ph-bold ph-caret-left"></i>
     </a>
     <div class="miu-header-title">      <h1 class="miu-header-h1">장기재고 처리</h1>
@@ -535,6 +535,6 @@ body {
 <!-- STEP 4B: 이동복사 -->
 <div id="step-move" style="display:none" class="content"></div>
 
-<script src="js/app.js?v=202609210706"></script>
+<script src="js/app.js?v=202609210710"></script>
 </body>
 </html>

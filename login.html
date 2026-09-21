@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>로그인 · 마켓인유</title>
 
-<link rel="stylesheet" href="/shared/tokens.css?v=202609210706">
-<link rel="stylesheet" href="/shared/layout.css?v=202609210706">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202609210710">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202609210710">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
 <style>
@@ -206,9 +206,9 @@
   <div class="login-footer">— 마켓인유 —</div>
 </div>
 
-<script src="/shared/config.js?v=202609210706"></script>
+<script src="/miu-hub/shared/config.js?v=202609210710"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/shared/supabase-client.js?v=202609210706"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202609210710"></script>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -225,7 +225,7 @@ const clearMsg = () => { msg.className = 'msg'; msg.textContent = ''; };
   if (data.session) {
     const params = new URLSearchParams(window.location.search);
     const returnTo = params.get('returnTo');
-    window.location.replace(returnTo || '/');
+    window.location.replace(returnTo || '/miu-hub/');
   }
 })();
 

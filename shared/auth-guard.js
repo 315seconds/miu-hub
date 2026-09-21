@@ -7,7 +7,7 @@
 
 (async function () {
   const cfg = window.MIU_CONFIG || {};
-  const publicPaths = cfg.PUBLIC_PATHS || ["/login.html"];
+  const publicPaths = cfg.PUBLIC_PATHS || ["/miu-hub/login.html"];
   const path = window.location.pathname;
 
   // 로그인 페이지 자체는 가드 스킵
@@ -25,7 +25,7 @@
 
   if (!data.session) {
     // 어디로 돌아올지 기억해두기. searchParams.set이 자동 인코딩하므로 수동 인코딩 X.
-    const loginUrl = new URL("/login.html", window.location.origin);
+    const loginUrl = new URL("/miu-hub/login.html", window.location.origin);
     loginUrl.searchParams.set("returnTo", window.location.href);
     window.location.replace(loginUrl.toString());
     return;
@@ -43,7 +43,7 @@
   // 로그아웃 이벤트 리스너 (다른 탭에서 로그아웃 시 이 탭도 반영)
   window.sb.auth.onAuthStateChange((event, session) => {
     if (event === "SIGNED_OUT" || !session) {
-      window.location.replace("/login.html");
+      window.location.replace("/miu-hub/login.html");
     }
   });
 })();
