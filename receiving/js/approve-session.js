@@ -4,6 +4,7 @@ let SESS = null;
 let HANGERS = [];
 let TOTAL = 0;
 let HANDLERS = [];
+let PREVIEW_START = null;  // pending 세션의 예상 시작 바코드 (peek_next_barcode)
 
 async function load() {
   if (!SESSION_ID) { showError("세션 ID 없음"); return; }
@@ -21,6 +22,14 @@ async function load() {
     TOTAL    = HANGERS.reduce((s, h) => s + (h.inventory_items || []).length, 0);
     HANDLERS = handlers || [];
 
+    // pending이면 예상 시작 바코드 미리보기 (시퀀스 소진 안 함)
+    if (sess.status === "pending" && TOTAL > 0) {
+      try {
+        const { data: nextBc } = await sb.rpc("peek_next_barcode", { p_location: sess.location });
+        PREVIEW_START = nextBc || null;
+      } catch(e) { PREVIEW_START = null; }
+    }
+
     render();
   } catch (e) {
     showError("로드 실패: " + e.message);
@@ -31,6 +40,16 @@ function getBarcodeRange() {
   // 세션 아이템 중 이미 부여된 바코드 최소/최대
   const bcs = HANGERS.flatMap(h => (h.inventory_items || []).map(i => i.barcode)).filter(Boolean).sort();
   return bcs.length ? { first: bcs[0], last: bcs[bcs.length - 1], count: bcs.length } : null;
+}
+
+// 시작 바코드에서 count벌 만큼 이어진 끝 바코드 계산 (예: A26000226, 3 → A26000228)
+function previewEndBarcode(start, count) {
+  if (!start || count < 1) return start;
+  const m = start.match(/^([A-Z]+\d{2,4})(\d+)$/);
+  if (!m) return start;
+  const [, head, tail] = m;
+  const next = String(parseInt(tail, 10) + count - 1).padStart(tail.length, "0");
+  return head + next;
 }
 
 function render() {
@@ -59,11 +78,22 @@ function render() {
     html += `
       <div class="card card-pending" style="margin-bottom:16px">
         <h2 style="color:var(--brand-primary); margin-bottom:12px">바코드 부여 &amp; 승인</h2>
-        <div class="card" style="background:var(--bg-secondary); padding:10px 14px; margin-bottom:14px">
-          <div class="text-sm" style="line-height:1.6">
-            승인 시 아이템별로 자동 바코드가 부여됩니다.<br>
-            <strong>${SESS.location === "온라인" ? "U + 년월(YYMM) + 4자리" : "A + 년(YY) + 6자리"}</strong> 형식으로 다음 순번부터 이어집니다.
-          </div>
+        <div class="card" style="background:var(--bg-secondary); padding:12px 14px; margin-bottom:14px">
+          ${PREVIEW_START ? `
+            <div class="text-xs muted" style="margin-bottom:4px">예상 시작 바코드</div>
+            <div class="mono" style="font-size:20px; font-weight:700; color:var(--brand-primary); letter-spacing:-.5px">
+              ${escapeHtml(PREVIEW_START)}
+            </div>
+            <div class="text-xs muted" style="margin-top:6px">
+              끝: <span class="mono">${escapeHtml(previewEndBarcode(PREVIEW_START, TOTAL))}</span> · 총 ${TOTAL}벌
+            </div>
+            <div class="text-xs muted" style="margin-top:10px; padding-top:10px; border-top:1px solid var(--hairline)">
+              동시 승인이 있으면 실제 번호는 약간 앞뒤로 밀릴 수 있어요.
+            </div>` : `
+            <div class="text-sm" style="line-height:1.6">
+              승인 시 아이템별로 자동 바코드가 부여됩니다.<br>
+              <strong>${SESS.location === "온라인" ? "U + 년월(YYMM) + 4자리" : "A + 년(YY) + 6자리"}</strong> 형식으로 다음 순번부터 이어집니다.
+            </div>`}
         </div>
         <div class="form-group">
           <label>승인자 이름</label>
