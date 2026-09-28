@@ -17,10 +17,21 @@ function firstSheetRows(wb) {
   return sheetToRows(wb.Sheets[name]);
 }
 
-// 숫자 판별 ("3", "3.0", 3 모두 true, "abc" false)
+// 셀 표시문자열 → 숫자 ("69,000" → 69000, "₩69,000" → 69000, null/빈칸 → null)
+// raw:false로 읽으면 금액 셀이 천단위 콤마 문자열로 들어와서 parseFloat가 콤마 앞에서 끊긴다
+function toNum(v) {
+  if (v == null) return null;
+  if (typeof v === 'number') return isNaN(v) ? null : v;
+  const s = String(v).replace(/[,\s\u00a0₩]/g, '');
+  if (s === '') return null;
+  const n = parseFloat(s);
+  return isNaN(n) ? null : n;
+}
+
+// 숫자 판별 ("3", "3.0", 3, "1,234" 모두 true, "abc" false)
 function isNumeric(v) {
   if (v == null) return false;
-  const s = String(v).trim();
+  const s = String(v).trim().replace(/[,\s\u00a0₩]/g, '');
   if (s === '') return false;
   return /^-?\d+(\.\d+)?$/.test(s);
 }
@@ -79,7 +90,7 @@ async function parseReceipt(file, storeLabel) {
       flush();
       const dateStr = String(row[0]).trim().slice(0, 10);
       cur = {
-        전표번호: parseInt(row[slipCol]),
+        전표번호: toNum(row[slipCol]),
         날짜: dateStr,
         지점명: storeLabel,
         결제수단: null,
@@ -100,8 +111,7 @@ async function parseReceipt(file, storeLabel) {
       } else if (row[2] != null && cur.결제수단 == null) {
         // 결제 행: col2=결제수단 텍스트, col4=금액
         cur.결제수단 = String(row[2]).trim();
-        const amt = row[4] != null ? parseFloat(row[4]) : null;
-        cur.결제금액 = (amt != null && !isNaN(amt)) ? amt : null;
+        cur.결제금액 = toNum(row[4]);
       }
     }
   }
@@ -119,11 +129,11 @@ async function parseCard(file) {
     // col2가 숫자 & col10(거래일시)가 있으면 거래 행
     if (isNumeric(row[2]) && row[10] != null) {
       out.push({
-        전표번호: parseInt(row[3]),
+        전표번호: toNum(row[3]),
         날짜: String(row[10]).slice(0, 10),
         거래일시: row[10] instanceof Date ? row[10] : new Date(String(row[10])),
         카드발급사명: row[5] != null ? String(row[5]).trim() : '',
-        승인금액: parseFloat(row[6]) || 0,
+        승인금액: toNum(row[6]) || 0,
       });
     }
   }
@@ -149,8 +159,7 @@ async function parseIngo(file) {
     const barcode = row[6] != null ? String(row[6]).trim() : '';
     if (!barcode || barcode === 'nan') continue;
 
-    const amtRaw = row[4];
-    const amt = amtRaw != null ? parseFloat(amtRaw) : null;
+    const amt = toNum(row[4]);
     let dateVal = row[2];
     if (dateVal && !(dateVal instanceof Date)) {
       const d = new Date(String(dateVal));
@@ -162,7 +171,7 @@ async function parseIngo(file) {
       상품명: row[3] != null ? String(row[3]).trim() : '',
       소분류: row[7] != null ? String(row[7]).trim() : '',
       입고일: dateVal instanceof Date ? dateVal : null,
-      금액: (amt != null && !isNaN(amt)) ? amt : null,
+      금액: amt,
     });
   }
 

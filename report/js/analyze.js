@@ -1,7 +1,7 @@
 // analyze.js — app.py 로직 이관
 // 해외판정 · 온라인판정 · 매출배분 · 시간대집계 · TOP3
 
-const DEFAULT_FOREIGN_KEYWORDS = ['해외', '오렌지스퀘어', '알리페이', '위챗페이'];
+const DEFAULT_FOREIGN_KEYWORDS = ['해외', '오렌지스퀘어', '알리페이', '위챗페이', '중국', '아이오로라'];
 const EXCLUDED_CATEGORIES = new Set(['C', '위탁']);
 
 // ─── 해외 판정 (normalize_tx) ─────────────────────────────────
