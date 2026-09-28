@@ -1,7 +1,10 @@
 let currentFilter = "today";
 const itemCache = {};
 
-function toDateStr(d) { return d.toISOString().slice(0, 10); }
+function toDateStr(d) {
+  const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+  return kst.toISOString().slice(0, 10);
+}
 
 function getRange() {
   const now = new Date(), today = toDateStr(now);
