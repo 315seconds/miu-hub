@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>현금매출 소급 적용 · 마켓인유</title>
+
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202609300005">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202609300005">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+
+<script src="/miu-hub/shared/config.js?v=202609300005"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202609300005"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202609300005"></script>
+
+<style>
+  .patch-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .patch-table th {
+    background: var(--miu-surface-card);
+    color: var(--miu-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--miu-hairline);
+  }
+  .patch-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--miu-hairline-soft);
+    color: var(--miu-body);
+    font-variant-numeric: tabular-nums;
+  }
+  .patch-table tr.has-cash td { background: color-mix(in srgb, var(--miu-success) 5%, transparent); }
+  .patch-table tr.no-cash td { color: var(--miu-muted); }
+  .cash-amt { color: var(--miu-success); font-weight: 700; }
+  .store-badge {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: var(--miu-r-pill);
+    background: var(--miu-surface-card);
+    border: 1px solid var(--miu-hairline);
+    font-size: 11px;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body class="miu-app">
+
+  <header class="miu-header">
+    <a href="index.html" class="miu-header-back">
+      <i class="ph-bold ph-caret-left"></i>
+    </a>
+    <div class="miu-header-title">
+      <h1 class="miu-header-h1">현금매출 소급 적용</h1>
+    </div>
+  </header>
+
+  <div class="miu-app-body" style="padding:20px;padding-bottom:40px">
+
+    <div style="background:var(--miu-surface-card);border-radius:var(--miu-r-lg);padding:16px 18px;margin-bottom:16px">
+      <div style="font-family:var(--miu-serif);font-size:16px;font-weight:500;color:var(--miu-ink);margin-bottom:6px">
+        3월 이후 리포트에 현금매출 소급 적용
+      </div>
+      <div style="font-size:12px;color:var(--miu-muted);line-height:1.6">
+        구글 시트에서 지점·기간별 현금/계좌 매출을 합산해<br>
+        <code>cash_sales</code>와 <code>total_sales</code>를 업데이트합니다.<br>
+        <strong style="color:var(--miu-ink)">2월 데이터 미완성으로 start_date ≥ 2026-03-01 리포트만 대상.</strong>
+      </div>
+    </div>
+
+    <button class="miu-btn miu-btn-secondary" id="preview-btn" onclick="runPreview()" style="margin-bottom:12px">
+      <i class="ph-bold ph-magnifying-glass"></i> 미리보기 (시트 조회)
+    </button>
+
+    <div id="preview-area" style="display:none">
+      <div style="overflow-x:auto;margin-bottom:14px;border-radius:var(--miu-r-md);border:1px solid var(--miu-hairline)">
+        <table class="patch-table" id="preview-table">
+          <thead>
+            <tr>
+              <th>지점</th>
+              <th>기간</th>
+              <th>현 total_sales</th>
+              <th>현금매출 (시트)</th>
+              <th>새 total_sales</th>
+            </tr>
+          </thead>
+          <tbody id="preview-body"></tbody>
+        </table>
+      </div>
+      <div id="preview-summary" style="font-size:12px;color:var(--miu-muted);margin-bottom:14px"></div>
+      <button class="miu-btn miu-btn-primary" id="apply-btn" onclick="runApply()" style="display:none">
+        <i class="ph-bold ph-database"></i> 소급 적용
+      </button>
+    </div>
+
+    <div id="result-area" style="display:none">
+      <div id="result-msg" style="font-size:13px;color:var(--miu-body);margin-bottom:14px"></div>
+      <a href="index.html" class="miu-btn">
+        <i class="ph-bold ph-check"></i> 리포트 목록으로
+      </a>
+    </div>
+
+    <div id="err-msg" style="display:none;font-size:13px;color:var(--miu-error);padding:10px 14px;background:color-mix(in srgb,var(--miu-error) 8%,transparent);border-radius:var(--miu-r-md);margin-top:10px"></div>
+
+  </div>
+
+<script>
+const CASH_SHEET_ID = '1xCu92u6xZGibSUeqVNLTb9ZH42ctnW1keStATKtdO7w';
+const CUT_DATE = '2026-03-01';  // 이 날짜 이전 start_date 는 제외
+
+const fmtW = (n) => n == null ? '—' : new Intl.NumberFormat('ko-KR').format(Math.round(n)) + '원';
+
+let previewData = [];  // [{report, cashSales}]
+
+// ── 구글 시트 전체 로드 (한 번만) ──────────────────────────────
+async function loadSheetRows() {
+  const url = `https://docs.google.com/spreadsheets/d/${CASH_SHEET_ID}/gviz/tq?tqx=out:json&sheet=현금매출`;
+  const res = await fetch(url, { credentials: 'include' });
+  if (!res.ok) throw new Error(`시트 불러오기 실패 (${res.status})`);
+  const text = await res.text();
+  const json = JSON.parse(text.replace(/^[^(]+\(/, '').replace(/\)\s*;?\s*$/, ''));
+  if (json.status === 'error') throw new Error(json.errors?.[0]?.detailed_message || '시트 접근 오류');
+  return json.table?.rows || [];
+}
+
+function calcCash(rows, storeLabel, startDate, endDate) {
+  const start = new Date(startDate + 'T00:00:00');
+  const end   = new Date(endDate   + 'T23:59:59');
+  let total = 0, count = 0;
+  for (const row of rows) {
+    const cells = row.c || [];
+    if (!cells[0]?.v) continue;
+
+    // 날짜 파싱
+    let rowDate;
+    const dv = cells[0].v;
+    if (typeof dv === 'string' && dv.startsWith('Date(')) {
+      const m = dv.match(/Date\((\d+),(\d+),(\d+)\)/);
+      if (m) rowDate = new Date(+m[1], +m[2], +m[3]);
+    } else {
+      rowDate = new Date(String(dv));
+    }
+    if (!rowDate || isNaN(rowDate)) continue;
+    if (rowDate < start || rowDate > end) continue;
+
+    if (String(cells[1]?.v || '').trim() !== storeLabel) continue;
+
+    let price = cells[4]?.v;
+    if (typeof price === 'string') price = Number(price.replace(/,/g, ''));
+    else price = Number(price || 0);
+    if (isNaN(price) || price <= 0) continue;
+
+    total += price;
+    count++;
+  }
+  return { total, count };
+}
+
+async function runPreview() {
+  const btn = document.getElementById('preview-btn');
+  const errEl = document.getElementById('err-msg');
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.innerHTML = '<div class="miu-spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:6px"></div> 조회 중…';
+
+  try {
+    // 1. Supabase: start_date >= CUT_DATE 이고 cash_sales = 0 인 리포트
+    const { data: reports, error } = await sb
+      .from('sales_reports')
+      .select('id, store, report_type, start_date, end_date, total_sales, daily_avg_sales, cash_sales')
+      .gte('start_date', CUT_DATE)
+      .eq('cash_sales', 0)
+      .order('start_date');
+    if (error) throw new Error('리포트 조회 실패: ' + error.message);
+    if (!reports || reports.length === 0) throw new Error('소급 대상 리포트가 없습니다 (이미 적용됐거나 해당 기간 리포트 없음).');
+
+    // 2. 시트 전체 로드
+    const rows = await loadSheetRows();
+
+    // 3. 각 리포트별 현금매출 계산
+    previewData = reports.map(r => {
+      const { total, count } = calcCash(rows, r.store, r.start_date, r.end_date);
+      return { report: r, cashSales: total, cashCount: count };
+    });
+
+    // 4. 테이블 렌더
+    const tbody = document.getElementById('preview-body');
+    tbody.innerHTML = previewData.map(({ report: r, cashSales, cashCount }) => {
+      const hasCash = cashSales > 0;
+      const newTotal = (r.total_sales || 0) + cashSales;
+      return `
+        <tr class="${hasCash ? 'has-cash' : 'no-cash'}">
+          <td><span class="store-badge">${esc(r.store)}</span></td>
+          <td>${r.start_date.slice(5)} ~ ${r.end_date.slice(5)}</td>
+          <td>${fmtW(r.total_sales)}</td>
+          <td>${hasCash ? `<span class="cash-amt">+${fmtW(cashSales)}</span><span style="font-size:10px;color:var(--miu-muted);margin-left:4px">(${cashCount}건)</span>` : '<span style="color:var(--miu-muted-soft)">없음</span>'}</td>
+          <td>${hasCash ? `<strong>${fmtW(newTotal)}</strong>` : '—'}</td>
+        </tr>`;
+    }).join('');
+
+    const hasCashCount = previewData.filter(d => d.cashSales > 0).length;
+    const totalCash = previewData.reduce((s, d) => s + d.cashSales, 0);
+    document.getElementById('preview-summary').textContent =
+      `총 ${reports.length}개 리포트 중 ${hasCashCount}개에 현금매출 발견 · 합계 ${fmtW(totalCash)}`;
+
+    document.getElementById('preview-area').style.display = 'block';
+    document.getElementById('apply-btn').style.display = hasCashCount > 0 ? 'inline-flex' : 'none';
+
+  } catch (e) {
+    errEl.style.display = 'block';
+    errEl.textContent = e.message || String(e);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ph-bold ph-magnifying-glass"></i> 미리보기 (시트 조회)';
+  }
+}
+
+async function runApply() {
+  const btn = document.getElementById('apply-btn');
+  const errEl = document.getElementById('err-msg');
+  errEl.style.display = 'none';
+  btn.disabled = true;
+  btn.innerHTML = '<div class="miu-spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:6px"></div> 적용 중…';
+
+  const targets = previewData.filter(d => d.cashSales > 0);
+  let done = 0, failed = 0;
+
+  for (const { report: r, cashSales } of targets) {
+    const days = Math.max(1, Math.floor((new Date(r.end_date) - new Date(r.start_date)) / 86400000) + 1);
+    const newTotal = (r.total_sales || 0) + cashSales;
+    const newAvg = Math.round(newTotal / days);
+
+    const { error } = await sb
+      .from('sales_reports')
+      .update({ cash_sales: cashSales, total_sales: newTotal, daily_avg_sales: newAvg })
+      .eq('id', r.id);
+
+    if (error) { failed++; console.error(r.store, r.start_date, error.message); }
+    else done++;
+  }
+
+  document.getElementById('preview-area').style.display = 'none';
+  const resultArea = document.getElementById('result-area');
+  const resultMsg  = document.getElementById('result-msg');
+  resultArea.style.display = 'block';
+  resultMsg.innerHTML = failed === 0
+    ? `<i class="ph-bold ph-check-circle" style="color:var(--miu-success);margin-right:6px"></i>${done}개 리포트에 현금매출 소급 적용 완료`
+    : `<i class="ph-bold ph-warning-circle" style="color:var(--miu-error);margin-right:6px"></i>${done}개 성공 · ${failed}개 실패 (콘솔 확인)`;
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+</script>
+</body>
+</html>
