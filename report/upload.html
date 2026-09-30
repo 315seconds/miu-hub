@@ -5,20 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>새 리포트 · 마켓인유</title>
 
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202609210710">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202609210710">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202609300001">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202609300001">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
-<script src="/miu-hub/shared/config.js?v=202609210710"></script>
+<script src="/miu-hub/shared/config.js?v=202609300001"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202609210710"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202609210710"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202609300001"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202609300001"></script>
 <!-- Phase 3: xlsx 파싱 + 집계 + 저장 -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="js/xlsx-parse.js?v=202609280930"></script>
-<script src="js/join.js?v=202609210710"></script>
-<script src="js/analyze.js?v=202609280930"></script>
-<script src="js/save-report.js?v=202609210710"></script>
+<script src="js/xlsx-parse.js?v=202609300001"></script>
+<script src="js/join.js?v=202609300001"></script>
+<script src="js/analyze.js?v=202609300001"></script>
+<script src="js/save-report.js?v=202609300001"></script>
 
 <style>
   .type-choice {
@@ -345,10 +345,27 @@
         <div id="kiosk-rows"></div>
       </div>
 
-      <!-- 3-B. 입고 파일 -->
+      <!-- 3-B. 현금매출 (선택) -->
       <div class="upload-card">
         <div class="upload-card-head">
-          <span class="upload-num" id="num-ingo">B</span>
+          <span class="upload-num" id="num-cash">B</span>
+          <span class="upload-card-title">현금매출 <span style="font-weight:400;font-size:12px;color:var(--miu-muted)">(선택)</span></span>
+        </div>
+        <div class="upload-card-hint">해당 기간·지점의 현금/계좌 매출을 구글 시트에서 자동 합산합니다</div>
+        <div style="margin-left:34px;display:flex;flex-direction:column;gap:8px">
+          <button type="button" class="miu-btn miu-btn-secondary" id="fetch-cash-btn" style="font-size:13px;height:36px">
+            <i class="ph-bold ph-table"></i> 시트에서 불러오기
+          </button>
+          <div id="cash-fetch-msg" style="font-size:12px;color:var(--miu-muted);display:none"></div>
+          <input type="number" id="cash-input" placeholder="직접 입력도 가능 (원)" min="0" step="1000"
+            style="height:40px;padding:0 12px;background:var(--miu-canvas);border:1px solid var(--miu-hairline);border-radius:var(--miu-r-md);font-size:14px;color:var(--miu-ink);font-family:var(--miu-sans)">
+        </div>
+      </div>
+
+      <!-- 3-C. 입고 파일 -->
+      <div class="upload-card">
+        <div class="upload-card-head">
+          <span class="upload-num" id="num-ingo">C</span>
           <span class="upload-card-title">입고 파일</span>
         </div>
         <div class="upload-card-hint">내부 raw 데이터 xlsx (입고 시트 포함)</div>
@@ -402,6 +419,51 @@ let kiosks = [];      // [{receipt: File|null, card: File|null}, ...]
 let ingoMain = null;
 let ingoPrev = null;
 let ingoMode = 'single';
+
+const CASH_SHEET_ID = '1xCu92u6xZGibSUeqVNLTb9ZH42ctnW1keStATKtdO7w';
+
+async function fetchCashSalesFromSheet(storeLabel, startDate, endDate) {
+  const url = `https://docs.google.com/spreadsheets/d/${CASH_SHEET_ID}/gviz/tq?tqx=out:json&sheet=현금매출`;
+  const res = await fetch(url, { credentials: 'include' });
+  if (!res.ok) throw new Error(`시트 불러오기 실패 (${res.status})`);
+  const text = await res.text();
+  const json = JSON.parse(text.replace(/^[^(]+\(/, '').replace(/\)\s*;?\s*$/, ''));
+  if (json.status === 'error') throw new Error(json.errors?.[0]?.detailed_message || json.errors?.[0]?.message || '시트 접근 오류');
+
+  const rows = json.table?.rows || [];
+  const start = new Date(startDate + 'T00:00:00');
+  const end = new Date(endDate + 'T23:59:59');
+
+  let total = 0, count = 0;
+  for (const row of rows) {
+    const cells = row.c || [];
+    if (!cells[0]?.v) continue;
+
+    // 날짜 파싱: gviz Date(year,month0,day) 또는 "YYYY-MM-DD" 문자열
+    let rowDate;
+    const dv = cells[0].v;
+    if (typeof dv === 'string' && dv.startsWith('Date(')) {
+      const m = dv.match(/Date\((\d+),(\d+),(\d+)\)/);
+      if (m) rowDate = new Date(+m[1], +m[2], +m[3]);
+    } else {
+      rowDate = new Date(String(dv));
+    }
+    if (!rowDate || isNaN(rowDate)) continue;
+    if (rowDate < start || rowDate > end) continue;
+
+    const rowStore = String(cells[1]?.v || '').trim();
+    if (rowStore !== storeLabel) continue;
+
+    let price = cells[4]?.v;
+    if (typeof price === 'string') price = Number(price.replace(/,/g, ''));
+    else price = Number(price || 0);
+    if (isNaN(price) || price <= 0) continue;
+
+    total += price;
+    count++;
+  }
+  return { total, count };
+}
 
 const $ = (id) => document.getElementById(id);
 
@@ -542,6 +604,45 @@ function updateFileLabel(labelId, file, defaultText) {
 
 $('kiosk-count').addEventListener('change', renderKiosks);
 
+// 현금매출 불러오기
+$('fetch-cash-btn').addEventListener('click', async () => {
+  const btn = $('fetch-cash-btn');
+  const msg = $('cash-fetch-msg');
+  const storeLabel = selectedType === 'popup' ? $('store-input').value.trim() : '성수';
+  const startDate = $('start-date').value;
+  const endDate = $('end-date').value;
+
+  if (!storeLabel || !startDate || !endDate) {
+    msg.style.cssText = 'display:block;font-size:12px;color:var(--miu-error)';
+    msg.textContent = '먼저 지점명과 기간을 입력해주세요.';
+    return;
+  }
+
+  const orig = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<div class="miu-spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:6px"></div> 불러오는 중…';
+  msg.style.cssText = 'display:none';
+
+  try {
+    const { total, count } = await fetchCashSalesFromSheet(storeLabel, startDate, endDate);
+    $('cash-input').value = total;
+    msg.style.cssText = 'display:block;font-size:12px;color:var(--miu-muted)';
+    msg.textContent = count > 0 ? `${count}건 · ${total.toLocaleString()}원 합산됨` : `해당 기간 "${storeLabel}" 현금매출 없음`;
+    if (total > 0) $('num-cash').classList.add('done');
+  } catch (e) {
+    msg.style.cssText = 'display:block;font-size:12px;color:var(--miu-error)';
+    msg.textContent = e.message || '불러오기 실패';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = orig;
+  }
+});
+
+$('cash-input').addEventListener('input', () => {
+  const v = parseInt($('cash-input').value || '0', 10);
+  $('num-cash').classList.toggle('done', v > 0);
+});
+
 // 입고 파일 모드
 document.querySelectorAll('input[name="ingo-mode"]').forEach(radio => {
   radio.addEventListener('change', () => {
@@ -639,6 +740,7 @@ $('generate-btn').addEventListener('click', async () => {
 
     // 4. 집계 (해외판정·시간대·TOP3)
     setProgress('집계 · 분석 중...');
+    const cashSales = parseInt($('cash-input').value || '0', 10) || 0;
     const reportData = analyzeReport({
       transactions,
       ingoItems,
@@ -648,6 +750,7 @@ $('generate-btn').addEventListener('click', async () => {
       foreignKeywords: DEFAULT_FOREIGN_KEYWORDS,
       location,
       reportType: selectedType,
+      cashSales,
     });
 
     // 5. Supabase 저장

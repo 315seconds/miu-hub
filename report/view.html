@@ -5,15 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>매출 리포트 · 마켓인유</title>
 
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202609210710">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202609210710">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202609300001">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202609300001">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
-<script src="/miu-hub/shared/config.js?v=202609210710"></script>
+<script src="/miu-hub/shared/config.js?v=202609300001"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202609210710"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202609210710"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202609300001"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202609300001"></script>
 
 <style>
   :root {
@@ -419,6 +419,11 @@ function render(r) {
         <div class="hkc-label">거래건수</div>
         <div class="hkc-value">${(r.total_cnt||0).toLocaleString()}건</div>
       </div>
+      ${(r.cash_sales > 0) ? `
+      <div class="hero-kpi-cell">
+        <div class="hkc-label">현금매출</div>
+        <div class="hkc-value">${fmtWon(r.cash_sales)}</div>
+      </div>` : ''}
       <div class="hero-kpi-cell">
         <div class="hkc-label">국내 비중</div>
         <div class="hkc-value dom">${pct(r.dom_share)}</div>
@@ -454,7 +459,7 @@ function render(r) {
         </li>
         <li class="summary-item">
           <div class="summary-icon"><i class="ph-bold ph-globe-hemisphere-east"></i></div>
-          <span>해외 <strong>${pct(r.foreign_share)}</strong> · 국내 <strong>${pct(r.dom_share)}</strong></span>
+          <span>해외 <strong>${pct(r.foreign_share)}</strong> · 국내 <strong>${pct(r.dom_share)}</strong>${r.cash_sales > 0 ? ` · 현금 <strong>${fmtWon(r.cash_sales)}</strong>` : ''}</span>
         </li>
         <li class="summary-item">
           <div class="summary-icon"><i class="ph-bold ph-receipt"></i></div>

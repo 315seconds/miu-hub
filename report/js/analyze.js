@@ -164,6 +164,7 @@ function analyzeReport({
   foreignKeywords,
   location,
   reportType,
+  cashSales = 0,
 }) {
   const isForeign = makeForeignDetector(foreignKeywords);
   const priceMap = buildPriceMap(ingoItems);
@@ -181,16 +182,17 @@ function analyzeReport({
     throw new Error('선택한 기간에 해당하는 거래가 없어요.');
   }
 
-  // 매출 KPI
-  const total_sales = filteredTx.reduce((s, t) => s + Number(t.승인금액 || 0), 0);
+  // 매출 KPI — 국내/해외 비중은 카드매출 기준, total_sales에는 현금 포함
+  const card_sales = filteredTx.reduce((s, t) => s + Number(t.승인금액 || 0), 0);
+  const total_sales = card_sales + (cashSales || 0);
   const total_cnt = filteredTx.length;
   const for_txs = filteredTx.filter(t => isForeign(t.카드발급사명));
   const for_sales = for_txs.reduce((s, t) => s + Number(t.승인금액 || 0), 0);
   const for_cnt = for_txs.length;
-  const dom_sales = total_sales - for_sales;
+  const dom_sales = card_sales - for_sales;
   const dom_cnt = total_cnt - for_cnt;
-  const for_share = total_sales > 0 ? for_sales / total_sales : 0;
-  const dom_share = total_sales > 0 ? dom_sales / total_sales : 0;
+  const for_share = card_sales > 0 ? for_sales / card_sales : 0;
+  const dom_share = card_sales > 0 ? dom_sales / card_sales : 0;
 
   // 시간대
   const hourly = buildHourly(filteredTx, isForeign);
@@ -229,6 +231,7 @@ function analyzeReport({
 
     // KPI
     total_sales: Math.round(total_sales),
+    cash_sales: Math.round(cashSales || 0),
     total_cnt,
     daily_avg_sales,
     dom_sales: Math.round(dom_sales),
