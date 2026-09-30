@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>현금매출 소급 적용 · 마켓인유</title>
 
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202609300005">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202609300005">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202609300010">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202609300010">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
-<script src="/miu-hub/shared/config.js?v=202609300005"></script>
+<script src="/miu-hub/shared/config.js?v=202609300010"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202609300005"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202609300005"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202609300010"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202609300010"></script>
 
 <style>
   .patch-table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -118,7 +118,7 @@ let previewData = [];  // [{report, cashSales}]
 // ── 구글 시트 전체 로드 (한 번만) ──────────────────────────────
 async function loadSheetRows() {
   const url = `https://docs.google.com/spreadsheets/d/${CASH_SHEET_ID}/gviz/tq?tqx=out:json&sheet=현금매출`;
-  const res = await fetch(url, { credentials: 'include' });
+  const res = await fetch(url, { credentials: 'omit' });
   if (!res.ok) throw new Error(`시트 불러오기 실패 (${res.status})`);
   const text = await res.text();
   const json = JSON.parse(text.replace(/^[^(]+\(/, '').replace(/\)\s*;?\s*$/, ''));

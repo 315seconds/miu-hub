@@ -5,20 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>새 리포트 · 마켓인유</title>
 
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202609300001">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202609300001">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202609300010">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202609300010">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
-<script src="/miu-hub/shared/config.js?v=202609300001"></script>
+<script src="/miu-hub/shared/config.js?v=202609300010"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202609300001"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202609300001"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202609300010"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202609300010"></script>
 <!-- Phase 3: xlsx 파싱 + 집계 + 저장 -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="js/xlsx-parse.js?v=202609300001"></script>
-<script src="js/join.js?v=202609300001"></script>
-<script src="js/analyze.js?v=202609300001"></script>
-<script src="js/save-report.js?v=202609300001"></script>
+<script src="js/xlsx-parse.js?v=202609300010"></script>
+<script src="js/join.js?v=202609300010"></script>
+<script src="js/analyze.js?v=202609300010"></script>
+<script src="js/save-report.js?v=202609300010"></script>
 
 <style>
   .type-choice {
@@ -424,7 +424,7 @@ const CASH_SHEET_ID = '1xCu92u6xZGibSUeqVNLTb9ZH42ctnW1keStATKtdO7w';
 
 async function fetchCashSalesFromSheet(storeLabel, startDate, endDate) {
   const url = `https://docs.google.com/spreadsheets/d/${CASH_SHEET_ID}/gviz/tq?tqx=out:json&sheet=현금매출`;
-  const res = await fetch(url, { credentials: 'include' });
+  const res = await fetch(url, { credentials: 'omit' });
   if (!res.ok) throw new Error(`시트 불러오기 실패 (${res.status})`);
   const text = await res.text();
   const json = JSON.parse(text.replace(/^[^(]+\(/, '').replace(/\)\s*;?\s*$/, ''));
