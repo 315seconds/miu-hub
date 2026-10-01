@@ -1001,9 +1001,6 @@ function thisMonth() {
 }
 function fmt(n)       { return (n||0).toLocaleString('ko-KR'); }
 function fmtMoney(n)  {
-  if (!n) return '₩0';
-  if (n >= 100000000) return `₩${(n/100000000).toFixed(1)}억`;
-  if (n >= 10000)     return `₩${Math.round(n/10000)}만`;
   return `₩${fmt(n)}`;
 }
 function fmtShort(n) {
