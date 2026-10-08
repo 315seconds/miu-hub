@@ -581,8 +581,11 @@ const FILTER_CATEGORIES = [
   "자켓", "바람막이", "플리스", "PK셔츠", "셔츠", "스웻셔츠", "반팔티", "긴팔티", "나시티", "스웨터",
   "하와이안셔츠", "타이다이", "원피스", "스커트", "반바지", "긴바지", "트랙팬츠", "블라우스",
   "신발", "가방", "패션잡화", "넥타이", "벨트", "패브릭", "셋업", "모자", "C",
-  "PK", "ETC", "위탁", "민소매", "키즈",
+  "ETC", "위탁", "민소매", "키즈",
 ];
+
+// 앱 도입 전엔 'PK', 이후엔 'PK셔츠'로 입고 → 같은 카테고리로 묶어서 조회
+const CATEGORY_ALIASES = { 'PK셔츠': ['PK셔츠', 'PK'] };
 
 let filterOptionsLoaded = false;
 const FILTER_PAGE_SIZE = 50;
@@ -640,9 +643,11 @@ async function runFilterSearch(append = false) {
       .range(filterOffset, filterOffset + FILTER_PAGE_SIZE - 1);
     // 온라인(2층 입고)분은 카테고리 앞에 '온'이 붙음 → 기본 카테고리로 고르면 둘 다 매칭 (ilike: 대소문자 무시)
     if (category) {
-      if (channel === 'online')       q = q.ilike('category', '온' + category);
-      else if (channel === 'offline') q = q.ilike('category', category);
-      else                            q = q.or(`category.ilike.${category},category.ilike.온${category}`);
+      const names = CATEGORY_ALIASES[category] || [category];
+      const pats  = channel === 'online'  ? names.map(n => '온' + n)
+                  : channel === 'offline' ? names
+                  : [...names, ...names.map(n => '온' + n)];
+      q = q.or(pats.map(p => `category.ilike.${p}`).join(','));
     } else if (channel === 'online')  q = q.ilike('category', '온%');
     else if (channel === 'offline')   q = q.or('category.is.null,category.not.ilike.온%');
     if (brand)    q = q.ilike('brand',  `%${brand}%`);
