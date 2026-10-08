@@ -638,7 +638,7 @@ async function runFilterSearch(append = false) {
       .select('barcode, price, brand, photo_url, color, pattern, category, location, status')
       .order('created_at', { ascending: false })
       .range(filterOffset, filterOffset + FILTER_PAGE_SIZE - 1);
-    // 온라인 입고분은 카테고리 앞에 '온'이 붙음 → 기본 카테고리로 고르면 둘 다 매칭 (ilike: 대소문자 무시)
+    // 온라인(2층 입고)분은 카테고리 앞에 '온'이 붙음 → 기본 카테고리로 고르면 둘 다 매칭 (ilike: 대소문자 무시)
     if (category) {
       if (channel === 'online')       q = q.ilike('category', '온' + category);
       else if (channel === 'offline') q = q.ilike('category', category);
