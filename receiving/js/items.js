@@ -555,6 +555,7 @@ function renderItemCard(item, clickable = false) {
       <span class="item-status status-${escapeHtml(item.status || 'active')}">
         ${STATUS_LABEL[item.status] || item.status || '보유중'}
       </span>
+      ${(item.category || '').startsWith('온') ? '<span class="item-status" style="margin-left:6px">온라인</span>' : ''}
       ${clickable ? '<span class="card-chevron" style="margin-left:auto; color:#475569; font-size:18px">›</span>' : ''}
     </div>
     <div class="flex" style="gap:12px; align-items:flex-start">
@@ -580,6 +581,7 @@ const FILTER_CATEGORIES = [
   "자켓", "바람막이", "플리스", "PK셔츠", "셔츠", "스웻셔츠", "반팔티", "긴팔티", "나시티", "스웨터",
   "하와이안셔츠", "타이다이", "원피스", "스커트", "반바지", "긴바지", "트랙팬츠", "블라우스",
   "신발", "가방", "패션잡화", "넥타이", "벨트", "패브릭", "셋업", "모자", "C",
+  "PK", "ETC", "위탁", "민소매", "키즈",
 ];
 
 let filterOptionsLoaded = false;
@@ -630,12 +632,19 @@ async function runFilterSearch(append = false) {
   const color    = document.getElementById('f-color').value;
   const pattern  = document.getElementById('f-pattern').value;
   const status   = document.getElementById('f-status').value;
+  const channel  = document.getElementById('f-channel').value;
   try {
     let q = sb.from('inventory_items')
       .select('barcode, price, brand, photo_url, color, pattern, category, location, status')
       .order('created_at', { ascending: false })
       .range(filterOffset, filterOffset + FILTER_PAGE_SIZE - 1);
-    if (category) q = q.eq('category', category);
+    // 온라인 입고분은 카테고리 앞에 '온'이 붙음 → 기본 카테고리로 고르면 둘 다 매칭 (ilike: 대소문자 무시)
+    if (category) {
+      if (channel === 'online')       q = q.ilike('category', '온' + category);
+      else if (channel === 'offline') q = q.ilike('category', category);
+      else                            q = q.or(`category.ilike.${category},category.ilike.온${category}`);
+    } else if (channel === 'online')  q = q.ilike('category', '온%');
+    else if (channel === 'offline')   q = q.or('category.is.null,category.not.ilike.온%');
     if (brand)    q = q.ilike('brand',  `%${brand}%`);
     if (location) q = q.eq('location', location);
     if (color)    q = q.eq('color',    color);
