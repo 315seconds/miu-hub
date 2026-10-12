@@ -193,6 +193,7 @@ async function fetchItemData(bc) {
       old_price: p.old_price,
       new_price: p.new_price,
       by:        p.changed_by,
+      note:      p.note,
     });
   });
   if (sold) {
@@ -280,7 +281,7 @@ function renderSingle(data) {
         <div class="tl-item"><span class="tl-icon">💰</span>
           <div class="tl-body">
             <div class="tl-main">가격수정 — ₩${ev.old_price ? ev.old_price.toLocaleString() : '?'} → ₩${ev.new_price ? ev.new_price.toLocaleString() : '?'}</div>
-            <div class="tl-sub">${ev.by ? escapeHtml(ev.by) : ''}</div>
+            <div class="tl-sub">${[ev.by, ev.note].filter(Boolean).map(escapeHtml).join(' · ')}</div>
           </div><span class="tl-date">${(ev.ts || '').slice(0, 10)}</span>
         </div>`;
       if (ev.type === 'sold') return `
@@ -514,7 +515,7 @@ async function toggleTimeline(card) {
           <div class="tl-item"><span class="tl-icon">💰</span>
             <div class="tl-body">
               <div class="tl-main">가격수정 — ₩${ev.old_price ? ev.old_price.toLocaleString() : '?'} → ₩${ev.new_price ? ev.new_price.toLocaleString() : '?'}</div>
-              <div class="tl-sub">${ev.by ? escapeHtml(ev.by) : ''}</div>
+              <div class="tl-sub">${[ev.by, ev.note].filter(Boolean).map(escapeHtml).join(' · ')}</div>
             </div><span class="tl-date">${(ev.ts || '').slice(0, 10)}</span>
           </div>`;
         if (ev.type === 'sold') return `
