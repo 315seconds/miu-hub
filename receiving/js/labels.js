@@ -373,7 +373,10 @@ async function buildItemsFromDaily(dateStr, includePrinted) {
 
 async function markHangersPrinted(hangerIds) {
   if (!hangerIds || !hangerIds.length) return;
-  await sb.from("inventory_hangers").update({ printed_at: new Date().toISOString() }).in("id", hangerIds);
+  const { error } = await sb.from("inventory_hangers").update({ printed_at: new Date().toISOString() }).in("id", hangerIds);
+  if (error) {
+    await appAlert("⚠ 출력은 완료됐지만 '출력완료' 기록에 실패했습니다.\n오늘 입고 일괄출력에 미출력으로 남을 수 있으니 중복 출력에 주의하세요.\n\n" + error.message);
+  }
 }
 
 async function markHangersKioskExported(hangerIds) {
