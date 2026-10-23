@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>주간 레터 — 마켓인유</title>
+<meta name="theme-color" content="#faf9f5">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202609300010">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202609300010">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<style>
+:root {
+  --fast-bg: #FFE8DD;  --fast-fg: #a9583e;
+  --mid-bg:  #E8F5EC;  --mid-fg:  #2e6b3a;
+  --slow-bg: var(--miu-surface-soft);  --slow-fg: var(--miu-muted);
+}
+body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); }
+.wrap { max-width: 560px; margin: 0 auto; padding-bottom: 48px; }
+
+/* 주차 칩 */
+.weeks { display: flex; gap: 8px; overflow-x: auto; padding: 14px 20px 4px; scrollbar-width: none; }
+.weeks::-webkit-scrollbar { display: none; }
+.week-chip {
+  flex-shrink: 0; position: relative; border: 1px solid var(--miu-hairline); background: transparent;
+  border-radius: var(--miu-r-pill); padding: 7px 14px; font-size: 13px; font-weight: 600;
+  color: var(--miu-body); font-family: var(--miu-sans); cursor: pointer;
+}
+.week-chip.active { background: var(--miu-ink); border-color: var(--miu-ink); color: var(--miu-on-dark); }
+.week-chip .dot { position: absolute; top: -2px; right: -2px; width: 9px; height: 9px; border-radius: 50%; background: var(--miu-primary); border: 2px solid var(--miu-canvas); }
+
+/* 미리보기 / 사진 제외 안내 */
+.preview-banner {
+  margin: 14px 20px 0; padding: 10px 14px; border-radius: var(--miu-r-md);
+  background: #fff3e0; color: #7a5210; font-size: 13px; line-height: 1.5;
+}
+.photo-note {
+  margin: 14px 20px 0; padding: 10px 14px; border-radius: var(--miu-r-md);
+  background: var(--miu-surface-soft); color: var(--miu-body); font-size: 13px; line-height: 1.5;
+  display: flex; gap: 8px; align-items: flex-start;
+}
+.photo-note i { font-size: 16px; margin-top: 1px; color: var(--miu-muted); }
+
+/* 히어로 */
+.hero { padding: 28px 20px 8px; }
+.hero .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: var(--miu-primary); text-transform: uppercase; margin-bottom: 10px; }
+.hero .title { font-family: var(--miu-serif); font-size: 28px; font-weight: 500; line-height: 1.2; letter-spacing: -0.8px; }
+.hero .sub { margin-top: 8px; font-size: 14px; color: var(--miu-muted); }
+
+/* KPI */
+.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 16px 20px 0; }
+.kpi { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 14px 12px; }
+.kpi .v { font-family: var(--miu-serif); font-size: 26px; font-weight: 500; letter-spacing: -0.8px; line-height: 1.1; }
+.kpi .v small { font-size: 13px; font-family: var(--miu-sans); color: var(--miu-muted); margin-left: 2px; letter-spacing: 0; }
+.kpi .l { margin-top: 6px; font-size: 12px; color: var(--miu-muted); line-height: 1.35; }
+
+/* 섹션 */
+.section { padding: 0 20px; margin-top: 36px; }
+.section-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.section-head .num { font-family: var(--miu-serif); font-size: 14px; color: var(--miu-muted-soft); }
+.section-head .label { font-size: 13px; font-weight: 600; letter-spacing: 0.8px; }
+.section-head .divider { flex: 1; height: 1px; background: var(--miu-hairline); margin-left: 8px; }
+.section-hint { font-size: 13px; color: var(--miu-muted); line-height: 1.55; margin-bottom: 14px; }
+
+/* 사진 카드 */
+.cards { display: flex; flex-direction: column; gap: 14px; }
+.card { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); overflow: hidden; }
+.card .photo { position: relative; width: 100%; aspect-ratio: 4 / 5; background: var(--miu-surface-strong); overflow: hidden; }
+.card .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.card .badge {
+  position: absolute; top: 12px; left: 12px; padding: 5px 10px; border-radius: var(--miu-r-pill);
+  font-size: 12px; font-weight: 700;
+}
+.badge.fast { background: var(--fast-bg); color: var(--fast-fg); }
+.badge.slow { background: var(--slow-bg); color: var(--slow-fg); }
+.card .info { padding: 14px 16px 16px; }
+.card .cat { font-size: 12px; color: var(--miu-muted); }
+.card .name { font-size: 17px; font-weight: 600; letter-spacing: -0.3px; margin-top: 2px; }
+.card .row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 10px; }
+.card .price { font-family: var(--miu-serif); font-size: 20px; font-weight: 500; letter-spacing: -0.5px; }
+.card .speed { font-size: 13px; font-weight: 600; color: var(--miu-body-strong); text-align: right; }
+.card .meta { margin-top: 6px; font-size: 12px; color: var(--miu-muted-soft); }
+
+/* 오래 걸린 물건: 가로형 컴팩트 카드 */
+.cards.compact { gap: 10px; }
+.cards.compact .card { display: flex; }
+.cards.compact .photo { width: 104px; flex-shrink: 0; aspect-ratio: auto; }
+.cards.compact .badge { top: 8px; left: 8px; padding: 3px 8px; font-size: 11px; }
+.cards.compact .info { flex: 1; min-width: 0; padding: 12px 14px; display: flex; flex-direction: column; justify-content: center; }
+.cards.compact .name { font-size: 15px; }
+.cards.compact .row { flex-direction: column; align-items: flex-start; gap: 2px; margin-top: 6px; }
+.cards.compact .speed { text-align: left; }
+
+/* 성적표 */
+.overall { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 18px 18px 16px; margin-bottom: 14px; }
+.overall .big { font-family: var(--miu-serif); font-size: 30px; font-weight: 500; letter-spacing: -1px; }
+.overall .big small { font-size: 14px; font-family: var(--miu-sans); color: var(--miu-muted); letter-spacing: 0; margin-left: 6px; }
+.overall .desc { margin-top: 6px; font-size: 13px; color: var(--miu-body); line-height: 1.55; }
+.pill { display: inline-block; padding: 3px 9px; border-radius: var(--miu-r-pill); font-size: 12px; font-weight: 700; }
+.pill.fast { background: var(--fast-bg); color: var(--fast-fg); }
+.pill.similar { background: var(--mid-bg); color: var(--mid-fg); }
+.pill.slow { background: var(--slow-bg); color: var(--slow-fg); border: 1px solid var(--miu-hairline); }
+
+.sc-row { padding: 14px 0; border-bottom: 1px solid var(--miu-hairline-soft); }
+.sc-row:last-child { border-bottom: none; }
+.sc-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sc-cat { font-size: 15px; font-weight: 600; }
+.sc-cat small { font-weight: 400; color: var(--miu-muted); font-size: 12px; margin-left: 4px; }
+.track { position: relative; height: 8px; border-radius: 4px; background: var(--miu-surface-card); margin-top: 10px; }
+.track .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: var(--miu-primary); }
+.track .tick { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--miu-ink); border-radius: 1px; }
+.sc-nums { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; color: var(--miu-muted); }
+.sc-nums b { color: var(--miu-ink); font-weight: 700; }
+
+.legend { font-size: 12px; color: var(--miu-muted); margin-top: 10px; display: flex; gap: 14px; align-items: center; }
+.legend .sw { display: inline-block; width: 10px; height: 8px; border-radius: 2px; background: var(--miu-primary); margin-right: 5px; }
+.legend .tk { display: inline-block; width: 2px; height: 10px; background: var(--miu-ink); margin-right: 5px; vertical-align: -1px; }
+
+.foot-note { margin: 36px 20px 0; padding: 16px; border-radius: var(--miu-r-lg); background: var(--miu-surface-soft); font-size: 12.5px; line-height: 1.65; color: var(--miu-body); }
+.foot-note b { color: var(--miu-ink); }
+
+.empty { text-align: center; padding: 96px 32px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
+.empty i { font-size: 36px; color: var(--miu-muted-soft); display: block; margin-bottom: 12px; }
+body { word-break: keep-all; }
+</style>
+<script src="/miu-hub/shared/config.js?v=202609300010"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202609300010"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202609300010"></script>
+</head>
+<body>
+
+<header class="miu-header">
+  <a href="/miu-hub/" class="miu-header-back" aria-label="허브로">
+    <i class="ph-bold ph-caret-left"></i>
+  </a>
+  <div class="miu-header-title">
+    <div class="miu-header-eyebrow">WEEKLY LETTER</div>
+    <h1 class="miu-header-h1">주간 레터</h1>
+  </div>
+</header>
+
+<div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
+
+<script>
+const root = document.getElementById('root');
+const VERDICT_LABEL = { fast: '빠른 편', similar: '팀과 비슷', slow: '느린 편' };
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const won = (n) => (n == null ? '' : Number(n).toLocaleString('ko-KR') + '원');
+const pct = (r) => Math.round(r * 100) + '%';
+const md = (iso) => { const [, m, d] = iso.split('-'); return `${+m}/${+d}`; };
+const storeLabel = (s) => (s || '').replace(/^공동판매/, '');
+
+let letters = [];
+let me = null;
+
+function speedText(c) {
+  return c.days === 0 ? '입고 당일 판매' : `입고 후 ${c.days}일 만에 판매`;
+}
+
+function cardHtml(c) {
+  const badge = c.tier === 'fast' ? '<span class="badge fast">⚡ 빠르게 팔림</span>' : '<span class="badge slow">오래 걸림</span>';
+  return `
+    <article class="card">
+      <div class="photo">
+        <img src="${esc(c.photo_url)}" alt="${esc(c.brand || c.category)}" loading="lazy" decoding="async" onerror="this.remove()">
+        ${badge}
+      </div>
+      <div class="info">
+        <div class="cat">${esc(c.category)}</div>
+        <div class="name">${esc(c.brand || '브랜드 미입력')}</div>
+        <div class="row">
+          <div class="price">${won(c.price)}</div>
+          <div class="speed">${speedText(c)}</div>
+        </div>
+        <div class="meta">${md(c.intake_date)} 입고 → ${md(c.sold_date)} 판매${c.store ? ' · ' + esc(storeLabel(c.store)) : ''}</div>
+      </div>
+    </article>`;
+}
+
+function scorecardHtml(p) {
+  const rows = p.scorecard.map((r) => `
+    <div class="sc-row">
+      <div class="sc-top">
+        <div class="sc-cat">${esc(r.category)}<small>${r.n}점</small></div>
+        <span class="pill ${r.verdict}">${VERDICT_LABEL[r.verdict]}</span>
+      </div>
+      <div class="track">
+        <div class="fill" style="width:${Math.min(100, r.rate * 100)}%"></div>
+        <div class="tick" style="left:calc(${Math.min(100, r.team_rate * 100)}% - 1px)"></div>
+      </div>
+      <div class="sc-nums"><span>내 소진율 <b>${pct(r.rate)}</b></span><span>팀 ${pct(r.team_rate)}</span></div>
+    </div>`).join('');
+
+  let overall = '';
+  if (p.overall) {
+    const o = p.overall;
+    const msg = {
+      fast: '같은 카테고리의 팀 평균보다 빨리 팔리고 있어요. 가격을 조금 더 올려볼 여지가 있는지 살펴보세요.',
+      similar: '같은 카테고리의 팀 평균과 비슷한 속도로 팔리고 있어요. 지금 프라이싱 수준이 적절하다는 신호예요.',
+      slow: '같은 카테고리의 팀 평균보다 느리게 팔리고 있어요. 가격이 높지 않았는지 한번 돌아보세요.',
+    }[o.verdict];
+    overall = `
+      <div class="overall">
+        <div class="big">${pct(o.rate)}<small>팀 기준 ${pct(o.expected_rate)}</small></div>
+        <div style="margin:8px 0 2px"><span class="pill ${o.verdict}">${VERDICT_LABEL[o.verdict]}</span></div>
+        <div class="desc">${msg}</div>
+      </div>`;
+  }
+  return `
+    <section class="section">
+      <div class="section-head"><span class="num">03</span><span class="label">최근 4주 성적표</span><span class="divider"></span></div>
+      <p class="section-hint">${md(p.cohort.start)}~${md(p.cohort.end)}에 입고한 물건 중, 입고 후 ${p.cohort.mature_days}일 안에 팔린 비율(소진율)이에요. 카테고리별로 팀과만 비교했어요.</p>
+      ${overall}
+      ${rows || '<p class="section-hint">비교할 만큼 입고한 카테고리가 아직 없어요.</p>'}
+      <div class="legend"><span><span class="sw"></span>내 소진율</span><span><span class="tk"></span>팀 평균(나 제외)</span></div>
+    </section>`;
+}
+
+function letterHtml(letter) {
+  const p = letter.payload;
+  const w = p.week;
+  const isPreview = me && letter.subject_name !== me.name;
+  const photoNote = `
+    <div class="photo-note"><i class="ph-bold ph-image-square"></i>
+      <div>사진이 없는 물건은 사진 카드에서 제외했어요${w.no_photo_excluded > 0 ? ` (지난주 판매 ${w.no_photo_excluded}점)` : ''}. 숫자 통계에는 포함돼요.</div>
+    </div>`;
+  const fast = p.fast_cards.length ? `
+    <section class="section">
+      <div class="section-head"><span class="num">01</span><span class="label">빠르게 팔린 물건</span><span class="divider"></span></div>
+      <p class="section-hint">같은 카테고리에서 팀 상위 25% 속도로 팔린 물건이에요. 이런 물건은 가격을 조금 더 높일 여지가 있었을 수 있어요.</p>
+      <div class="cards">${p.fast_cards.map(cardHtml).join('')}</div>
+    </section>` : '';
+  const slow = p.slow_cards.length ? `
+    <section class="section">
+      <div class="section-head"><span class="num">02</span><span class="label">오래 걸린 물건</span><span class="divider"></span></div>
+      <p class="section-hint">입고 후 30일 넘게 걸려 팔린 물건이에요. 브랜드·상태에 따라 다르니 가격을 다시 생각해볼 참고용으로만 봐주세요.</p>
+      <div class="cards compact">${p.slow_cards.map(cardHtml).join('')}</div>
+    </section>` : '';
+
+  return `
+    ${isPreview ? `<div class="preview-banner">👀 미리보기예요. <b>${esc(letter.subject_name)}</b>님의 레터를 보고 있어요.</div>` : ''}
+    ${photoNote}
+    <div class="hero">
+      <div class="eyebrow">${md(p.week_start)} – ${md(p.week_end)}</div>
+      <div class="title">${esc(letter.subject_name)}님의<br>지난주 프라이싱</div>
+      <div class="sub">입고일 기준으로 얼마 만에 팔렸는지 모았어요.</div>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="v">${w.priced}<small>점</small></div><div class="l">지난주 프라이싱</div></div>
+      <div class="kpi"><div class="v">${w.sold}<small>점</small></div><div class="l">지난주 판매</div></div>
+      <div class="kpi"><div class="v">${w.median_days ?? '-'}<small>일</small></div><div class="l">입고 후 판매까지 (중앙값)</div></div>
+    </div>
+    ${fast}
+    ${slow}
+    ${scorecardHtml(p)}
+    <div class="foot-note">
+      <b>이 숫자를 읽는 법</b><br>
+      빨리 팔렸다고 가격을 잘못 매긴 것도, 늦게 팔렸다고 못한 것도 아니에요. 브랜드·상태·시즌에 따라 달라서, 가격을 다시 생각해볼 <b>신호</b>로만 써주세요.
+      팀과의 차이가 우연으로 설명되지 않을 때만 '빠른 편/느린 편'으로 표시하고, 개인 순위는 집계하지 않아요.
+    </div>`;
+}
+
+function chipsHtml(activeId) {
+  if (letters.length < 2) return '';
+  return `<div class="weeks">${letters.map((l) => `
+    <button class="week-chip ${l.id === activeId ? 'active' : ''}" data-id="${l.id}">
+      ${md(l.week_start)}~${md(addDays(l.week_start, 6))}${l.subject_name !== me.name ? ' · ' + esc(l.subject_name) : ''}
+      ${l.read_at ? '' : '<span class="dot"></span>'}
+    </button>`).join('')}</div>`;
+}
+
+function addDays(iso, n) {
+  const d = new Date(iso + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+async function show(id) {
+  const { data: letter, error } = await window.sb.from('weekly_letters')
+    .select('id,subject_name,week_start,read_at,payload').eq('id', id).single();
+  if (error || !letter) {
+    root.innerHTML = '<div class="empty"><i class="ph-bold ph-warning-circle"></i>레터를 불러오지 못했어요.</div>';
+    return;
+  }
+  root.innerHTML = chipsHtml(id) + letterHtml(letter);
+  root.querySelectorAll('.week-chip').forEach((b) => b.addEventListener('click', () => {
+    history.replaceState(null, '', `?id=${b.dataset.id}`);
+    show(b.dataset.id);
+  }));
+  window.scrollTo(0, 0);
+
+  if (!letter.read_at) {
+    const readAt = new Date().toISOString();
+    const { error: upErr } = await window.sb.from('weekly_letters')
+      .update({ read_at: readAt }).eq('id', id).is('read_at', null);
+    if (!upErr) {
+      const l = letters.find((x) => x.id === id);
+      if (l) l.read_at = readAt;
+      root.querySelectorAll(`.week-chip[data-id="${id}"] .dot`).forEach((d) => d.remove());
+    }
+  }
+}
+
+(async function init() {
+  for (let i = 0; i < 50 && window.MIU_PROFILE === undefined; i++) {
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  me = window.MIU_PROFILE;
+  if (!me) {
+    root.innerHTML = '<div class="empty"><i class="ph-bold ph-user-circle"></i>프로필을 불러오지 못했어요.</div>';
+    return;
+  }
+  const { data, error } = await window.sb.from('weekly_letters')
+    .select('id,subject_name,week_start,read_at').order('week_start', { ascending: false }).order('created_at', { ascending: false });
+  if (error) {
+    root.innerHTML = '<div class="empty"><i class="ph-bold ph-warning-circle"></i>레터를 불러오지 못했어요.</div>';
+    return;
+  }
+  letters = data;
+  if (!letters.length) {
+    root.innerHTML = '<div class="empty"><i class="ph-bold ph-envelope-simple"></i>아직 도착한 레터가 없어요.<br>레터가 도착하면 여기에 보여요.</div>';
+    return;
+  }
+  const want = new URLSearchParams(location.search).get('id');
+  show(letters.some((l) => l.id === want) ? want : letters[0].id);
+})();
+</script>
+</body>
+</html>

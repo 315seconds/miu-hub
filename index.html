@@ -223,6 +223,40 @@
     font-style: italic;
     letter-spacing: -0.1px;
   }
+
+  /* ── 주간 레터 ── */
+  .accent-letter { --tile-accent: var(--miu-accent-teal); }
+  #letter-tile { display: none; position: relative; }
+  .new-badge {
+    background: var(--miu-primary); color: #fff; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.5px; padding: 3px 8px; border-radius: var(--miu-r-pill); margin-right: 4px;
+  }
+  .letter-modal {
+    position: fixed; inset: 0; z-index: 1000; display: none;
+    background: rgba(20,20,19,0.45); align-items: flex-end; justify-content: center;
+  }
+  .letter-modal.open { display: flex; }
+  .letter-sheet {
+    width: 100%; max-width: 560px; background: var(--miu-canvas);
+    border-radius: 20px 20px 0 0; padding: 28px 24px calc(24px + env(safe-area-inset-bottom));
+  }
+  .letter-sheet .ico {
+    width: 48px; height: 48px; border-radius: 50%; background: var(--miu-primary);
+    color: #fff; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 16px;
+  }
+  .letter-sheet .t {
+    font-family: var(--miu-serif); font-size: 22px; font-weight: 500;
+    letter-spacing: -0.5px; line-height: 1.3; margin-bottom: 8px; word-break: keep-all;
+  }
+  .letter-sheet .d { font-size: 14px; color: var(--miu-body); line-height: 1.55; margin-bottom: 22px; }
+  .letter-sheet .open-btn {
+    display: block; width: 100%; text-align: center; background: var(--miu-primary); color: #fff;
+    border-radius: var(--miu-r-lg); padding: 15px; font-size: 15px; font-weight: 600; text-decoration: none;
+  }
+  .letter-sheet .later-btn {
+    display: block; width: 100%; background: none; border: none; color: var(--miu-muted);
+    font-size: 14px; padding: 14px 0 0; cursor: pointer; font-family: var(--miu-sans);
+  }
 </style>
 </head>
 <body>
@@ -344,6 +378,15 @@
       </div>
       <span class="tile-arrow">›</span>
     </a>
+    <a href="letter/" class="tile tile-wide accent-letter" id="letter-tile">
+      <div class="tile-icon"><i class="ph-bold ph-envelope-simple"></i></div>
+      <div class="tile-body">
+        <div class="tile-title">주간 레터</div>
+        <div class="tile-desc">내 프라이싱 · 판매 속도</div>
+      </div>
+      <span id="letter-new" class="new-badge" hidden>NEW</span>
+      <span class="tile-arrow">›</span>
+    </a>
   </div>
 </div>
 
@@ -397,6 +440,17 @@
   <div class="brand-tag">— 마켓인유 관리툴 —</div>
 </div>
 
+<!-- 주간 레터 도착 팝업 -->
+<div class="letter-modal" id="letter-modal" role="dialog" aria-modal="true" aria-labelledby="letter-modal-title">
+  <div class="letter-sheet">
+    <div class="ico"><i class="ph-bold ph-envelope-simple"></i></div>
+    <div class="t" id="letter-modal-title"></div>
+    <div class="d">내가 프라이싱한 물건이 입고 후 얼마 만에 팔렸는지, 팀 평균과 비교해서 정리했어요.</div>
+    <a class="open-btn" id="letter-open" href="letter/">레터 열어보기</a>
+    <button class="later-btn" id="letter-later" type="button">나중에 볼게요</button>
+  </div>
+</div>
+
 <script src="/miu-hub/shared/config.js?v=202609300010"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="/miu-hub/shared/supabase-client.js?v=202609300010"></script>
@@ -421,6 +475,38 @@ if (window.MIU_USER) {
   if (window.MIU_PROFILE?.role === 'admin') {
     document.getElementById('admin-section').style.display = 'block';
   }
+})();
+
+// 주간 레터: 도착한 레터가 있으면 메뉴 노출, 안 읽은 레터가 있으면 팝업
+(async function showLetters() {
+  for (let i = 0; i < 30; i++) {
+    if (window.MIU_PROFILE !== undefined) break;
+    await new Promise(r => setTimeout(r, 100));
+  }
+  if (!window.MIU_PROFILE) return;
+  const { data, error } = await window.sb.from('weekly_letters')
+    .select('id,subject_name,week_start,read_at')
+    .order('week_start', { ascending: false });
+  if (error || !data.length) return;
+
+  document.getElementById('letter-tile').style.display = 'flex';
+  const unread = data.find(l => !l.read_at);
+  if (!unread) return;
+  document.getElementById('letter-new').hidden = false;
+
+  const key = 'letter-popup-dismissed';
+  if (sessionStorage.getItem(key) === unread.id) return;
+  const preview = unread.subject_name !== window.MIU_PROFILE.name;
+  document.getElementById('letter-modal-title').textContent = preview
+    ? `${unread.subject_name}님의 레터 미리보기가 도착했어요`
+    : '이번 주 프라이싱 분석 레터가 도착했어요';
+  document.getElementById('letter-open').href = `letter/?id=${unread.id}`;
+  const modal = document.getElementById('letter-modal');
+  modal.classList.add('open');
+  document.getElementById('letter-later').addEventListener('click', () => {
+    sessionStorage.setItem(key, unread.id);
+    modal.classList.remove('open');
+  });
 })();
 document.getElementById('logout-btn').addEventListener('click', async () => {
   if (!confirm('로그아웃하시겠습니까?')) return;
