@@ -95,12 +95,8 @@ const md = (iso) => { const [, m, d] = iso.split('-'); return `${+m}/${+d}`; };
 const storeLabel = (s) => (s || '').replace(/^공동판매/, '');
 const TIER = { fast: '빠름', mid: '보통', slow: '오래 걸림' };
 
-// Supabase Storage 이미지 변환(축소)으로 모바일 데이터 절약. 실패하면 원본으로 대체.
-function thumb(url, w, h) {
-  const t = url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
-  if (t === url) return url;
-  return `${t}?width=${w}${h ? `&height=${h}&resize=cover` : ''}&quality=70`;
-}
+// 썸네일은 레터 생성 시 미리 만들어 letter-thumbs 버킷에 올려둔다(이미지 변환 과금 회피).
+// 로드 실패 시 원본 사진으로 대체.
 function fallback(img, orig) {
   img.onerror = null;
   img.src = orig;
@@ -117,7 +113,7 @@ let letterSubject = '';
 
 function cellHtml(c, i) {
   return `<button class="cell" data-i="${i}" aria-label="${esc(c.brand || c.category)}">
-    <img src="${esc(thumb(c.photo_url, 240, 300))}" alt="" loading="lazy" decoding="async" onerror="fallback(this, '${esc(c.photo_url)}')">
+    <img src="${esc(c.thumb_url)}" alt="" loading="lazy" decoding="async" onerror="fallback(this, '${esc(c.photo_url)}')">
     <span class="d ${c.tier}">${dayLabel(c.days)}</span>
   </button>`;
 }
@@ -154,7 +150,7 @@ function openSheet(c) {
     : `<div class="ref none">같은 브랜드·카테고리를 비교할 만큼 팀 표본이 없어요.</div>`;
   document.getElementById('sheet').innerHTML = `
     <div class="photo">
-      <img src="${esc(thumb(c.photo_url, 800))}" alt="" decoding="async" onerror="fallback(this, '${esc(c.photo_url)}')">
+      <img src="${esc(c.medium_url)}" alt="" decoding="async" onerror="fallback(this, '${esc(c.photo_url)}')">
       <button class="close" id="sheet-close" aria-label="닫기"><i class="ph-bold ph-x"></i></button>
     </div>
     <div class="body">
