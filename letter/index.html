@@ -119,6 +119,18 @@ body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(-
 .foot-note { margin: 36px 20px 0; padding: 16px; border-radius: var(--miu-r-lg); background: var(--miu-surface-soft); font-size: 12.5px; line-height: 1.65; color: var(--miu-body); }
 .foot-note b { color: var(--miu-ink); }
 
+.all-link {
+  display: flex; align-items: center; gap: 14px; text-decoration: none; color: var(--miu-ink);
+  background: var(--miu-surface-card); border-left: 3px solid var(--miu-accent-teal);
+  border-radius: var(--miu-r-lg); padding: 18px 18px;
+}
+.all-link:active { background: var(--miu-surface-strong); }
+.all-link .ic { font-size: 24px; color: var(--miu-accent-teal); }
+.all-link .tx { flex: 1; }
+.all-link .tt { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; }
+.all-link .ds { font-size: 12px; color: var(--miu-body); margin-top: 3px; line-height: 1.5; }
+.all-link .ar { color: var(--miu-muted); font-size: 20px; }
+
 .empty { text-align: center; padding: 96px 32px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
 .empty i { font-size: 36px; color: var(--miu-muted-soft); display: block; margin-bottom: 12px; }
 body { word-break: keep-all; }
@@ -151,6 +163,13 @@ const pct = (r) => Math.round(r * 100) + '%';
 const md = (iso) => { const [, m, d] = iso.split('-'); return `${+m}/${+d}`; };
 const storeLabel = (s) => (s || '').replace(/^공동판매/, '');
 
+// Supabase Storage 이미지 변환(축소)으로 모바일 데이터 절약. 실패하면 원본으로 대체.
+function thumb(url, w) {
+  const t = url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
+  return t === url ? url : `${t}?width=${w}&quality=75`;
+}
+window.fallback = (img, orig) => { img.onerror = null; img.src = orig; };
+
 let letters = [];
 let me = null;
 
@@ -163,7 +182,7 @@ function cardHtml(c) {
   return `
     <article class="card">
       <div class="photo">
-        <img src="${esc(c.photo_url)}" alt="${esc(c.brand || c.category)}" loading="lazy" decoding="async" onerror="this.remove()">
+        <img src="${esc(thumb(c.photo_url, 720))}" alt="${esc(c.brand || c.category)}" loading="lazy" decoding="async" onerror="fallback(this, '${esc(c.photo_url)}')">
         ${badge}
       </div>
       <div class="info">
@@ -253,6 +272,17 @@ function letterHtml(letter) {
     </div>
     ${fast}
     ${slow}
+    ${p.sold_all && p.sold_all.length ? `
+    <section class="section">
+      <a class="all-link" href="all.html?id=${letter.id}">
+        <i class="ph-bold ph-squares-four ic"></i>
+        <div class="tx">
+          <div class="tt">지난주 판매 ${p.sold_all.length}점 전체 보기</div>
+          <div class="ds">사진으로 한눈에, 눌러서 가격·일수·팀 참고값까지</div>
+        </div>
+        <span class="ar">›</span>
+      </a>
+    </section>` : ''}
     ${scorecardHtml(p)}
     <div class="foot-note">
       <b>이 숫자를 읽는 법</b><br>

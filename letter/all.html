@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>지난주 판매 전체 — 마켓인유</title>
+<meta name="theme-color" content="#faf9f5">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202609300010">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202609300010">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<style>
+:root {
+  --fast-bg: #FFE8DD;  --fast-fg: #a9583e;
+  --mid-bg:  #E8F5EC;  --mid-fg:  #2e6b3a;
+  --slow-bg: var(--miu-surface-soft);  --slow-fg: var(--miu-muted);
+}
+body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
+.wrap { max-width: 560px; margin: 0 auto; padding-bottom: 48px; }
+
+.toolbar { position: sticky; top: 73px; z-index: 50; background: var(--miu-canvas); border-bottom: 1px solid var(--miu-hairline-soft); padding: 12px 20px; }
+.chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex-shrink: 0; border: 1px solid var(--miu-hairline); background: transparent; border-radius: var(--miu-r-pill);
+  padding: 7px 13px; font-size: 13px; font-weight: 600; color: var(--miu-body); font-family: var(--miu-sans); cursor: pointer;
+}
+.chip.active { background: var(--miu-ink); border-color: var(--miu-ink); color: var(--miu-on-dark); }
+.chip small { font-weight: 500; opacity: .7; margin-left: 3px; }
+.sort-row { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; font-size: 12px; color: var(--miu-muted); }
+.sort-btn { background: none; border: none; color: var(--miu-primary); font-weight: 700; font-size: 12px; cursor: pointer; font-family: var(--miu-sans); display: inline-flex; align-items: center; gap: 4px; }
+
+.preview-banner { margin: 14px 20px 0; padding: 10px 14px; border-radius: var(--miu-r-md); background: #fff3e0; color: #7a5210; font-size: 13px; line-height: 1.5; }
+.note { margin: 14px 20px 0; font-size: 12.5px; color: var(--miu-muted); line-height: 1.55; }
+
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 14px 20px 0; }
+.cell { position: relative; border: none; padding: 0; background: var(--miu-surface-strong); border-radius: var(--miu-r-md); overflow: hidden; aspect-ratio: 4 / 5; cursor: pointer; }
+.cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cell .d {
+  position: absolute; left: 6px; bottom: 6px; padding: 3px 8px; border-radius: var(--miu-r-pill);
+  font-size: 11px; font-weight: 700; font-family: var(--miu-sans);
+}
+.d.fast { background: var(--fast-bg); color: var(--fast-fg); }
+.d.mid  { background: var(--mid-bg);  color: var(--mid-fg); }
+.d.slow { background: var(--slow-bg); color: var(--slow-fg); }
+
+.empty { text-align: center; padding: 96px 32px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
+
+/* 상세 시트 */
+.sheet-bg { position: fixed; inset: 0; z-index: 1000; display: none; background: rgba(20,20,19,.5); align-items: flex-end; justify-content: center; }
+.sheet-bg.open { display: flex; }
+.sheet { width: 100%; max-width: 560px; max-height: 92dvh; overflow-y: auto; background: var(--miu-canvas); border-radius: 20px 20px 0 0; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+.sheet .photo { position: relative; width: 100%; aspect-ratio: 4 / 5; background: var(--miu-surface-strong); }
+.sheet .photo img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 20px 20px 0 0; }
+.sheet .close { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(250,249,245,.92); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--miu-ink); }
+.sheet .body { padding: 18px 20px 0; }
+.sheet .cat { font-size: 12px; color: var(--miu-muted); }
+.sheet .name { font-size: 20px; font-weight: 600; letter-spacing: -0.4px; margin-top: 2px; }
+.sheet .row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 10px; }
+.sheet .price { font-family: var(--miu-serif); font-size: 24px; font-weight: 500; letter-spacing: -0.6px; }
+.sheet .speed { font-size: 14px; font-weight: 700; }
+.sheet .dates { margin-top: 6px; font-size: 13px; color: var(--miu-muted); }
+.sheet .ref { margin-top: 16px; padding: 12px 14px; border-radius: var(--miu-r-md); background: var(--miu-surface-card); font-size: 13px; line-height: 1.6; color: var(--miu-body); }
+.sheet .ref b { color: var(--miu-ink); }
+.sheet .ref.none { color: var(--miu-muted); }
+.sheet .bc { margin-top: 14px; font-size: 11px; color: var(--miu-muted-soft); font-family: var(--miu-mono); }
+</style>
+<script src="/miu-hub/shared/config.js?v=202609300010"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202609300010"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202609300010"></script>
+</head>
+<body>
+
+<header class="miu-header">
+  <a href="/miu-hub/letter/" class="miu-header-back" id="back" aria-label="레터로">
+    <i class="ph-bold ph-caret-left"></i>
+  </a>
+  <div class="miu-header-title">
+    <div class="miu-header-eyebrow">WEEKLY LETTER</div>
+    <h1 class="miu-header-h1" id="h1">지난주 판매 전체</h1>
+  </div>
+</header>
+
+<div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
+
+<div class="sheet-bg" id="sheet-bg"><div class="sheet" id="sheet"></div></div>
+
+<script>
+const root = document.getElementById('root');
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const won = (n) => (n == null ? '' : Number(n).toLocaleString('ko-KR') + '원');
+const pct = (r) => Math.round(r * 100) + '%';
+const md = (iso) => { const [, m, d] = iso.split('-'); return `${+m}/${+d}`; };
+const storeLabel = (s) => (s || '').replace(/^공동판매/, '');
+const TIER = { fast: '빠름', mid: '보통', slow: '오래 걸림' };
+
+// Supabase Storage 이미지 변환(축소)으로 모바일 데이터 절약. 실패하면 원본으로 대체.
+function thumb(url, w, h) {
+  const t = url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
+  if (t === url) return url;
+  return `${t}?width=${w}${h ? `&height=${h}&resize=cover` : ''}&quality=70`;
+}
+function fallback(img, orig) {
+  img.onerror = null;
+  img.src = orig;
+}
+window.fallback = fallback;
+
+const dayLabel = (d) => (d === 0 ? '당일' : `${d}일`);
+
+let items = [];
+let filter = 'all';
+let asc = true;
+let me = null;
+let letterSubject = '';
+
+function cellHtml(c, i) {
+  return `<button class="cell" data-i="${i}" aria-label="${esc(c.brand || c.category)}">
+    <img src="${esc(thumb(c.photo_url, 240, 300))}" alt="" loading="lazy" decoding="async" onerror="fallback(this, '${esc(c.photo_url)}')">
+    <span class="d ${c.tier}">${dayLabel(c.days)}</span>
+  </button>`;
+}
+
+function render(letter) {
+  const counts = { all: items.length, fast: 0, mid: 0, slow: 0 };
+  items.forEach((c) => counts[c.tier]++);
+  const list = items
+    .map((c, i) => ({ c, i }))
+    .filter(({ c }) => filter === 'all' || c.tier === filter)
+    .sort((a, b) => (asc ? a.c.days - b.c.days : b.c.days - a.c.days) || (b.c.price || 0) - (a.c.price || 0));
+  const chip = (k, label) => `<button class="chip ${filter === k ? 'active' : ''}" data-f="${k}">${label}<small>${counts[k]}</small></button>`;
+  const isPreview = me && letterSubject !== me.name;
+  root.innerHTML = `
+    ${isPreview ? `<div class="preview-banner">👀 미리보기예요. <b>${esc(letterSubject)}</b>님의 레터를 보고 있어요.</div>` : ''}
+    <div class="toolbar">
+      <div class="chips">${chip('all', '전체')}${chip('fast', '⚡ 빠름')}${chip('mid', '보통')}${chip('slow', '오래 걸림')}</div>
+      <div class="sort-row">
+        <span>${md(letter.payload.week_start)} – ${md(letter.payload.week_end)} 판매 · 사진 숫자는 입고 후 일수</span>
+        <button class="sort-btn" id="sort">${asc ? '빠른 순' : '오래 걸린 순'} <i class="ph-bold ph-arrows-down-up"></i></button>
+      </div>
+    </div>
+    ${letter.payload.week.no_photo_excluded > 0 ? `<div class="note">사진이 없는 물건 ${letter.payload.week.no_photo_excluded}점은 제외했어요.</div>` : ''}
+    ${list.length ? `<div class="grid">${list.map(({ c, i }) => cellHtml(c, i)).join('')}</div>` : '<div class="empty">해당하는 물건이 없어요.</div>'}`;
+  root.querySelectorAll('.chip').forEach((b) => b.addEventListener('click', () => { filter = b.dataset.f; render(letter); window.scrollTo(0, 0); }));
+  root.querySelector('#sort')?.addEventListener('click', () => { asc = !asc; render(letter); });
+  root.querySelectorAll('.cell').forEach((b) => b.addEventListener('click', () => openSheet(items[+b.dataset.i])));
+}
+
+function openSheet(c) {
+  const speed = c.days === 0 ? '입고 당일 판매' : `입고 후 ${c.days}일 만에 판매`;
+  const ref = c.ref
+    ? `<div class="ref">같은 브랜드·카테고리(<b>${esc(c.brand)} · ${esc(c.category)}</b>)를 팀이 최근 4개월간 입고한 <b>${c.ref.n}점</b> 중 입고 후 14일 안에 팔린 비율은 <b>${pct(c.ref.rate)}</b>예요. 표본이 적을 수 있어 참고용이에요.</div>`
+    : `<div class="ref none">같은 브랜드·카테고리를 비교할 만큼 팀 표본이 없어요.</div>`;
+  document.getElementById('sheet').innerHTML = `
+    <div class="photo">
+      <img src="${esc(thumb(c.photo_url, 800))}" alt="" decoding="async" onerror="fallback(this, '${esc(c.photo_url)}')">
+      <button class="close" id="sheet-close" aria-label="닫기"><i class="ph-bold ph-x"></i></button>
+    </div>
+    <div class="body">
+      <div class="cat">${esc(c.category)} · <span class="d ${c.tier}" style="position:static;padding:2px 8px">${TIER[c.tier]}</span></div>
+      <div class="name">${esc(c.brand || '브랜드 미입력')}</div>
+      <div class="row"><div class="price">${won(c.price)}</div><div class="speed">${speed}</div></div>
+      <div class="dates">${md(c.intake_date)} 입고 → ${md(c.sold_date)} 판매${c.store ? ' · ' + esc(storeLabel(c.store)) : ''}</div>
+      ${ref}
+      <div class="bc">${esc(c.barcode)}</div>
+    </div>`;
+  document.getElementById('sheet-bg').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('sheet-close').addEventListener('click', closeSheet);
+}
+function closeSheet() {
+  document.getElementById('sheet-bg').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.getElementById('sheet-bg').addEventListener('click', (e) => { if (e.target.id === 'sheet-bg') closeSheet(); });
+
+(async function init() {
+  for (let i = 0; i < 50 && window.MIU_PROFILE === undefined; i++) await new Promise((r) => setTimeout(r, 100));
+  me = window.MIU_PROFILE;
+  const id = new URLSearchParams(location.search).get('id');
+  if (!me || !id) {
+    root.innerHTML = '<div class="empty">레터를 찾을 수 없어요.</div>';
+    return;
+  }
+  document.getElementById('back').href = `/miu-hub/letter/?id=${encodeURIComponent(id)}`;
+  const { data: letter, error } = await window.sb.from('weekly_letters')
+    .select('id,subject_name,payload').eq('id', id).single();
+  if (error || !letter || !letter.payload.sold_all) {
+    root.innerHTML = '<div class="empty">레터를 불러오지 못했어요.</div>';
+    return;
+  }
+  letterSubject = letter.subject_name;
+  items = letter.payload.sold_all;
+  document.getElementById('h1').textContent = `지난주 판매 ${items.length}점`;
+  render(letter);
+})();
+</script>
+</body>
+</html>
