@@ -227,6 +227,7 @@
   /* ── 주간 레터 ── */
   .accent-letter { --tile-accent: var(--miu-accent-teal); }
   #letter-tile { display: none; position: relative; }
+  #letter-status-tile { display: none; }
   .new-badge {
     background: var(--miu-primary); color: #fff; font-size: 10px; font-weight: 700;
     letter-spacing: 0.5px; padding: 3px 8px; border-radius: var(--miu-r-pill); margin-right: 4px;
@@ -431,6 +432,14 @@
       </div>
       <span class="tile-arrow">›</span>
     </a>
+    <a href="letter/status.html" class="tile tile-wide accent-letter" id="letter-status-tile">
+      <div class="tile-icon"><i class="ph-bold ph-envelope-open"></i></div>
+      <div class="tile-body">
+        <div class="tile-title">레터 열람 현황</div>
+        <div class="tile-desc">직원별 주간 레터 열람 여부</div>
+      </div>
+      <span class="tile-arrow">›</span>
+    </a>
   </div>
 </div>
 
@@ -507,6 +516,17 @@ if (window.MIU_USER) {
     sessionStorage.setItem(key, unread.id);
     modal.classList.remove('open');
   });
+})();
+
+// 레터 열람 현황 타일: 서버 함수가 허용한 사용자(황태훈)에게만 노출
+(async function showLetterStatusTile() {
+  for (let i = 0; i < 30; i++) {
+    if (window.MIU_PROFILE !== undefined) break;
+    await new Promise(r => setTimeout(r, 100));
+  }
+  if (!window.MIU_PROFILE) return;
+  const { data } = await window.sb.rpc('is_letter_admin');
+  if (data === true) document.getElementById('letter-status-tile').style.display = 'flex';
 })();
 document.getElementById('logout-btn').addEventListener('click', async () => {
   if (!confirm('로그아웃하시겠습니까?')) return;
