@@ -139,15 +139,21 @@
 </div>
 
 <script>
-const SB_URL = 'https://yqnocnzjrcsrwrvsvsyg.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlxbm9jbnpqcmNzcndydnN2c3lnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYyNjExNzgsImV4cCI6MjA5MTgzNzE3OH0.u172XxuUcRF7WhT0UmLq-xQjoeDjBt95Qgbstln8mMs';
-const SB_HDR = {
-  apikey: SB_KEY,
-  Authorization: `Bearer ${SB_KEY}`,
-  Accept: 'application/json',
-  'Range-Unit': 'items',
-  Range: '0-9999',
-};
+const SB_URL = window.MIU_CONFIG.SUPABASE_URL;
+
+// 로그인한 직원의 세션 토큰으로 요청한다. 공개 키만으로는 데이터를 읽을 수 없다.
+async function sbHeaders() {
+  const { data } = await window.sb.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error('로그인이 필요해요. 다시 로그인해 주세요.');
+  return {
+    apikey: window.MIU_CONFIG.SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${token}`,
+    Accept: 'application/json',
+    'Range-Unit': 'items',
+    Range: '0-9999',
+  };
+}
 
 // ── 유틸
 function kstToday() {
@@ -168,7 +174,7 @@ function h(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;'
 
 // ── Supabase fetch
 async function sbFetch(table, qs) {
-  const r = await fetch(`${SB_URL}/rest/v1/${table}?${qs}`, { headers: SB_HDR });
+  const r = await fetch(`${SB_URL}/rest/v1/${table}?${qs}`, { headers: await sbHeaders() });
   if (!r.ok) throw new Error(`${table}: ${r.status}`);
   return r.json();
 }
