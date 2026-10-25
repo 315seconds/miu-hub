@@ -12,6 +12,7 @@ import http.server
 import socketserver
 import sys
 import os
+from urllib.parse import unquote, urlsplit
 
 
 class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
@@ -21,6 +22,14 @@ class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
         self.send_header("Expires", "0")
         # SPA/PWA 편의: CORS 없음 (동일 origin이라 필요 없음)
         super().end_headers()
+
+    def send_head(self):
+        # .env, .git 같은 점 파일과 *.env 파일은 서빙하지 않는다 (키 유출 방지)
+        parts = [p for p in unquote(urlsplit(self.path).path).split("/") if p]
+        if any(p.startswith(".") or p.endswith(".env") for p in parts):
+            self.send_error(404, "Not found")
+            return None
+        return super().send_head()
 
     def log_message(self, format, *args):
         # 조용하게 (403/404 등만 로그)
@@ -36,7 +45,8 @@ def main():
     os.chdir(root)
 
     socketserver.TCPServer.allow_reuse_address = True
-    with socketserver.TCPServer(("", port), NoCacheHandler) as httpd:
+    # 같은 네트워크의 다른 기기에서 접근하지 못하도록 로컬 전용으로 바인딩
+    with socketserver.TCPServer(("127.0.0.1", port), NoCacheHandler) as httpd:
         print(f"dev-server: http://localhost:{port}/ (no-cache) — root: {root}")
         try:
             httpd.serve_forever()

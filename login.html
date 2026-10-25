@@ -219,13 +219,28 @@ const showMsg = (kind, text) => {
 };
 const clearMsg = () => { msg.className = 'msg'; msg.textContent = ''; };
 
+// returnTo는 같은 사이트의 /miu-hub/ 하위 주소만 허용한다.
+// javascript: 같은 주소와 다른 사이트로의 이동(오픈 리디렉트)을 막고, 기본값은 허브 홈이다.
+function safeReturnTo(raw) {
+  const fallback = '/miu-hub/';
+  if (!raw) return fallback;
+  try {
+    const url = new URL(raw, window.location.origin);
+    if (url.origin !== window.location.origin) return fallback;
+    if (!url.pathname.startsWith('/miu-hub/')) return fallback;
+    if (url.pathname.endsWith('/login.html')) return fallback;
+    return url.pathname + url.search + url.hash;
+  } catch (e) {
+    return fallback;
+  }
+}
+
 // 이미 로그인돼 있으면 원래 있던 곳으로 리디렉트
 (async function () {
   const { data } = await sb.auth.getSession();
   if (data.session) {
     const params = new URLSearchParams(window.location.search);
-    const returnTo = params.get('returnTo');
-    window.location.replace(returnTo || '/miu-hub/');
+    window.location.replace(safeReturnTo(params.get('returnTo')));
   }
 })();
 
@@ -289,8 +304,7 @@ $('code-form').addEventListener('submit', async (e) => {
   }
 
   const params = new URLSearchParams(window.location.search);
-  const returnTo = params.get('returnTo') || '/';
-  window.location.replace(returnTo);
+  window.location.replace(safeReturnTo(params.get('returnTo')));
 });
 
 $('resend-btn').addEventListener('click', async () => {
@@ -332,8 +346,7 @@ $('password-form').addEventListener('submit', async (e) => {
     return;
   }
   const params = new URLSearchParams(window.location.search);
-  const returnTo = params.get('returnTo') || '/';
-  window.location.replace(returnTo);
+  window.location.replace(safeReturnTo(params.get('returnTo')));
 });
 </script>
 </body>
