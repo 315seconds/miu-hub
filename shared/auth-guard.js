@@ -47,3 +47,18 @@
     }
   });
 })();
+
+// 담당자는 고르지 않고 로그인한 계정 이름으로 고정한다. (이동·가격수정은 서버도 같은 이름으로 기록해서 바꿀 수 없다)
+// 프로필은 위에서 비동기로 불러오므로 준비될 때까지 기다린 뒤 이름을 돌려준다. 이름이 없으면 빈 문자열.
+window.miuLoginName = async function () {
+  for (let i = 0; i < 50 && window.MIU_PROFILE === undefined; i++) await new Promise((r) => setTimeout(r, 100));
+  return window.MIU_PROFILE?.name || "";
+};
+// <select>를 로그인한 계정 이름 하나로 채우고 잠근다.
+window.miuSetFixedName = function (sel, name) {
+  const opt = document.createElement("option");
+  opt.value = name;
+  opt.textContent = name || "계정에 이름이 없어요 · 관리자에게 요청해 주세요";
+  sel.replaceChildren(opt);
+  sel.disabled = true;
+};

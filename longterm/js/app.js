@@ -111,30 +111,21 @@ async function initSetup() {
   const sel = document.getElementById('store-select');
   sel.innerHTML = '<option value="">로딩 중...</option>';
   const opSel = document.getElementById('operator-input');
-  opSel.innerHTML = '<option value="">로딩 중...</option>';
+  // 담당자는 고르지 않고 로그인한 계정 이름으로 고정한다. (서버도 같은 이름으로 기록한다)
+  miuSetFixedName(opSel, await miuLoginName());
 
-  const [{ data: locs, error }, { data: handlers, error: handlerError }] = await Promise.all([
-    sb.from('locations').select('name').eq('is_active', true).neq('name', '폐기').order('name'),
-    sb.from('handlers').select('name').eq('is_active', true).order('name'),
-  ]);
+  const { data: locs, error } = await sb.from('locations').select('name').eq('is_active', true).neq('name', '폐기').order('name');
   if (error || !locs?.length) {
     sel.innerHTML = '<option value="">매장 정보 로드 실패</option>'; return;
   }
   sel.innerHTML = '<option value="">매장을 선택하세요</option>' +
     locs.map(l => `<option value="${escapeHtml(l.name)}">${escapeHtml(l.name)}</option>`).join('');
 
-  if (handlerError || !handlers?.length) {
-    opSel.innerHTML = '<option value="">담당자 정보 로드 실패</option>';
-  } else {
-    opSel.innerHTML = '<option value="">담당자를 선택하세요</option>' +
-      handlers.map(h => `<option value="${escapeHtml(h.name)}">${escapeHtml(h.name)}</option>`).join('');
-  }
-
   function startScan({ direct = false } = {}) {
     const store = sel.value;
     const operator = opSel.value;
     if (!store) { appAlert('매장을 선택해주세요.'); return; }
-    if (!operator) { appAlert('담당자를 선택해주세요.'); return; }
+    if (!operator) { appAlert('계정에 이름이 설정돼 있지 않아요. 관리자에게 요청해 주세요.'); return; }
     if (direct) {
       S.store = store; S.threshold = 60; S.threshold2 = null;
       S.operator = operator; S.directMode = true;
