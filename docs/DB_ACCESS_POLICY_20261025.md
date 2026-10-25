@@ -18,7 +18,7 @@
 
 ## 서버(VM) 자동화
 VM 작업은 service_role 키를 쓰므로 위 규칙과 무관하게 동작한다. 이동 승인 반영은 DB 웹훅이 아니라 VM이 매분 확인하는 방식이다.
-옛 DB 웹훅 `move-approved`(옛 서버 `43.202.62.74:8080`으로 전송, 비밀값이 공개 저장소 기록에 노출됨)는 제거했다.
+쓰지 않는 옛 DB 웹훅(`move-approved`)은 제거했다.
 
 ## 새 테이블·함수를 만들 때
 - RLS를 켜고 `authenticated` 정책만 만든다. `anon`에는 권한을 주지 않는다.
@@ -26,4 +26,10 @@ VM 작업은 service_role 키를 쓰므로 위 규칙과 무관하게 동작한�
 - 점검 SQL: `pg_policies`에서 `anon`/`public` 대상 정책이 `inventory_items`의 2개뿐인지, `information_schema.role_table_grants`에서 anon 권한이 `inventory_items`뿐인지 확인한다.
 
 ## 되돌리기
-복원 SQL은 비밀값(옛 웹훅 헤더)이 들어 있어 저장소에 두지 않았다. 작업 PC `~/miu-backup/hardening-step2-RESTORE.sql`에 있다.
+복원 SQL에는 민감한 값이 들어 있어 저장소에 두지 않고 작업 PC에 따로 보관한다.
+
+## 서버가 강제하는 규칙 (같은 날 추가)
+화면에서만 막는 것이 아니라 DB가 직접 강제한다. 로그인 직원(`authenticated`)에게만 적용되고, 서버 자동화(`service_role`)는 예외다.
+- **입고 승인**: `approve_inventory_session(uuid)` 한 번의 호출로 바코드 발급, 상품 갱신, 승인 기록이 모두 성공하거나 모두 취소된다. 승인은 한 번에 하나씩 처리되고, 이미 승인된 세션은 거절된다. 승인자는 로그인한 계정 이름으로 자동 기록된다. (`scripts/approve-inventory-session-20261025.sql`)
+- **승인 취소 보호**: 라벨 출력, 키오스크 파일 다운로드, 엑셀 기록이 있는 세션은 승인을 취소할 수 없다. 대량 이동은 `create_bulk_move_session(...)`로 세션과 항목을 한 번에 저장한다. (`scripts/bulk-move-and-reopen-guard-20261025.sql`)
+- **담당자 고정**: 이동 세션(`created_by`), 이동 스캔(`scanned_by`), 가격수정(`changed_by`)은 로그인한 계정 이름으로 저장된다. 이름이 없는 계정은 저장이 거절되므로, 새 직원은 통합 관리에서 이름을 먼저 설정한다. (`scripts/force-login-name-20261025.sql`)
