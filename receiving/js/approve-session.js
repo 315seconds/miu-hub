@@ -3,16 +3,15 @@ const STATUS_LABEL = { pending: "대기중", approved: "승인됨", processed: "
 let SESS = null;
 let HANGERS = [];
 let TOTAL = 0;
-let HANDLERS = [];
+let MY_NAME = "";          // 로그인한 계정의 이름 (승인자로 자동 기록)
 let PREVIEW_START = null;  // pending 세션의 예상 시작 바코드 (peek_next_barcode)
 
 async function load() {
   if (!SESSION_ID) { showError("세션 ID 없음"); return; }
   try {
-    const [{ data: sess, error: se }, { data: hangers, error: he }, { data: handlers }] = await Promise.all([
+    const [{ data: sess, error: se }, { data: hangers, error: he }] = await Promise.all([
       sb.from("inventory_sessions").select("*").eq("id", SESSION_ID).single(),
       sb.from("inventory_hangers").select("*, inventory_items(*)").eq("session_id", SESSION_ID).order("created_at", { ascending: true }),
-      sb.from("profiles").select("name").eq("is_handler", true).not("name", "is", null).order("name"),
     ]);
     if (se) throw se;
     if (he) throw he;
@@ -20,7 +19,9 @@ async function load() {
     SESS     = sess;
     HANGERS  = hangers || [];
     TOTAL    = HANGERS.reduce((s, h) => s + (h.inventory_items || []).length, 0);
-    HANDLERS = handlers || [];
+    // 승인자는 선택하지 않고 로그인한 계정 이름이 서버에서 자동 기록된다 (프로필은 auth-guard가 비동기로 불러옴)
+    for (let i = 0; i < 50 && window.MIU_PROFILE === undefined; i++) await new Promise((r) => setTimeout(r, 100));
+    MY_NAME = window.MIU_PROFILE?.name || "";
 
     // pending이면 예상 시작 바코드 미리보기 (시퀀스 소진 안 함)
     if (sess.status === "pending" && TOTAL > 0) {
@@ -96,11 +97,10 @@ function render() {
             </div>`}
         </div>
         <div class="form-group">
-          <label>승인자 이름</label>
-          <select id="approved-by">
-            <option value="">승인자를 선택하세요</option>
-            ${HANDLERS.map(h => `<option value="${escapeHtml(h.name)}">${escapeHtml(h.name)}</option>`).join("")}
-          </select>
+          <label>승인자</label>
+          <div class="text-sm">${MY_NAME
+            ? `<strong>${escapeHtml(MY_NAME)}</strong> <span class="muted">(로그인한 계정으로 자동 기록돼요)</span>`
+            : `<span class="danger">계정에 이름이 설정돼 있지 않아요. 관리자에게 요청해 주세요.</span>`}</div>
         </div>
         <button id="confirm-btn" class="btn btn-success btn-block">✓ 승인하기 (${TOTAL}벌 바코드 발행)</button>
       </div>
@@ -184,8 +184,7 @@ function render() {
 }
 
 async function confirmApprove() {
-  const approved_by = document.getElementById("approved-by").value;
-  if (!approved_by) { showError("승인자 이름을 선택하세요"); return; }
+  if (!MY_NAME) { showError("계정에 이름이 설정돼 있지 않아 승인할 수 없어요. 관리자에게 요청해 주세요."); return; }
   const unsubmitted = HANGERS.filter(h => !h.submitted_at);
   if (unsubmitted.length > 0) {
     showError(`미제출 행거가 있습니다: 행거 ${unsubmitted.map(h => escapeHtml(h.hanger_number)).join(", ")}`);
@@ -200,44 +199,10 @@ async function confirmApprove() {
   btn.textContent = "⏳ 바코드 부여 중…";
 
   try {
-    // 모든 아이템 순서대로 (행거 created_at ASC → item order_index/created_at ASC)
-    const items = HANGERS.flatMap(h => (h.inventory_items || [])
-      .slice()
-      .sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0) || (a.created_at || "").localeCompare(b.created_at || ""))
-    );
-
-    // 각 아이템별로 next_barcode() RPC 호출
-    const updates = [];
-    for (let i = 0; i < items.length; i++) {
-      btn.textContent = `⏳ 바코드 부여 중… (${i + 1}/${items.length})`;
-      const { data: bc, error } = await sb.rpc("next_barcode", { p_location: SESS.location });
-      if (error) throw new Error("바코드 발행 실패: " + error.message);
-      updates.push({ id: items[i].id, barcode: bc });
-    }
-
-    btn.textContent = "⏳ 저장 중…";
-
-    // 각 아이템 UPDATE (Supabase는 배치 UPDATE with different values가 없어서 개별 호출)
-    // 성능: TOTAL 100개까지는 실측 2~3초. 그 이상이면 upsert 병렬화 고려.
-    for (const u of updates) {
-      const { error } = await sb.from("inventory_items").update({ barcode: u.barcode }).eq("id", u.id);
-      if (error) throw error;
-    }
-
-    // 세션 상태 업데이트
-    const firstBarcode = updates[0]?.barcode;
-    const numSuffix = firstBarcode ? firstBarcode.replace(/^[A-Z]+/, "") : null;  // "A26000226" → "26000226"
-    const { error: sessErr } = await sb
-      .from("inventory_sessions")
-      .update({
-        status: "approved",
-        start_barcode_num: numSuffix,   // 레거시 표시용, 첫 아이템 뒷자리만
-        approved_by,
-        approved_at: new Date().toISOString(),
-      })
-      .eq("id", SESSION_ID);
-    if (sessErr) throw sessErr;
-
+    // 서버에서 한 번에 처리한다: 바코드 발급, 상품 갱신, 승인 기록이 모두 성공하거나 모두 취소된다.
+    // 동시에 다른 사람이 승인해도 번호가 섞이지 않고, 이미 승인된 세션은 다시 승인되지 않는다.
+    const { error } = await sb.rpc("approve_inventory_session", { p_session_id: SESSION_ID });
+    if (error) throw new Error(error.message);
     load();
   } catch (e) {
     showError("승인 실패: " + e.message);
