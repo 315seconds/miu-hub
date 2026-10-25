@@ -115,7 +115,9 @@ function render() {
           바코드: <strong class="success mono">${escapeHtml(range.first)}</strong> ~ <strong class="success mono">${escapeHtml(range.last)}</strong>
           <span class="text-xs">(총 ${range.count}벌)</span>
         </div>` : ""}
-        <button id="reopen-btn" class="btn btn-outline btn-sm mt8">승인 취소 (수정)</button>
+        ${HANGERS.some(h => h.printed_at || h.kiosk_exported_at)
+          ? `<div class="text-sm mt8" style="color:var(--status-danger)">라벨을 이미 출력했거나 키오스크 파일을 내려받아서 승인을 취소할 수 없어요. 번호가 바뀌면 붙인 라벨과 어긋나요.</div>`
+          : `<button id="reopen-btn" class="btn btn-outline btn-sm mt8">승인 취소 (수정)</button>`}
       </div>
     `;
   } else if (SESS.status === "expired") {

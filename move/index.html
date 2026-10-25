@@ -10,15 +10,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#FFF8EE">
 <title>물류 이동</title>
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202609300010">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202609300010">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202610250912">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202610250912">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <!-- auth-migration: 마켓인유 통합 로그인 가드 -->
-<script src="/miu-hub/shared/config.js?v=202609300010"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202609300010"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202609300010"></script>
+<script src="/miu-hub/shared/config.js?v=202610250912"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202610250912"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202610250912"></script>
 <style>
 /* ════════════════════════════════════════════════════
    MIU MOVE · PLAYBLOCK
@@ -1486,12 +1486,18 @@ async function bulkSubmit() {
     const validItems = [];
     const errorItems = [];
 
-    const { data: invItems } = await app.supabase
-      .from('inventory_items')
-      .select('barcode, product_name, category, price')
-      .in('barcode', barcodes);
+    // 바코드를 200개씩 나눠 조회한다. (한 번에 많이 보내면 주소가 너무 길어지고 응답도 1000건에서 잘린다)
+    // 조회가 실패하면 "엑셀에 없음"으로 잘못 분류하지 않고 멈춘다.
     const invMap = {};
-    (invItems || []).forEach(it => { invMap[it.barcode] = it; });
+    const LOOKUP_CHUNK = 200;
+    for (let i = 0; i < barcodes.length; i += LOOKUP_CHUNK) {
+      const { data: invItems, error: lookupErr } = await app.supabase
+        .from('inventory_items')
+        .select('barcode, product_name, category, price')
+        .in('barcode', barcodes.slice(i, i + LOOKUP_CHUNK));
+      if (lookupErr) throw new Error('바코드 조회에 실패했어요. 네트워크를 확인하고 다시 시도해 주세요. (' + lookupErr.message + ')');
+      (invItems || []).forEach(it => { invMap[it.barcode] = it; });
+    }
 
     barcodes.forEach(bc => {
       const it = invMap[bc];
@@ -1568,61 +1574,25 @@ async function bulkConfirm() {
   ldg.style.display = 'flex';
 
   try {
-    const today = toDateStr(new Date());
-    // 세션 생성
-    const { data: session } = await app.supabase.from('move_sessions').insert({
-      session_date:   today,
-      from_location:  bulkState.from,
-      to_location:    bulkState.to,
-      status:         'pending',
-      created_by:     bulkState.name,
-    }).select().single();
+    // 세션과 항목을 서버에서 한 번에 저장한다. 하나라도 실패하면 전부 취소되어 빈 세션이나 반쪽짜리 세션이 남지 않는다.
+    const { data: result, error: saveErr } = await app.supabase.rpc('create_bulk_move_session', {
+      p_from:   bulkState.from,
+      p_to:     bulkState.to,
+      p_name:   bulkState.name,
+      p_valid:  bulkState.validItems,
+      p_errors: bulkState.errorItems,
+    });
+    if (saveErr) throw new Error(saveErr.message);
+    bulkState.sessionId = result.session_id;
 
-    if (!session) throw new Error('세션 생성 실패');
-    bulkState.sessionId = session.id;
-
-    // 아이템 일괄 insert
-    const items = bulkState.validItems.map(i => ({
-      session_id:       session.id,
-      barcode:          i.barcode,
-      product_name:     i.product_name,
-      category:         i.category,
-      price:            i.price,
-      current_location: bulkState.from,
-      scanned_by:       bulkState.name,
-      is_submitted:     true,
-      is_error:         false,
-    }));
-
-    // 500개씩 나눠서 insert (Supabase 1000개 제한 방지)
-    const chunkSize = 500;
-    for (let i = 0; i < items.length; i += chunkSize) {
-      await app.supabase.from('session_items').insert(items.slice(i, i + chunkSize));
-    }
-
-    // 오류 바코드도 기록
-    if (bulkState.errorItems.length > 0) {
-      const errItems = bulkState.errorItems.map(bc => ({
-        session_id:   session.id,
-        barcode:      bc,
-        scanned_by:   bulkState.name,
-        is_submitted: true,
-        is_error:     true,
-        error_msg:    '공동판매 파일에 없는 바코드',
-      }));
-      for (let i = 0; i < errItems.length; i += chunkSize) {
-        await app.supabase.from('session_items').insert(errItems.slice(i, i + chunkSize));
-      }
-    }
-
-    showToast(`${bulkState.validItems.length}벌 제출 완료! 매니저 승인을 요청하세요.`, 'success');
+    showToast(`${result.valid}벌 제출 완료! 승인되면 위치가 반영돼요.`, 'success');
     // 홈으로 이동
     document.getElementById('bulk-barcodes').value = '';
     showScreen('s-home');
     loadHomeSessions();
 
   } catch(e) {
-    showToast('오류: ' + e.message, 'error');
+    showToast('저장에 실패했어요. 아무것도 저장되지 않았으니 다시 눌러 주세요. (' + e.message + ')', 'error');
     btn.style.display = '';
     ldg.style.display = 'none';
   }

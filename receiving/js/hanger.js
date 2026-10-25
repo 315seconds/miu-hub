@@ -47,6 +47,7 @@ async function load() {
     currentCategory = loaded.length ? (loaded[loaded.length - 1].category || "") : "";
     unphotographedCount = loaded.filter(it => !it.photo_url).length;
     unbrandedCount = loaded.filter(it => !it.brand).length;
+    await waitMyName();   // "내 행거" 판별을 로그인한 계정 이름으로 한다
     render(loaded);
     if (SESSION.status === "pending") { loadSessionBrands(); loadTodayBrands(); }
   } catch (e) {

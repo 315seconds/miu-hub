@@ -1,9 +1,18 @@
 // shared.js — 공통 유틸리티 (하단 네비는 디자인 통일로 제거됨)
 
-// 이 기기에서 마지막으로 선택한 담당자 이름 — "내 행거" 판별에 사용 (실제 권한 통제 아님, UI 가드용)
+// "내 행거" 판별에 쓰는 이름. 로그인한 계정 이름으로 맞춰진다 (waitMyName 참고). UI 가드용이며 실제 권한 통제는 아님
 const MY_NAME_KEY = "miu-my-name";
 function getMyName() { return localStorage.getItem(MY_NAME_KEY) || ""; }
 function setMyName(name) { if (name) localStorage.setItem(MY_NAME_KEY, name); }
+
+// 로그인한 계정 이름을 돌려준다. 프로필은 auth-guard가 비동기로 불러오므로 준비될 때까지 기다린다.
+// 공용 기기에서 다른 사람 이름이 남아 있지 않도록 기록도 로그인 이름으로 갱신한다.
+async function waitMyName() {
+  for (let i = 0; i < 50 && window.MIU_PROFILE === undefined; i++) await new Promise((r) => setTimeout(r, 100));
+  const name = window.MIU_PROFILE?.name || "";
+  if (name) setMyName(name);
+  return name;
+}
 
 // 오늘 날짜 (YYYY.MM.DD 요일)
 function getTodayLabel() {

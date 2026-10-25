@@ -1,20 +1,19 @@
 const SESSION_ID = getParam("id");
 const STATUS_LABEL = { pending: "대기중", approved: "승인됨", processed: "처리완료" };
-let HANDLERS = [];
+let MY_NAME = "";   // 로그인한 계정 이름 (행거 담당자로 자동 기록)
 let SOURCES  = [];
 
 async function load() {
   if (!SESSION_ID) { showError("세션 ID 없음"); return; }
   try {
-    const [{ data: sess, error: se }, { data: hangers, error: he }, { data: handlers }, { data: sources }] = await Promise.all([
+    const [{ data: sess, error: se }, { data: hangers, error: he }, { data: sources }] = await Promise.all([
       sb.from("inventory_sessions").select("*").eq("id", SESSION_ID).single(),
       sb.from("inventory_hangers").select("*, inventory_items(*)").eq("session_id", SESSION_ID).order("created_at", { ascending: false }),
-      sb.from("profiles").select("name").eq("is_handler", true).not("name", "is", null).order("name"),
       sb.from("sources").select("name").eq("is_active", true).order("name"),
     ]);
     if (se) throw se;
     if (he) throw he;
-    HANDLERS = handlers || [];
+    MY_NAME = await waitMyName();
     SOURCES  = sources  || [];
 
     const total = hangers.reduce((s, h) => s + (h.inventory_items || []).length, 0);
@@ -62,10 +61,9 @@ function render({ session: sess, hangers, total }) {
         </div>
         <div class="form-group mt8">
           <label>담당자</label>
-          <select id="submitted-by">
-            <option value="">담당자를 선택하세요</option>
-            ${HANDLERS.map(h => `<option value="${escapeHtml(h.name)}"${h.name === getMyName() ? " selected" : ""}>${escapeHtml(h.name)}</option>`).join("")}
-          </select>
+          <div class="text-sm">${MY_NAME
+            ? `<strong>${escapeHtml(MY_NAME)}</strong> <span class="muted">(로그인한 계정으로 자동 기록돼요)</span>`
+            : `<span class="danger">계정에 이름이 설정돼 있지 않아요. 관리자에게 요청해 주세요.</span>`}</div>
         </div>
         <div class="form-group mt8">
           <label>출처</label>
@@ -79,7 +77,7 @@ function render({ session: sess, hangers, total }) {
   }
 
   if (hangers.length > 0) {
-    const myName = getMyName();
+    const myName = MY_NAME;
     html += hangers.map(h => {
       const items = h.inventory_items || [];
       const isMine = !h.submitted_by || h.submitted_by === myName;
@@ -136,10 +134,10 @@ async function deleteHanger(id, num, btn) {
 
 async function addHanger() {
   const hanger_number = document.getElementById("hanger-number").value.trim();
-  const submitted_by  = document.getElementById("submitted-by").value;
+  const submitted_by  = MY_NAME;
   const source        = document.getElementById("source-select").value;
   if (!hanger_number) { showError("행거 번호를 입력하세요"); return; }
-  if (!submitted_by) { showError("담당자를 선택하세요"); return; }
+  if (!submitted_by) { showError("계정에 이름이 설정돼 있지 않아 행거를 추가할 수 없어요. 관리자에게 요청해 주세요."); return; }
   if (!source)       { showError("출처(거래처)를 선택하세요"); return; }
   try {
     const { data: dup, error: dupErr } = await sb
