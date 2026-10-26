@@ -24,6 +24,9 @@ body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(-
 .st.read { color: var(--miu-success); font-weight: 600; }
 .st.unread { color: var(--miu-primary-active); font-weight: 600; }
 .st small { display: block; font-weight: 400; color: var(--miu-muted); margin-top: 1px; }
+.row .right { display: flex; align-items: center; gap: 12px; }
+.row .view { display: inline-flex; align-items: center; gap: 2px; padding: 6px 10px; border-radius: var(--miu-r-pill); border: 1px solid var(--miu-hairline); font-size: 12px; font-weight: 600; color: var(--miu-body); text-decoration: none; white-space: nowrap; }
+.row .view:active { background: var(--miu-surface-strong); }
 .empty { text-align: center; padding: 96px 32px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
 .hint { margin-top: 20px; font-size: 12.5px; color: var(--miu-muted); line-height: 1.6; }
 </style>
@@ -80,13 +83,16 @@ const daysSince = (iso) => Math.floor((Date.now() - new Date(iso).getTime()) / 8
         <div class="list">${rows.map((r) => `
           <div class="row">
             <span class="n">${esc(r.recipient_name)}</span>
-            ${r.read_at
-              ? `<span class="st read">열람 완료<small>${fmtKst(r.read_at)}</small></span>`
-              : `<span class="st unread">아직 안 읽음<small>${daysSince(r.created_at)}일 경과</small></span>`}
+            <span class="right">
+              ${r.read_at
+                ? `<span class="st read">열람 완료<small>${fmtKst(r.read_at)}</small></span>`
+                : `<span class="st unread">아직 안 읽음<small>${daysSince(r.created_at)}일 경과</small></span>`}
+              <a class="view" href="index.html?id=${encodeURIComponent(r.id)}&as=admin">레터 보기<i class="ph-bold ph-caret-right"></i></a>
+            </span>
           </div>`).join('')}
         </div>
       </section>`;
-  }).join('') + '<p class="hint">레터를 처음 열어본 시각이에요. 레터 내용은 이 화면에 보이지 않아요.</p>';
+  }).join('') + '<p class="hint">열람 시각은 수신자가 레터를 처음 열어본 때예요. “레터 보기”는 실제 발송된 레터를 읽기만 하며, 열람 기록은 바뀌지 않아요.</p>';
 })();
 </script>
 </body>

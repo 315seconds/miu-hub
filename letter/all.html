@@ -110,6 +110,8 @@ let filter = 'all';
 let asc = true;
 let me = null;
 let letterSubject = '';
+// 황태훈 전용: 열람 현황에서 넘어온 읽기 전용 보기(letter/index.html과 동일 규칙)
+const adminView = new URLSearchParams(location.search).get('as') === 'admin';
 
 function cellHtml(c, i) {
   return `<button class="cell" data-i="${i}" aria-label="${esc(c.brand || c.category)}">
@@ -126,8 +128,9 @@ function render(letter) {
     .filter(({ c }) => filter === 'all' || c.tier === filter)
     .sort((a, b) => (asc ? a.c.days - b.c.days : b.c.days - a.c.days) || (b.c.price || 0) - (a.c.price || 0));
   const chip = (k, label) => `<button class="chip ${filter === k ? 'active' : ''}" data-f="${k}">${label}<small>${counts[k]}</small></button>`;
-  const isPreview = me && letterSubject !== me.name;
+  const isPreview = !adminView && me && letterSubject !== me.name;
   root.innerHTML = `
+    ${adminView ? `<div class="preview-banner">👀 <b>${esc(letterSubject)}</b>님에게 발송된 레터예요. 읽기만 하며 열람 기록은 바뀌지 않아요.</div>` : ''}
     ${isPreview ? `<div class="preview-banner">👀 미리보기예요. <b>${esc(letterSubject)}</b>님의 레터를 보고 있어요.</div>` : ''}
     <div class="toolbar">
       <div class="chips">${chip('all', '전체')}${chip('fast', '⚡ 빠름')}${chip('mid', '보통')}${chip('slow', '오래 걸림')}</div>
@@ -179,9 +182,10 @@ document.getElementById('sheet-bg').addEventListener('click', (e) => { if (e.tar
     root.innerHTML = '<div class="empty">레터를 찾을 수 없어요.</div>';
     return;
   }
-  document.getElementById('back').href = `/miu-hub/letter/?id=${encodeURIComponent(id)}`;
-  const { data: letter, error } = await window.sb.from('weekly_letters')
-    .select('id,subject_name,payload').eq('id', id).single();
+  document.getElementById('back').href = `/miu-hub/letter/?id=${encodeURIComponent(id)}${adminView ? '&as=admin' : ''}`;
+  const { data: letter, error } = adminView
+    ? await window.sb.rpc('letter_admin_view', { p_id: id }).maybeSingle()
+    : await window.sb.from('weekly_letters').select('id,subject_name,payload').eq('id', id).single();
   if (error || !letter || !letter.payload.sold_all) {
     root.innerHTML = '<div class="empty">레터를 불러오지 못했어요.</div>';
     return;

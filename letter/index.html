@@ -169,6 +169,8 @@ window.fallback = (img, orig) => { img.onerror = null; img.src = orig; };
 
 let letters = [];
 let me = null;
+// 황태훈 전용: 열람 현황에서 수신자에게 실제 발송된 레터를 읽기 전용으로 본다(열람 기록 안 바뀜).
+const adminView = new URLSearchParams(location.search).get('as') === 'admin';
 
 function speedText(c) {
   return c.days === 0 ? '입고 당일 판매' : `입고 후 ${c.days}일 만에 판매`;
@@ -236,7 +238,7 @@ function scorecardHtml(p) {
 function letterHtml(letter) {
   const p = letter.payload;
   const w = p.week;
-  const isPreview = me && letter.subject_name !== me.name;
+  const isPreview = !adminView && me && letter.subject_name !== me.name;
   const photoNote = `
     <div class="photo-note"><i class="ph-bold ph-image-square"></i>
       <div>사진이 없는 물건은 사진 카드에서 제외했어요${w.no_photo_excluded > 0 ? ` (지난주 판매 ${w.no_photo_excluded}점)` : ''}. 숫자 통계에는 포함돼요.</div>
@@ -255,6 +257,7 @@ function letterHtml(letter) {
     </section>` : '';
 
   return `
+    ${adminView ? `<div class="preview-banner">👀 <b>${esc(letter.subject_name)}</b>님에게 발송된 레터예요. 읽기만 하며 열람 기록은 바뀌지 않아요.</div>` : ''}
     ${isPreview ? `<div class="preview-banner">👀 미리보기예요. <b>${esc(letter.subject_name)}</b>님의 레터를 보고 있어요.</div>` : ''}
     ${photoNote}
     <div class="hero">
@@ -271,7 +274,7 @@ function letterHtml(letter) {
     ${slow}
     ${p.sold_all && p.sold_all.length ? `
     <section class="section">
-      <a class="all-link" href="all.html?id=${letter.id}">
+      <a class="all-link" href="all.html?id=${letter.id}${adminView ? '&as=admin' : ''}">
         <i class="ph-bold ph-squares-four ic"></i>
         <div class="tx">
           <div class="tt">지난주 판매 ${p.sold_all.length}점 전체 보기</div>
@@ -304,20 +307,21 @@ function addDays(iso, n) {
 }
 
 async function show(id) {
-  const { data: letter, error } = await window.sb.from('weekly_letters')
-    .select('id,subject_name,week_start,read_at,payload').eq('id', id).single();
+  const { data: letter, error } = adminView
+    ? await window.sb.rpc('letter_admin_view', { p_id: id }).maybeSingle()
+    : await window.sb.from('weekly_letters').select('id,subject_name,week_start,read_at,payload').eq('id', id).single();
   if (error || !letter) {
     root.innerHTML = '<div class="empty"><i class="ph-bold ph-warning-circle"></i>레터를 불러오지 못했어요.</div>';
     return;
   }
-  root.innerHTML = chipsHtml(id) + letterHtml(letter);
+  root.innerHTML = (adminView ? '' : chipsHtml(id)) + letterHtml(letter);
   root.querySelectorAll('.week-chip').forEach((b) => b.addEventListener('click', () => {
     history.replaceState(null, '', `?id=${b.dataset.id}`);
     show(b.dataset.id);
   }));
   window.scrollTo(0, 0);
 
-  if (!letter.read_at) {
+  if (!adminView && !letter.read_at) {
     const readAt = new Date().toISOString();
     const { error: upErr } = await window.sb.from('weekly_letters')
       .update({ read_at: readAt }).eq('id', id).is('read_at', null);
@@ -334,6 +338,13 @@ async function show(id) {
     await new Promise((r) => setTimeout(r, 100));
   }
   me = window.MIU_PROFILE;
+  if (adminView) {
+    document.querySelector('.miu-header-back').href = 'status.html';
+    const id = new URLSearchParams(location.search).get('id');
+    if (!id) { root.innerHTML = '<div class="empty"><i class="ph-bold ph-warning-circle"></i>레터를 찾을 수 없어요.</div>'; return; }
+    show(id);
+    return;
+  }
   if (!me) {
     root.innerHTML = '<div class="empty"><i class="ph-bold ph-user-circle"></i>프로필을 불러오지 못했어요.</div>';
     return;
