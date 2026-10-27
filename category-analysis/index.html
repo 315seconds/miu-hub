@@ -43,8 +43,12 @@ body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(-
 .sec-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 8px; }
 .sec-head .t { font-family: var(--miu-serif); font-size: 19px; font-weight: 500; letter-spacing: -.4px; }
 .sec-head .s { font-size: 12.5px; color: var(--miu-muted); }
-.sortbar { display: flex; align-items: center; gap: 8px; margin-top: 18px; font-size: 13px; color: var(--miu-muted); }
-.sortbar select { height: 34px; padding: 0 8px; font: inherit; font-size: 13px; border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); background: var(--miu-canvas); color: var(--miu-ink); }
+.vdesc { margin: 10px 2px 0; font-size: 13px; color: var(--miu-muted); line-height: 1.6; }
+.more { margin-top: 14px; }
+.more > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--miu-muted); list-style: none; }
+.more > summary::-webkit-details-marker { display: none; }
+.more > summary::before { content: '＋ '; }
+.more[open] > summary::before { content: '－ '; }
 .list { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); overflow: hidden; }
 .item { border-bottom: 1px solid var(--miu-hairline-soft); }
 .item:last-child { border-bottom: none; }
@@ -137,7 +141,7 @@ const BAND_LABELS = ['~1만', '1~2만', '2~3만', '3~4만', '4~5만', '5~7만', 
 const NON_HANGER = new Set(['가방', '패션잡화', 'ETC', '패브릭', '신발', '모자', '봉투', '위탁', '(카테고리 미확인)']);
 const SECTIONS = ['물류', '온라인', '행거 외'];
 // 신호 기준: 효율지수 = (매출비중 ÷ 행거비중) × 100. 100이 같은 구간 평균.
-const IDX_UP = 115, IDX_DOWN = 85, MIN_QTY = 5, STALE_DAYS = 14, MIN_DAYS = 7;
+const IDX_UP = 115, IDX_DOWN = 85, MIN_QTY = 5, STALE_DAYS = 14, MIN_DAYS = 7, REFILL_DAYS = 14;
 
 const root = document.getElementById('root');
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -163,7 +167,7 @@ const deltaHtml = (d) => d == null ? '' : d === Infinity ? '<span class="delta u
 
 // ── 상태 ────────────────────────────────────────────────────
 const S = {
-  stores: [], from: '', to: '', days: 0, store: ALL, compare: true, tab: 'cat', sort: 'rev',
+  stores: [], from: '', to: '', days: 0, store: ALL, compare: true, tab: 'cat', view: 'all',
   cur: null, prev: null, open: new Set(), mxMetric: 'revPerH',
   mgStore: null, mgDate: '', mgRows: null,
 };
@@ -305,13 +309,23 @@ function ctrlHtml() {
 }
 
 // ── 렌더: 카테고리 탭 ───────────────────────────────────────
-const SORTS = {
-  rev: ['매출순', (a, b) => b.rev - a.rev],
-  qty: ['판매벌수순', (a, b) => b.qty - a.qty],
-  index: ['효율지수 높은순', (a, b) => (b.index ?? -1) - (a.index ?? -1)],
-  indexAsc: ['효율지수 낮은순', (a, b) => (a.index ?? 1e9) - (b.index ?? 1e9)],
-  stock: ['재고 소진일 짧은순', (a, b) => (a.stockDays ?? 1e9) - (b.stockDays ?? 1e9)],
+// 목적별 보기: 매장 매니저가 실제로 내리는 결정(행거 늘리기/줄이기/보충)에 맞춘 목록. hl = 줄 오른쪽에 강조할 숫자.
+const stockKey = (i) => (i.stock === 0 ? -1 : i.stockDays);
+const VIEWS = {
+  all:  { label: '전체', desc: '', pick: () => true, sort: (a, b) => b.rev - a.rev, hl: 'perH' },
+  up:   { label: '늘릴 후보', desc: '행거 대비 가장 잘 버는 카테고리예요. 자리를 더 줘도 되는지 보세요. 효율지수가 높은 순이에요.',
+          pick: (i) => i.signal.t === '늘리기', sort: (a, b) => (b.index ?? -1) - (a.index ?? -1), hl: 'index' },
+  down: { label: '줄일 후보', desc: '차지한 행거 대비 덜 버는 카테고리예요. 줄이기 전에 재고가 없어서 못 판 건 아닌지 보세요. 효율지수가 낮은 순이에요.',
+          pick: (i) => i.signal.t === '줄이기', sort: (a, b) => (a.index ?? 1e9) - (b.index ?? 1e9), hl: 'index' },
+  low:  { label: '곧 떨어질 것', desc: `지금 속도로 팔면 ${REFILL_DAYS}일 안에 재고가 떨어지는(이미 없는) 카테고리예요. 보충 요청이 급한 순이에요.`,
+          pick: (i) => i.qty > 0 && (i.stock === 0 || (i.stockDays != null && i.stockDays <= REFILL_DAYS)),
+          sort: (a, b) => stockKey(a) - stockKey(b), hl: 'stock' },
 };
+function hlHtml(i, hl) {
+  if (hl === 'index') return i.index != null ? `효율지수 <b>${Math.round(i.index)}</b>` : '';
+  if (hl === 'stock') return i.stock === 0 ? '<b>재고 없음</b>' : i.stockDays != null ? `재고 <b>${f1(i.stockDays)}일치</b>` : '';
+  return i.revPerH != null ? `행거당 <b>${man(i.revPerH)}</b>` : '';
+}
 
 function hangerText(i) {
   if (!(i.h > 0)) return '-';
@@ -319,40 +333,44 @@ function hangerText(i) {
   return i.chg > 0 ? `${base} (${f1(i.h0)}→${f1(i.h1)})` : base;
 }
 
-function itemHtml(i) {
+function itemHtml(i, hl) {
   const open = S.open.has(i.category);
   const q = Math.max(...i.bands, 1);
   const bands = i.bands.map((b) => `<div class="b"><div class="q">${b || ''}</div><div class="bar" style="height:${Math.round((Math.max(b, 0) / q) * 40)}px"></div></div>`).join('');
-  const stockDays = i.stock > 0 ? (i.stockDays != null ? `${f1(i.stockDays)}일치` : '판매 없음') : '-';
+  const stockDays = i.stock > 0 ? (i.stockDays != null ? `${f1(i.stockDays)}일치` : '판매 없음') : (i.qty > 0 ? '재고 없음' : '-');
   return `
     <div class="item${open ? ' open' : ''}" data-cat="${esc(i.category)}">
       <button class="item-head" type="button">
         <div class="l1"><span class="n">${esc(i.category)}</span><span class="miu-chip ${i.signal.k}">${i.signal.t}</span></div>
         <div class="l2">
           <span><b>${i.qty.toLocaleString('ko-KR')}벌</b> · ${man(i.rev)}${deltaHtml(i.dRev)}</span>
-          <span class="r">${i.revPerH != null ? `행거당 <b>${man(i.revPerH)}</b>` : ''}</span>
+          <span class="r">${hlHtml(i, hl)}</span>
         </div>
       </button>
       <div class="detail">
         <div class="kv">
           <div>판매벌수<b>${i.qty.toLocaleString('ko-KR')}벌 ${deltaHtml(i.dQty)}</b></div>
           <div>판매액<b>${won(i.rev)}원 ${deltaHtml(i.dRev)}</b></div>
-          <div>평균가<b>${won(i.avgPrice)}원</b></div>
           <div>평균 행거수<b>${hangerText(i)}</b></div>
           <div>행거당 판매액<b>${won(i.revPerH)}원</b></div>
-          <div>행거당 판매수<b>${f1(i.qtyPerH)}벌</b></div>
-          <div>행거당 일평균 판매액<b>${won(i.revPerHDay)}원</b></div>
           <div>효율지수<b>${i.index != null ? Math.round(i.index) : '-'}</b></div>
-          <div>매출비중<b>${i.revShare != null ? f1(i.revShare * 100) + '%' : '-'}</b></div>
-          <div>행거비중<b>${i.hShare != null ? f1(i.hShare * 100) + '%' : '-'}</b></div>
-          <div>현재 재고<b>${i.stock.toLocaleString('ko-KR')}벌</b></div>
           <div>재고 소진 예상<b>${stockDays}</b></div>
-          <div>입고 후 30일 내 판매<b>${i.d30r != null ? Math.round(i.d30r * 100) + '%' : '-'}</b></div>
-          <div>판매까지 걸린 일수(중앙값)<b>${i.med != null ? f1(i.med) + '일' : '-'}</b></div>
         </div>
-        <div class="cap">가격대별 판매벌수</div>
-        <div class="bands">${bands}</div>
-        <div class="bandlbl">${BAND_LABELS.map((l) => `<span>${l}</span>`).join('')}</div>
+        <details class="more"><summary>더 보기</summary>
+          <div class="kv" style="margin-top:10px">
+            <div>평균가<b>${won(i.avgPrice)}원</b></div>
+            <div>현재 재고<b>${i.stock.toLocaleString('ko-KR')}벌</b></div>
+            <div>행거당 판매수<b>${f1(i.qtyPerH)}벌</b></div>
+            <div>행거당 일평균 판매액<b>${won(i.revPerHDay)}원</b></div>
+            <div>매출비중<b>${i.revShare != null ? f1(i.revShare * 100) + '%' : '-'}</b></div>
+            <div>행거비중<b>${i.hShare != null ? f1(i.hShare * 100) + '%' : '-'}</b></div>
+            <div>입고 후 30일 내 판매<b>${i.d30r != null ? Math.round(i.d30r * 100) + '%' : '-'}</b></div>
+            <div>판매까지 걸린 일수(중앙값)<b>${i.med != null ? f1(i.med) + '일' : '-'}</b></div>
+          </div>
+          <div class="cap">가격대별 판매벌수</div>
+          <div class="bands">${bands}</div>
+          <div class="bandlbl">${BAND_LABELS.map((l) => `<span>${l}</span>`).join('')}</div>
+        </details>
       </div>
     </div>`;
 }
@@ -369,20 +387,24 @@ function renderCat() {
       <div class="stat"><div class="l">평균가</div><div class="v">${won(sm.avg)}</div><div class="d">일평균 판매액 ${man(sm.perDay)}</div></div>
       <div class="stat"><div class="l">행거당 판매액</div><div class="v">${sm.revPerH != null ? man(sm.revPerH) : '-'}</div><div class="d">${sm.hSum > 0 ? `행거 ${f1(sm.hSum)}개 기준` : '행거수 미입력'}</div></div>
     </div>
-    <div class="sortbar">정렬
-      <select id="sort">${Object.entries(SORTS).map(([k, [l]]) => `<option value="${k}"${k === S.sort ? ' selected' : ''}>${l}</option>`).join('')}</select>
-    </div>`;
+    <div class="views scroller" id="views" style="margin-top:18px">${Object.entries(VIEWS).map(([k, v]) =>
+      `<button type="button" class="chip${k === S.view ? ' on' : ''}" data-view="${k}">${v.label}${k === 'all' ? '' : ` ${view.items.filter(v.pick).length}`}</button>`).join('')}</div>
+    ${VIEWS[S.view].desc ? `<p class="vdesc">${VIEWS[S.view].desc}</p>` : ''}`;
+  const V = VIEWS[S.view];
+  let shown = 0;
   for (const sec of SECTIONS) {
-    const items = view.items.filter((i) => i.section === sec).sort(SORTS[S.sort][1]);
+    const items = view.items.filter((i) => i.section === sec && V.pick(i)).sort(V.sort);
     if (!items.length) continue;
     const g = view.sec[sec];
     const sub = g && g.h > 0
       ? `행거 ${f1(g.h)}개 · 행거당 ${man(g.rev / g.h)} · 판매 ${man(sumBy(items, (i) => i.rev))}`
       : `판매 ${man(sumBy(items, (i) => i.rev))}`;
     html += `<section class="sec"><div class="sec-head"><span class="t">${sec}</span><span class="s">${sub}</span></div>
-      <div class="list">${items.map(itemHtml).join('')}</div></section>`;
+      <div class="list">${items.map((i) => itemHtml(i, V.hl)).join('')}</div></section>`;
+    shown += items.length;
   }
   if (!view.items.length) html += '<div class="empty">이 기간·매장에는 판매가 없어요.</div>';
+  else if (!shown) html += '<div class="empty" style="padding:56px 24px">해당하는 카테고리가 없어요.</div>';
   html += `<button class="xl" id="xl" type="button">엑셀로 내려받기 (총합 + 매장별)</button>
     <p class="hint">숫자의 뜻과 판단 순서는 「사용법」 탭에 정리해 두었어요. 재고·재고 소진 예상은 조회 기간이 아니라 <b>지금</b> 재고 기준이고, 행거수 옆 *는 행거수 입력 이전 기간을 첫 입력값으로 채웠다는 뜻이에요.</p>`;
   document.getElementById('view').innerHTML = html;
@@ -420,7 +442,11 @@ function renderMx() {
   }
   document.getElementById('view').innerHTML = notesHtml(ALL) + `
     <div class="row-chips" style="margin-top:14px">
-      <select class="msel" id="mxm">${Object.entries(MX).map(([k, [l]]) => `<option value="${k}"${k === S.mxMetric ? ' selected' : ''}>${l}</option>`).join('')}</select>
+      <select class="msel" id="mxm">${(() => {
+        const opt = (k) => `<option value="${k}"${k === S.mxMetric ? ' selected' : ''}>${MX[k][0]}</option>`;
+        const main = ['revPerH', 'qty', 'stockDays'];
+        return `<optgroup label="자주 쓰는 지표">${main.map(opt).join('')}</optgroup><optgroup label="더 보기">${Object.keys(MX).filter((k) => !main.includes(k)).map(opt).join('')}</optgroup>`;
+      })()}</select>
     </div>
     <div class="mx-wrap"><table class="mx"><thead><tr><th>카테고리</th><th>총합</th>${S.stores.map((s) => `<th>${esc(s)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>
     <p class="hint">색은 <b>한 줄(카테고리 하나)마다 따로</b> 칠해요. 그 줄에서 값이 가장 큰 매장이 가장 진하고, 값이 작을수록 연해져요. 줄끼리는 비교하지 않고, 총합 열은 칠하지 않아요. 같은 카테고리인데 한 매장은 진하고 다른 매장은 아주 연하다면 물건을 옮겨 볼 후보예요. 자세한 설명은 「사용법」 탭에 있어요.</p>`;
@@ -585,20 +611,22 @@ async function downloadXlsx() {
 // ── 사용법 탭 ───────────────────────────────────────────────
 function renderHelp() {
   document.getElementById('view').innerHTML = `
-  <details class="help" open><summary>이 화면으로 알 수 있는 것</summary><div class="hbody">
-    <p>매장 행거는 한정돼 있어서 "많이 팔렸나"만으로는 진열을 정하기 어려워요. 이 화면은 세 가지를 같이 보여줘요.</p>
-    <ul>
-      <li><b>무엇이 잘 팔리나</b> — 판매벌수, 판매액, 평균가, 가격대, 직전 기간 대비</li>
-      <li><b>행거를 효율적으로 쓰고 있나</b> — 행거당 판매액, 효율지수, 늘리기/줄이기 신호</li>
-      <li><b>재고가 얼마나 버티나</b> — 현재 재고, 재고 소진 예상, 입고 후 팔리는 속도</li>
-    </ul>
+  <details class="help" open><summary>먼저 이것만 보세요</summary><div class="hbody">
+    <p>매장 매니저가 내리는 결정은 크게 세 가지예요. 결정마다 볼 곳이 정해져 있어요. 나머지 숫자는 <b>이유가 궁금할 때만</b> 보면 돼요.</p>
+    <table>
+      <tr><th>하고 싶은 일</th><th>어디를 보나</th></tr>
+      <tr><td><b>행거를 늘릴지 줄일지</b></td><td>카테고리 탭 → 「늘릴 후보」 / 「줄일 후보」. 줄 오른쪽 <b>효율지수</b>가 핵심이에요.</td></tr>
+      <tr><td><b>물류팀에 무엇을 보충 요청할지</b></td><td>카테고리 탭 → 「곧 떨어질 것」. 오른쪽 <b>재고 ○일치</b>(며칠치 남았나)를 보세요.</td></tr>
+      <tr><td><b>매장끼리 물건을 옮길지</b></td><td>매장 비교 탭 → 「행거당 판매액」. 한 줄에서 진한 매장과 연한 매장을 비교해요.</td></tr>
+    </table>
+    <p>목록에서 한 줄을 누르면 <b>판매벌수·판매액·평균 행거수·행거당 판매액·효율지수·재고 소진 예상</b> 여섯 가지가 먼저 나와요. 그 아래 「더 보기」에 평균가, 비중, 판매 속도, 가격대 같은 보조 숫자가 들어 있어요.</p>
   </div></details>
 
   <details class="help"><summary>처음 쓰는 순서</summary><div class="hbody">
     <ol>
       <li><b>기간 고르기</b> — 최근 14일 이상을 권장해요. 7일 미만이면 신호가 흔들려요. 「조회」를 누르면 직전 같은 길이의 기간과 자동으로 비교해요(끄려면 「직전 기간 대비」 해제).</li>
       <li><b>매장 고르기</b> — 「총합」은 전체 매장 합산, 아래 칩은 한 매장만 봐요. 다시 조회하지 않고 바로 바뀌어요.</li>
-      <li><b>카테고리 탭 위에서 아래로</b> — 위 요약 카드 → 구간(물류/온라인/행거 외)별 목록. 한 줄을 누르면 상세가 펼쳐져요.</li>
+      <li><b>카테고리 탭</b> — 위 요약 카드를 보고, 아래 칩(전체 / 늘릴 후보 / 줄일 후보 / 곧 떨어질 것)으로 하려는 일에 맞는 목록을 골라요. 한 줄을 누르면 상세가 펼쳐져요.</li>
       <li><b>매장 비교 탭</b> — 같은 카테고리가 어느 매장에서 잘 팔리는지 한눈에 봐요.</li>
       <li><b>행거를 바꿨다면</b> — 「행거수」 탭에서 바로 입력해요. 안 하면 행거당 숫자가 틀어져요.</li>
       <li><b>엑셀</b> — 카테고리 탭 맨 아래에서 총합과 매장별 시트로 내려받아요.</li>
@@ -640,14 +668,14 @@ function renderHelp() {
     </ul>
   </div></details>
 
-  <details class="help"><summary>정렬은 언제 쓰나</summary><div class="hbody">
+  <details class="help"><summary>목록 칩(보기) 설명</summary><div class="hbody">
     <dl>
-      <dt>매출순 (기본)</dt><dd>돈이 되는 카테고리부터. 가장 먼저 훑어볼 때.</dd>
-      <dt>판매벌수순</dt><dd>많이 나가는 카테고리부터. 물류팀에 보낼 수량을 가늠할 때.</dd>
-      <dt>효율지수 높은순</dt><dd>행거 대비 가장 잘 버는 카테고리부터. 행거를 <b>늘릴 후보</b>를 찾을 때.</dd>
-      <dt>효율지수 낮은순</dt><dd>자리 대비 가장 못 버는 카테고리부터. 행거를 <b>줄일 후보</b>를 찾을 때.</dd>
-      <dt>재고 소진일 짧은순</dt><dd>곧 떨어질 카테고리부터. <b>보충 요청</b>이 급한 것을 찾을 때.</dd>
+      <dt>전체</dt><dd>매출이 큰 순서로 전부 보여줘요. 오른쪽은 행거당 판매액이에요. 처음 훑어볼 때.</dd>
+      <dt>늘릴 후보</dt><dd>신호가 「늘리기」인 카테고리만, 효율지수 높은 순. 행거 대비 가장 잘 버는 것부터 보여줘요. 자리를 더 줘도 되는지 판단해요.</dd>
+      <dt>줄일 후보</dt><dd>신호가 「줄이기」인 카테고리만, 효율지수 낮은 순. 줄이기 전에 재고가 없어서 못 판 건 아닌지 「곧 떨어질 것」과 함께 보세요.</dd>
+      <dt>곧 떨어질 것</dt><dd>지금 속도로 팔면 ${REFILL_DAYS}일 안에 재고가 떨어지는(이미 없는) 카테고리만, 급한 순. 물류요청 보충 대상을 고를 때 써요.</dd>
     </dl>
+    <p>칩 옆 숫자는 해당하는 카테고리 수예요. 「판매벌수순」처럼 수량 기준 순서는 엑셀이나 매장 비교 탭의 「판매벌수」로 보세요.</p>
   </div></details>
 
   <details class="help"><summary>매장 비교 탭 활용</summary><div class="hbody">
@@ -714,7 +742,7 @@ function wireView() {
       if (it.classList.contains('open')) S.open.add(c); else S.open.delete(c);
     };
   });
-  const sort = document.getElementById('sort'); if (sort) sort.onchange = () => { S.sort = sort.value; renderView(); };
+  v.querySelectorAll('[data-view]').forEach((b) => { b.onclick = () => { S.view = b.dataset.view; renderView(); }; });
   const mxm = document.getElementById('mxm'); if (mxm) mxm.onchange = () => { S.mxMetric = mxm.value; renderView(); };
   const xl = document.getElementById('xl'); if (xl) xl.onclick = downloadXlsx;
   v.querySelectorAll('[data-mgstore]').forEach((b) => { b.onclick = () => { S.mgStore = b.dataset.mgstore; renderView(); }; });
