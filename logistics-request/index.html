@@ -65,7 +65,7 @@ const BANDS = [
   { label: '3~4만', max: 40000 }, { label: '4~5만', max: 50000 }, { label: '5~7만', max: 70000 },
   { label: '7~10만', max: 100000 }, { label: '10만~', max: Infinity },
 ];
-const GROUPS = ['일반', 'C(저가)', '온(온라인 수급)', '위탁', '봉투(PB)', '미확인'];
+const GROUPS = ['물류', 'C', '온라인', '위탁', '봉투(PB)', '미확인'];
 
 const root = document.getElementById('root');
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -109,11 +109,11 @@ async function fetchCategories(barcodes) {
 // ── 집계 ────────────────────────────────────────────────────
 function groupOf(cat) {
   if (cat === UNKNOWN) return '미확인';
-  if (cat.startsWith('온')) return '온(온라인 수급)';
+  if (cat.startsWith('온')) return '온라인';
   if (cat === '위탁') return '위탁';
   if (cat === '봉투') return '봉투(PB)';
-  if (cat.startsWith('C')) return 'C(저가)';
-  return '일반';
+  if (cat.startsWith('C')) return 'C';
+  return '물류';
 }
 const newStat = () => ({ qty: 0, rev: 0, bands: BANDS.map(() => 0) });
 const bandOf = (unit) => BANDS.findIndex((b) => unit < b.max);
@@ -253,7 +253,7 @@ function buildWorkbook({ from, to, storeLabel, agg }) {
     `가격대: 개당 판매가 기준(${BANDS.map((b) => b.label).join(' / ')}), 하한 포함·상한 미포함입니다. 예) 10,000원은 "1~2만"에 들어갑니다. 가격대 열의 값도 수량입니다.`,
     '매출·평균단가: 매출은 실제 판매 금액 합계, 평균단가는 매출 ÷ 판매수량입니다.',
     '카테고리: 입고 때 등록된 카테고리입니다. 영문 대소문자 표기 차이(온pk / 온PK 등)는 한 줄로 합쳤습니다.',
-    '구분: C로 시작=C(저가), 온으로 시작=온(해외 경매 등 온라인에서 수급한 물건, 판매 채널이 아님), 위탁, 봉투(PB=종이봉투), 나머지=일반.',
+    '구분: C로 시작=C, 온으로 시작=온라인(해외 경매 등 온라인에서 수급한 물건이며 판매 채널이 아님), 위탁, 봉투(PB=종이봉투), 나머지=물류.',
     `C · 위탁 · 온 · 봉투는 모두 포함했습니다.${agg.unmatched ? ` 카테고리를 찾지 못한 판매 ${agg.unmatched}건은 "${UNKNOWN}"로 표시했습니다.` : ''}`,
     '오늘 판매분은 아직 반영되지 않았을 수 있어 기간 끝을 어제로 두는 것을 권장합니다.',
   ]);
