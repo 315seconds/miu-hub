@@ -25,6 +25,7 @@
 | `report/` | 매출 리포트(키오스크 엑셀 업로드→파싱→분석→`sales_reports`). `migrate.html`, `patch-*.html`은 일회성 |
 | `letter/` | 주간 프라이싱 레터(`index`, `all`, `status`=황태훈 전용 열람 현황) |
 | `logistics-request/` | 매장 매니저 최영훈(+황태훈) 전용 물류요청 보조: 기간·매장 선택 → 카테고리별 판매수량+가격대 분포 엑셀. 브라우저에서 `sold_items`×`inventory_items.category` 집계(DB 변경 없음) |
+| `category-analysis/` | 최영훈·황태훈 전용 카테고리 판매 분석(시트 "카테고리자동화"의 허브판). 기간·매장 → 판매벌수·판매액·평균가·행거당 판매액·효율지수/신호·재고 소진·가격대·직전 기간 대비, 매장 비교, **행거수 이력 입력**, 엑셀. 집계는 RPC `category_performance` |
 | `item-scanner/` | 브랜드·사진 스캐너 |
 | `admin/` | 통합 관리(role=admin): 매장, 직원(이름·등급·담당자), 거래처 |
 | `calendar/`, `login.html`, `design-system.html`(미링크 데모) | |
@@ -44,6 +45,7 @@
 - 비로그인(anon) 완전 차단. 예외는 `inventory_items`의 컬러 패턴 라벨 도구용 정책 2개뿐(`anon_color_tool_select/update`). 상세 `docs/DB_ACCESS_POLICY_20261025.md`.
 - **황태훈 1명 전용**: `is_letter_admin()`(profile id 고정, `scripts/weekly-letters-admin-20261023.sql`). 범위를 넓히려면 이 함수만 고친다. 홈 타일 `#letter-status-tile`은 `#admin-section` 안이라 role=admin 이면서 `is_letter_admin()`일 때만 보인다. `status.html` 자체엔 클라이언트 게이트가 없고 RPC가 막는다.
 - **최영훈·황태훈 전용 화면**: `logistics-request/`. 홈 타일(`index.html`)과 페이지(`ALLOWED_NAMES`) 두 곳에서 `MIU_PROFILE.name` 이 `['최영훈','황태훈']`에 드는지 클라이언트 체크뿐(서버 차단 아님; 데이터는 로그인 직원 공통 권한). 이름 변경·동명이인·대상 추가 시 두 곳을 같이 고친다.
+- **category-analysis도 같은 두 사람 전용이며 서버가 강제**: `is_logistics_user()`(profile id 고정, `scripts/category-performance-20261027.sql`)가 RPC `category_performance`와 테이블 `store_hangers` RLS를 막는다. 홈 타일·페이지의 이름 체크(UI)는 별개이니 대상 변경 시 **함수 + 두 화면 + `logistics-request/`** 를 같이 고친다.
 
 ### 4.2 서버가 강제 (화면 우회 불가; 로그인 직원에게만, service_role/VM은 예외)
 - 입고 승인 = RPC `approve_inventory_session(uuid)` 한 번(바코드 발급+승인 기록 원자적, 동시 승인 직렬화, 승인자=로그인 이름).
@@ -57,6 +59,7 @@
 - 읽기 전용 조회: `supabase db query --linked "<SQL>"` (운영 직결).
 - 쓰기 SQL은 `scripts/<이름>-<날짜>.sql` 파일로 남기고 `supabase db query --linked -f`로 적용. 마이그레이션 이력 없음.
 - 최신 SQL: `weekly-letters-admin-view-20261026`(레터 열람 현황 본문 보기; `letter_read_status` 재정의), `approve-inventory-session / bulk-move-and-reopen-guard / force-login-name / hardening-step2`(2026-10-25). `hardening-step2` 헤더는 "적용 전 초안"이지만 **적용 완료**. `item-scanner/supabase/schema.sql` 헤더의 "테스트 전용"은 낡았다(2026-09-03 `miu_ops` 단일 프로젝트 통합).
+- 행거수: 테이블 `store_hangers`(매장·카테고리·적용일·행거수 **변경 이력**)가 원본. 기간 평균 행거수 = 그 기간 하루하루에 그날 유효한 값을 적용한 일수 가중 평균, 첫 입력일 이전 기간은 첫 값으로 채움. 초기값은 매니저 시트의 2026-10-27 현재 값(`category-performance-seed-20261027.sql`; 시트 카테고리명은 허브명과 동일하고 허브 `PK`는 시트에 없는 별개 카테고리). 재고·재고 소진은 조회 기간이 아닌 **현재** `inventory_items` 기준이라 과거 기간과 시점이 어긋난다.
 - Storage(모두 public 버킷): `inventory-photos`, `item-photos`, `letter-thumbs`(**쓰기는 service_role만**), `stocktake-reports`.
 - 스테이징(`scripts/staging-setup/`)은 운영 스키마 덤프 복원용이며 RPC·트리거·item-scanner 테이블이 없다. `30-copy-seed-data.sh`는 운영 개인정보를 복사하니 주의.
 
@@ -79,7 +82,7 @@
 - 카테고리 규칙: 분석에서 제외 C·위탁, `pb\d+` 바코드 제외, 이름이 '온'으로 시작하면 온라인, 외국 카드는 키워드 포함 여부로 판정.
 
 ## 7. 이력 (줄기만, 최신순)
-- 2026-10-27 매장 매니저 전용 물류요청 판매 집계 엑셀(`logistics-request/`, 홈 "물류 요청" 섹션).
+- 2026-10-27 매장 매니저 전용 화면 2개(홈 "매장 매니저" 섹션): 물류요청 판매 집계 엑셀(`logistics-request/`), 카테고리 판매 분석+행거수 이력(`category-analysis/`, DB `store_hangers`·`category_performance`).
 - 2026-10-26 레터 열람 현황에서 발송된 레터 읽기 전용 보기(`letter_admin_view`, `?as=admin`).
 - 2026-10-25 보안 강화: 비로그인 차단, 입고 승인·대량 이동·승인 취소·담당자 서버 강제, returnTo 검증, 판매 리포트·회전율·item-scanner 세션 토큰 사용.
 - 2026-10-23 주간 프라이싱 레터(홈 팝업, 판매 전체 보기, 썸네일 버킷, 열람 현황).

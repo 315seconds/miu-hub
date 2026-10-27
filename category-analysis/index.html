@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>카테고리 판매 분석 — 마켓인유</title>
+<meta name="theme-color" content="#faf9f5">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202610250918">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202610250918">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<style>
+body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
+.wrap { max-width: 560px; margin: 0 auto; padding: 8px 16px 64px; }
+.card { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 16px; margin-top: 14px; }
+.card h2 { font-size: 12px; font-weight: 700; color: var(--miu-muted); letter-spacing: .3px; margin-bottom: 10px; }
+.dates { display: flex; align-items: center; gap: 8px; }
+.dates input[type=date] { flex: 1; min-width: 0; height: 42px; padding: 0 10px; font: inherit; font-size: 15px; color: var(--miu-ink); background: var(--miu-canvas); border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); }
+.dates .sep { color: var(--miu-muted); }
+.row-chips { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+.chip { padding: 7px 13px; border-radius: var(--miu-r-pill); border: 1px solid var(--miu-hairline); background: var(--miu-canvas); font: inherit; font-size: 13px; font-weight: 600; color: var(--miu-body); cursor: pointer; white-space: nowrap; }
+.chip.on { background: var(--miu-primary); border-color: var(--miu-primary); color: #fff; }
+.scroller { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; -webkit-overflow-scrolling: touch; }
+.scroller::-webkit-scrollbar { display: none; }
+.toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--miu-body); margin-left: auto; }
+.toggle input { width: 17px; height: 17px; accent-color: var(--miu-primary); }
+.go { display: block; width: 100%; margin-top: 12px; padding: 13px; border: none; border-radius: var(--miu-r-lg); background: var(--miu-primary); color: #fff; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.go:disabled { opacity: .6; }
+.tabs { display: flex; gap: 4px; margin-top: 14px; padding: 3px; background: var(--miu-surface-card); border-radius: var(--miu-r-pill); }
+.tabs button { flex: 1; padding: 9px 4px; border: none; border-radius: var(--miu-r-pill); background: transparent; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--miu-muted); cursor: pointer; }
+.tabs button.on { background: var(--miu-canvas); color: var(--miu-ink); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.status { margin-top: 12px; font-size: 13.5px; line-height: 1.6; color: var(--miu-body); }
+.status.err { color: var(--miu-error); }
+.note { margin-top: 12px; padding: 11px 14px; border-radius: var(--miu-r-md); font-size: 13px; line-height: 1.55; background: color-mix(in srgb, var(--miu-warning) 16%, transparent); color: #6b5210; }
+.note.info { background: var(--miu-surface-card); color: var(--miu-body); }
+.stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.stat { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 14px 14px 12px; }
+.stat .l { font-size: 11.5px; color: var(--miu-muted); font-weight: 600; }
+.stat .v { font-family: var(--miu-serif); font-size: 22px; font-weight: 500; letter-spacing: -.5px; margin-top: 3px; }
+.stat .d { font-size: 12px; margin-top: 2px; color: var(--miu-muted); min-height: 16px; }
+.up { color: #2e6b3a; } .down { color: #b3412f; }
+.sec { margin-top: 26px; }
+.sec-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 8px; }
+.sec-head .t { font-family: var(--miu-serif); font-size: 19px; font-weight: 500; letter-spacing: -.4px; }
+.sec-head .s { font-size: 12.5px; color: var(--miu-muted); }
+.sortbar { display: flex; align-items: center; gap: 8px; margin-top: 18px; font-size: 13px; color: var(--miu-muted); }
+.sortbar select { height: 34px; padding: 0 8px; font: inherit; font-size: 13px; border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); background: var(--miu-canvas); color: var(--miu-ink); }
+.list { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); overflow: hidden; }
+.item { border-bottom: 1px solid var(--miu-hairline-soft); }
+.item:last-child { border-bottom: none; }
+.item-head { display: block; width: 100%; text-align: left; background: none; border: none; font: inherit; color: inherit; padding: 13px 14px; cursor: pointer; }
+.item-head:active { background: var(--miu-surface-strong); }
+.l1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.l1 .n { font-size: 15.5px; font-weight: 700; }
+.l2 { display: flex; justify-content: space-between; gap: 8px; margin-top: 5px; font-size: 13px; color: var(--miu-body); }
+.l2 .r { text-align: right; white-space: nowrap; }
+.l2 b { color: var(--miu-ink); font-weight: 600; }
+.delta { font-size: 11.5px; margin-left: 4px; font-weight: 600; }
+.detail { display: none; padding: 2px 14px 14px; }
+.item.open .detail { display: block; }
+.kv { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+.kv div { font-size: 12px; color: var(--miu-muted); }
+.kv b { display: block; margin-top: 1px; font-size: 14px; font-weight: 600; color: var(--miu-ink); }
+.bands { display: flex; align-items: flex-end; gap: 4px; height: 56px; margin-top: 14px; }
+.bands .b { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; }
+.bands .bar { width: 100%; background: var(--miu-primary); border-radius: 3px 3px 0 0; min-height: 1px; opacity: .85; }
+.bands .q { font-size: 10px; color: var(--miu-muted); margin-bottom: 2px; }
+.bandlbl { display: flex; gap: 4px; margin-top: 3px; }
+.bandlbl span { flex: 1; text-align: center; font-size: 9.5px; color: var(--miu-muted); letter-spacing: -.3px; }
+.cap { font-size: 12px; color: var(--miu-muted); margin: 14px 0 -8px; }
+.mx-wrap { overflow-x: auto; margin-top: 12px; border-radius: var(--miu-r-lg); background: var(--miu-surface-card); -webkit-overflow-scrolling: touch; }
+table.mx { border-collapse: collapse; font-size: 12.5px; min-width: 100%; }
+.mx th, .mx td { padding: 8px 9px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--miu-hairline-soft); }
+.mx th { font-weight: 700; color: var(--miu-body-strong); background: var(--miu-surface-card); position: sticky; top: 0; }
+.mx th:first-child, .mx td:first-child { text-align: left; position: sticky; left: 0; background: var(--miu-surface-card); z-index: 1; font-weight: 600; }
+.mx td.tot { font-weight: 700; border-right: 1px solid var(--miu-hairline); }
+.mx tr.grp td { text-align: left; font-family: var(--miu-serif); font-size: 14px; padding-top: 14px; color: var(--miu-muted); }
+.mx select, .msel { height: 38px; padding: 0 10px; font: inherit; font-size: 14px; border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); background: var(--miu-canvas); color: var(--miu-ink); }
+.mg-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 14px; border-bottom: 1px solid var(--miu-hairline-soft); }
+.mg-row:last-child { border-bottom: none; }
+.mg-row .n { font-size: 15px; font-weight: 600; }
+.mg-row .n small { display: block; font-size: 11.5px; color: var(--miu-muted); font-weight: 400; margin-top: 1px; }
+.mg-row input { width: 84px; height: 40px; text-align: right; padding: 0 10px; font: inherit; font-size: 16px; border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); background: var(--miu-canvas); color: var(--miu-ink); }
+.mg-row input.chg { border-color: var(--miu-primary); background: color-mix(in srgb, var(--miu-primary) 9%, var(--miu-canvas)); }
+.hist { font-size: 12.5px; color: var(--miu-body); line-height: 1.5; }
+.hist .h { display: flex; justify-content: space-between; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--miu-hairline-soft); }
+.hist .h:last-child { border-bottom: none; }
+.hist button { border: none; background: none; color: var(--miu-muted); font-size: 16px; cursor: pointer; padding: 0 4px; }
+.xl { display: block; width: 100%; margin-top: 22px; padding: 13px; border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-lg); background: var(--miu-canvas); font: inherit; font-size: 14px; font-weight: 600; color: var(--miu-body-strong); cursor: pointer; }
+.empty { text-align: center; padding: 96px 32px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
+.hint { margin-top: 20px; font-size: 12.5px; color: var(--miu-muted); line-height: 1.7; }
+</style>
+<script src="/miu-hub/shared/config.js?v=202610250918"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202610250918"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202610250918"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+</head>
+<body>
+
+<header class="miu-header">
+  <a href="/miu-hub/" class="miu-header-back" aria-label="허브로">
+    <i class="ph-bold ph-caret-left"></i>
+  </a>
+  <div class="miu-header-title">
+    <div class="miu-header-eyebrow">CATEGORY ANALYSIS</div>
+    <h1 class="miu-header-h1">카테고리 판매 분석</h1>
+  </div>
+</header>
+
+<div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
+
+<script>
+// 최영훈 · 황태훈 전용. 화면 게이트이며, 서버(RPC·store_hangers RLS)도 같은 두 사람의 id만 허용한다.
+const ALLOWED_NAMES = ['최영훈', '황태훈'];
+const WAREHOUSE = ['공동물류', '온라인', '재봉합성수', '재봉합부천'];
+const EXCLUDED = ['폐기', '위탁종료'];
+const ALL = '전체';
+const BAND_LABELS = ['~1만', '1~2만', '2~3만', '3~4만', '4~5만', '5~7만', '7~10만', '10만~'];
+// 행거에 거는 물건이 아닌 카테고리(앞의 '온' 제거 후 비교). 행거수가 입력돼 있으면 행거 카테고리로 본다.
+const NON_HANGER = new Set(['가방', '패션잡화', 'ETC', '패브릭', '신발', '모자', '봉투', '위탁', '(카테고리 미확인)']);
+const SECTIONS = ['물류', '온라인', '행거 외'];
+// 신호 기준: 효율지수 = (매출비중 ÷ 행거비중) × 100. 100이 같은 구간 평균.
+const IDX_UP = 115, IDX_DOWN = 85, MIN_QTY = 5, STALE_DAYS = 14, MIN_DAYS = 7;
+
+const root = document.getElementById('root');
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const kstDate = (d = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(d);
+const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+const diffDays = (a, b) => Math.round((new Date(b + 'T00:00:00Z') - new Date(a + 'T00:00:00Z')) / 86400000);
+const md = (iso) => { const [, m, d] = iso.split('-'); return `${+m}/${+d}`; };
+const num = (x) => (x == null ? null : Number(x));
+const sumBy = (arr, f) => arr.reduce((a, x) => a + f(x), 0);
+
+const won = (n) => (n == null ? '-' : Math.round(n).toLocaleString('ko-KR'));
+const man = (n) => {                                  // 모바일용 짧은 금액
+  if (n == null) return '-';
+  const a = Math.abs(n), s = n < 0 ? '-' : '';
+  if (a >= 1e8) return `${s}${(a / 1e8).toFixed(2)}억`;
+  if (a >= 1e4) return `${s}${(Math.round(a / 1e3) / 10).toLocaleString('ko-KR')}만`;
+  return `${s}${Math.round(a).toLocaleString('ko-KR')}`;
+};
+const f1 = (n) => (n == null ? '-' : (Math.round(n * 10) / 10).toLocaleString('ko-KR'));
+const pctDelta = (cur, prev) => (prev == null ? null : prev === 0 ? (cur === 0 ? null : Infinity) : (cur - prev) / Math.abs(prev));
+const deltaHtml = (d) => d == null ? '' : d === Infinity ? '<span class="delta up">신규</span>'
+  : `<span class="delta ${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'}${Math.round(Math.abs(d) * 100)}%</span>`;
+
+// ── 상태 ────────────────────────────────────────────────────
+const S = {
+  stores: [], from: '', to: '', days: 0, store: ALL, compare: true, tab: 'cat', sort: 'rev',
+  cur: null, prev: null, open: new Set(), mxMetric: 'revPerH',
+  mgStore: null, mgDate: '', mgRows: null,
+};
+
+// ── 데이터 ──────────────────────────────────────────────────
+function normRow(r) {
+  return { store: r.store, category: r.category, qty: r.sold_qty, rev: Number(r.revenue), bands: r.bands,
+    n: r.sell_days_n, d30: r.sold_30d, med: num(r.sell_days_median), stock: r.stock_qty,
+    h: num(r.avg_hangers), hd: num(r.hanger_days), h0: num(r.start_hangers), h1: num(r.end_hangers),
+    chg: r.hanger_changes, upd: r.hanger_updated, back: r.hanger_backfilled };
+}
+
+async function fetchPerf(from, to) {
+  const { data, error } = await window.sb.rpc('category_performance', { p_from: from, p_to: to, p_stores: S.stores });
+  if (error) throw error;
+  const byStore = new Map();
+  for (const r of data.map(normRow)) {
+    if (!byStore.has(r.store)) byStore.set(r.store, new Map());
+    byStore.get(r.store).set(r.category, r);
+  }
+  return byStore;
+}
+
+function sectionOf(cat, h) {
+  const online = cat.startsWith('온');
+  const base = online ? cat.slice(1) : cat;
+  if (!(h > 0) && NON_HANGER.has(base)) return '행거 외';
+  return online ? '온라인' : '물류';
+}
+
+function signalOf(i, section) {
+  if (i.section === '행거 외') return { k: 'na', t: '행거 외' };
+  if (!(i.h > 0)) return i.qty > 0 ? { k: 'warn', t: '행거 미입력' } : { k: 'na', t: '-' };
+  if (i.index == null) return { k: 'na', t: '-' };
+  if (i.index <= IDX_DOWN) return { k: 'danger', t: '줄이기' };
+  if (i.index >= IDX_UP) return i.qty < MIN_QTY ? { k: 'muted', t: '표본 적음' } : { k: 'success', t: '늘리기' };
+  return { k: 'muted', t: '유지' };
+}
+
+// 한 매장(또는 전체)의 카테고리 행들 → 파생 지표
+function derive(catMap, prevMap, days) {
+  const items = [...catMap.values()].map((r) => ({ ...r }));
+  for (const i of items) i.section = sectionOf(i.category, i.h);
+  const sec = {};
+  for (const s of ['물류', '온라인']) {
+    const g = items.filter((i) => i.section === s && i.h > 0);
+    sec[s] = { rev: sumBy(g, (i) => i.rev), h: sumBy(g, (i) => i.h), qty: sumBy(g, (i) => i.qty), n: g.length };
+  }
+  for (const i of items) {
+    const p = prevMap && prevMap.get(i.category);
+    i.prevQty = prevMap ? (p ? p.qty : 0) : null;
+    i.prevRev = prevMap ? (p ? p.rev : 0) : null;
+    i.dQty = prevMap ? pctDelta(i.qty, i.prevQty) : null;
+    i.dRev = prevMap ? pctDelta(i.rev, i.prevRev) : null;
+    i.avgPrice = i.qty > 0 ? i.rev / i.qty : null;
+    i.revPerH = i.h > 0 ? i.rev / i.h : null;
+    i.qtyPerH = i.h > 0 ? i.qty / i.h : null;
+    i.revPerHDay = i.hd > 0 ? i.rev / i.hd : null;
+    i.stockDays = i.qty > 0 && i.stock > 0 ? i.stock / (i.qty / days) : null;
+    i.d30r = i.n > 0 ? i.d30 / i.n : null;
+    const g = sec[i.section];
+    i.revShare = g && i.h > 0 && g.rev > 0 ? i.rev / g.rev : null;
+    i.hShare = g && i.h > 0 && g.h > 0 ? i.h / g.h : null;
+    i.index = i.revShare != null && i.hShare ? (i.revShare / i.hShare) * 100 : null;
+    i.signal = signalOf(i);
+  }
+  return { items: items.filter((i) => i.qty !== 0 || i.h > 0), sec };
+}
+
+function storeView(store) {
+  const cur = S.cur.get(store) || new Map();
+  const prev = S.compare && S.prev ? (S.prev.get(store) || new Map()) : null;
+  return derive(cur, prev, S.days);
+}
+
+function summarize(view, store) {
+  const all = view.items;
+  const qty = sumBy(all, (i) => i.qty), rev = sumBy(all, (i) => i.rev);
+  const hang = all.filter((i) => i.section !== '행거 외' && i.h > 0);
+  const hSum = sumBy(hang, (i) => i.h), hRev = sumBy(hang, (i) => i.rev);
+  let pq = null, pr = null;
+  if (S.compare && S.prev) {
+    const pm = S.prev.get(store) || new Map();
+    pq = sumBy([...pm.values()], (r) => r.qty); pr = sumBy([...pm.values()], (r) => r.rev);
+  }
+  return { qty, rev, avg: qty > 0 ? rev / qty : null, hSum, revPerH: hSum > 0 ? hRev / hSum : null,
+    perDay: rev / S.days, dQty: pq == null ? null : pctDelta(qty, pq), dRev: pr == null ? null : pctDelta(rev, pr) };
+}
+
+// ── 렌더: 공통 ──────────────────────────────────────────────
+function notesHtml(store) {
+  const rows = [...(S.cur.get(store) || new Map()).values()].filter((r) => r.h != null);
+  const out = [];
+  if (S.days < MIN_DAYS) out.push(`<div class="note">기간이 ${S.days}일로 짧아요. 신호(늘리기/줄이기)가 흔들릴 수 있으니 ${MIN_DAYS}일 이상을 권장해요.</div>`);
+  if (!rows.length) {
+    out.push('<div class="note">이 매장은 행거수가 입력돼 있지 않아요. 「행거수」 탭에서 입력하면 행거당 지표가 나와요.</div>');
+    return out.join('');
+  }
+  const last = rows.map((r) => r.upd).filter(Boolean).sort().pop();
+  if (last && diffDays(last, kstDate()) > STALE_DAYS)
+    out.push(`<div class="note">행거수 마지막 입력이 ${diffDays(last, kstDate())}일 전(${md(last)})이에요. 행거를 조정했다면 「행거수」 탭에서 업데이트해 주세요.</div>`);
+  if (rows.some((r) => r.back))
+    out.push('<div class="note info">행거수가 처음 입력된 날 이전 기간은 가장 오래된 입력값으로 계산했어요.</div>');
+  const changed = rows.filter((r) => r.chg > 0).length;
+  if (changed) out.push(`<div class="note info">기간 중 행거수가 바뀐 카테고리가 ${changed}개 있어요. 행거수는 바뀐 날짜를 반영한 일수 평균이에요.</div>`);
+  return out.join('');
+}
+
+function ctrlHtml() {
+  const stores = [ALL, ...S.stores];
+  return `
+    <div class="card">
+      <h2>기간</h2>
+      <div class="dates">
+        <input type="date" id="from" value="${S.from}" max="${kstDate()}">
+        <span class="sep">~</span>
+        <input type="date" id="to" value="${S.to}" max="${kstDate()}">
+      </div>
+      <div class="row-chips">
+        ${[7, 14, 30].map((n) => `<button type="button" class="chip" data-days="${n}">최근 ${n}일</button>`).join('')}
+        <label class="toggle"><input type="checkbox" id="cmp" ${S.compare ? 'checked' : ''}>직전 기간 대비</label>
+      </div>
+      <button class="go" id="go" type="button">조회</button>
+      <div class="status" id="status"></div>
+    </div>
+    <div class="card">
+      <h2>매장</h2>
+      <div class="scroller" id="storechips">
+        ${stores.map((s) => `<button type="button" class="chip${s === S.store ? ' on' : ''}" data-store="${esc(s)}">${esc(s === ALL ? '총합' : s)}</button>`).join('')}
+      </div>
+    </div>
+    <div class="tabs" id="tabs">
+      <button data-tab="cat" class="${S.tab === 'cat' ? 'on' : ''}">카테고리</button>
+      <button data-tab="mx" class="${S.tab === 'mx' ? 'on' : ''}">매장 비교</button>
+      <button data-tab="hg" class="${S.tab === 'hg' ? 'on' : ''}">행거수</button>
+    </div>
+    <div id="view"></div>`;
+}
+
+// ── 렌더: 카테고리 탭 ───────────────────────────────────────
+const SORTS = {
+  rev: ['매출순', (a, b) => b.rev - a.rev],
+  qty: ['판매벌수순', (a, b) => b.qty - a.qty],
+  index: ['효율지수 높은순', (a, b) => (b.index ?? -1) - (a.index ?? -1)],
+  indexAsc: ['효율지수 낮은순', (a, b) => (a.index ?? 1e9) - (b.index ?? 1e9)],
+  stock: ['재고 소진일 짧은순', (a, b) => (a.stockDays ?? 1e9) - (b.stockDays ?? 1e9)],
+};
+
+function hangerText(i) {
+  if (!(i.h > 0)) return '-';
+  const base = f1(i.h) + (i.back ? '*' : '');
+  return i.chg > 0 ? `${base} (${f1(i.h0)}→${f1(i.h1)})` : base;
+}
+
+function itemHtml(i) {
+  const open = S.open.has(i.category);
+  const q = Math.max(...i.bands, 1);
+  const bands = i.bands.map((b) => `<div class="b"><div class="q">${b || ''}</div><div class="bar" style="height:${Math.round((Math.max(b, 0) / q) * 40)}px"></div></div>`).join('');
+  const stockDays = i.stock > 0 ? (i.stockDays != null ? `${f1(i.stockDays)}일치` : '판매 없음') : '-';
+  return `
+    <div class="item${open ? ' open' : ''}" data-cat="${esc(i.category)}">
+      <button class="item-head" type="button">
+        <div class="l1"><span class="n">${esc(i.category)}</span><span class="miu-chip ${i.signal.k}">${i.signal.t}</span></div>
+        <div class="l2">
+          <span><b>${i.qty.toLocaleString('ko-KR')}벌</b> · ${man(i.rev)}${deltaHtml(i.dRev)}</span>
+          <span class="r">${i.revPerH != null ? `행거당 <b>${man(i.revPerH)}</b>` : ''}</span>
+        </div>
+      </button>
+      <div class="detail">
+        <div class="kv">
+          <div>판매벌수<b>${i.qty.toLocaleString('ko-KR')}벌 ${deltaHtml(i.dQty)}</b></div>
+          <div>판매액<b>${won(i.rev)}원 ${deltaHtml(i.dRev)}</b></div>
+          <div>평균가<b>${won(i.avgPrice)}원</b></div>
+          <div>평균 행거수<b>${hangerText(i)}</b></div>
+          <div>행거당 판매액<b>${won(i.revPerH)}원</b></div>
+          <div>행거당 판매수<b>${f1(i.qtyPerH)}벌</b></div>
+          <div>행거당 일평균 판매액<b>${won(i.revPerHDay)}원</b></div>
+          <div>효율지수<b>${i.index != null ? Math.round(i.index) : '-'}</b></div>
+          <div>매출비중<b>${i.revShare != null ? f1(i.revShare * 100) + '%' : '-'}</b></div>
+          <div>행거비중<b>${i.hShare != null ? f1(i.hShare * 100) + '%' : '-'}</b></div>
+          <div>현재 재고<b>${i.stock.toLocaleString('ko-KR')}벌</b></div>
+          <div>재고 소진 예상<b>${stockDays}</b></div>
+          <div>입고 후 30일 내 판매<b>${i.d30r != null ? Math.round(i.d30r * 100) + '%' : '-'}</b></div>
+          <div>판매까지 걸린 일수(중앙값)<b>${i.med != null ? f1(i.med) + '일' : '-'}</b></div>
+        </div>
+        <div class="cap">가격대별 판매벌수</div>
+        <div class="bands">${bands}</div>
+        <div class="bandlbl">${BAND_LABELS.map((l) => `<span>${l}</span>`).join('')}</div>
+      </div>
+    </div>`;
+}
+
+function renderCat() {
+  const view = storeView(S.store);
+  const sm = summarize(view, S.store);
+  const cmpLabel = S.compare && S.prev ? `직전 ${S.days}일 대비` : '';
+  const cmp = (d) => (d == null ? '' : deltaHtml(d));
+  let html = notesHtml(S.store) + `
+    <div class="stats">
+      <div class="stat"><div class="l">판매벌수</div><div class="v">${sm.qty.toLocaleString('ko-KR')}</div><div class="d">${cmp(sm.dQty)} ${cmp(sm.dQty) ? cmpLabel : ''}</div></div>
+      <div class="stat"><div class="l">판매액</div><div class="v">${man(sm.rev)}</div><div class="d">${cmp(sm.dRev)} ${cmp(sm.dRev) ? cmpLabel : ''}</div></div>
+      <div class="stat"><div class="l">평균가</div><div class="v">${won(sm.avg)}</div><div class="d">일평균 판매액 ${man(sm.perDay)}</div></div>
+      <div class="stat"><div class="l">행거당 판매액</div><div class="v">${sm.revPerH != null ? man(sm.revPerH) : '-'}</div><div class="d">${sm.hSum > 0 ? `행거 ${f1(sm.hSum)}개 기준` : '행거수 미입력'}</div></div>
+    </div>
+    <div class="sortbar">정렬
+      <select id="sort">${Object.entries(SORTS).map(([k, [l]]) => `<option value="${k}"${k === S.sort ? ' selected' : ''}>${l}</option>`).join('')}</select>
+    </div>`;
+  for (const sec of SECTIONS) {
+    const items = view.items.filter((i) => i.section === sec).sort(SORTS[S.sort][1]);
+    if (!items.length) continue;
+    const g = view.sec[sec];
+    const sub = g && g.h > 0
+      ? `행거 ${f1(g.h)}개 · 행거당 ${man(g.rev / g.h)} · 판매 ${man(sumBy(items, (i) => i.rev))}`
+      : `판매 ${man(sumBy(items, (i) => i.rev))}`;
+    html += `<section class="sec"><div class="sec-head"><span class="t">${sec}</span><span class="s">${sub}</span></div>
+      <div class="list">${items.map(itemHtml).join('')}</div></section>`;
+  }
+  if (!view.items.length) html += '<div class="empty">이 기간·매장에는 판매가 없어요.</div>';
+  html += `<button class="xl" id="xl" type="button">엑셀로 내려받기 (총합 + 매장별)</button>
+    <p class="hint">효율지수는 같은 구간(물류/온라인)에서 매출비중 ÷ 행거비중 × 100이에요. ${IDX_UP} 이상이면 늘리기, ${IDX_DOWN} 이하면 줄이기, 그 사이는 유지로 봐요(판매 ${MIN_QTY}벌 미만의 늘리기는 표본 적음). 재고·재고 소진 예상은 조회 기간이 아니라 <b>지금</b> 재고 기준이에요. *는 행거수 입력 이전 기간을 첫 입력값으로 채웠다는 뜻이에요.</p>`;
+  document.getElementById('view').innerHTML = html;
+}
+
+// ── 렌더: 매장 비교 탭 ──────────────────────────────────────
+const MX = {
+  revPerH:  ['행거당 판매액', (i) => i.revPerH, (v) => man(v)],
+  index:    ['효율지수', (i) => i.index, (v) => Math.round(v)],
+  qty:      ['판매벌수', (i) => i.qty, (v) => v.toLocaleString('ko-KR')],
+  rev:      ['판매액', (i) => i.rev, (v) => man(v)],
+  qtyPerH:  ['행거당 판매수', (i) => i.qtyPerH, (v) => f1(v)],
+  h:        ['평균 행거수', (i) => (i.h > 0 ? i.h : null), (v) => f1(v)],
+  stockDays:['재고 소진 예상(일)', (i) => i.stockDays, (v) => f1(v)],
+  stock:    ['현재 재고', (i) => (i.stock > 0 ? i.stock : null), (v) => v.toLocaleString('ko-KR')],
+};
+
+function renderMx() {
+  const cols = [ALL, ...S.stores];
+  const views = new Map(cols.map((c) => [c, new Map(storeView(c).items.map((i) => [i.category, i]))]));
+  const [, get, fmt] = MX[S.mxMetric];
+  const cats = [...views.get(ALL).values()].sort((a, b) => b.rev - a.rev);
+  let body = '';
+  for (const sec of SECTIONS) {
+    const g = cats.filter((i) => i.section === sec);
+    if (!g.length) continue;
+    body += `<tr class="grp"><td colspan="${cols.length + 1}">${sec}</td></tr>`;
+    for (const c of g) {
+      const vals = cols.slice(1).map((s) => { const it = views.get(s).get(c.category); const v = it ? get(it) : null; return v == null || Number.isNaN(v) ? null : v; });
+      const max = Math.max(...vals.filter((v) => v != null), 0);
+      const t = get(c);
+      body += `<tr><td>${esc(c.category)}</td><td class="tot">${t == null ? '-' : fmt(t)}</td>${vals.map((v) =>
+        `<td${v != null && max > 0 && S.mxMetric !== 'stockDays' ? ` style="background:rgba(204,120,92,${(0.38 * v / max).toFixed(2)})"` : ''}>${v == null ? '-' : fmt(v)}</td>`).join('')}</tr>`;
+    }
+  }
+  document.getElementById('view').innerHTML = notesHtml(ALL) + `
+    <div class="row-chips" style="margin-top:14px">
+      <select class="msel" id="mxm">${Object.entries(MX).map(([k, [l]]) => `<option value="${k}"${k === S.mxMetric ? ' selected' : ''}>${l}</option>`).join('')}</select>
+    </div>
+    <div class="mx-wrap"><table class="mx"><thead><tr><th>카테고리</th><th>총합</th>${S.stores.map((s) => `<th>${esc(s)}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>
+    <p class="hint">진한 칸이 그 카테고리에서 상대적으로 큰 매장이에요(매장끼리만 비교, 총합 열은 제외). 같은 카테고리인데 한 매장은 잘 팔리고 다른 매장은 안 팔린다면 물건을 옮겨 볼 후보예요.</p>`;
+}
+
+// ── 행거수 관리 탭 ──────────────────────────────────────────
+async function loadHangers(store) {
+  const { data, error } = await window.sb.from('store_hangers')
+    .select('id,category,effective_date,hangers,updated_by').eq('store', store).order('effective_date');
+  if (error) throw error;
+  const latest = new Map(), hist = [];
+  const prevVal = new Map();
+  for (const r of data) {
+    const h = Number(r.hangers);
+    hist.push({ ...r, hangers: h, old: prevVal.has(r.category) ? prevVal.get(r.category) : null });
+    prevVal.set(r.category, h);
+    latest.set(r.category, { h, date: r.effective_date });
+  }
+  S.mgRows = { latest, hist: hist.reverse() };
+}
+
+function mgCategories(store) {
+  const fromPerf = [...(S.cur.get(store) || new Map()).values()]
+    .filter((r) => r.qty !== 0 || r.stock > 0 || r.h > 0)
+    .filter((r) => r.h > 0 || !NON_HANGER.has(r.category.startsWith('온') ? r.category.slice(1) : r.category))
+    .sort((a, b) => b.rev - a.rev).map((r) => r.category);
+  const known = [...S.mgRows.latest.keys()];
+  return [...new Set([...fromPerf, ...known])].sort((a, b) => (a.startsWith('온') - b.startsWith('온')));
+}
+
+async function renderHg() {
+  const v = document.getElementById('view');
+  if (S.store === ALL && !S.mgStore) S.mgStore = S.stores[0];
+  const store = S.mgStore || (S.store !== ALL ? S.store : S.stores[0]);
+  S.mgStore = store;
+  v.innerHTML = '<div class="empty">불러오는 중…</div>';
+  try { await loadHangers(store); } catch (e) { v.innerHTML = `<div class="status err">불러오지 못했어요: ${esc(e.message || e)}</div>`; return; }
+  const cats = mgCategories(store);
+  const rows = (list) => list.map((c) => {
+    const cur = S.mgRows.latest.get(c);
+    return `<div class="mg-row"><span class="n">${esc(c)}<small>${cur ? `${md(cur.date)} 입력 · ${f1(cur.h)}개` : '입력 없음'}</small></span>
+      <input type="number" inputmode="decimal" min="0" step="0.5" data-cat="${esc(c)}" data-cur="${cur ? cur.h : ''}" placeholder="${cur ? f1(cur.h) : '0'}" value="${cur ? cur.h : ''}"></div>`;
+  }).join('');
+  const phys = cats.filter((c) => !c.startsWith('온')), onl = cats.filter((c) => c.startsWith('온'));
+  const histRows = S.mgRows.hist.slice(0, 40).map((r) => `<div class="h"><span>${md(r.effective_date)} · ${esc(r.category)} ${r.old != null ? f1(r.old) + '→' : ''}<b>${f1(r.hangers)}개</b>${r.updated_by ? ` <span style="color:var(--miu-muted)">${esc(r.updated_by)}</span>` : ''}</span><button type="button" data-del="${r.id}" aria-label="삭제">×</button></div>`).join('');
+  v.innerHTML = `
+    <div class="card">
+      <h2>행거수 입력</h2>
+      <div class="scroller">${S.stores.map((s) => `<button type="button" class="chip${s === store ? ' on' : ''}" data-mgstore="${esc(s)}">${esc(s)}</button>`).join('')}</div>
+      <div class="dates" style="margin-top:12px"><span style="font-size:13px;color:var(--miu-muted);white-space:nowrap">적용일</span>
+        <input type="date" id="mgdate" value="${S.mgDate}" max="${addDays(kstDate(), 30)}"></div>
+      <p class="hint" style="margin-top:10px">바꾼 칸만 저장돼요. 적용일부터 그 값이 유효하고, 분석은 날짜별로 반영한 평균 행거수를 써요. 지난 날짜로 입력하면 그 시점부터 바뀐 걸로 계산돼요.</p>
+    </div>
+    <div class="sec"><div class="sec-head"><span class="t">물류</span></div><div class="list">${rows(phys) || '<div class="mg-row">없음</div>'}</div></div>
+    ${onl.length ? `<div class="sec"><div class="sec-head"><span class="t">온라인</span></div><div class="list">${rows(onl)}</div></div>` : ''}
+    <button class="go" id="mgsave" type="button">변경 저장</button>
+    <div class="status" id="mgstatus"></div>
+    ${histRows ? `<div class="sec"><div class="sec-head"><span class="t">변경 이력</span><span class="s">${esc(store)} 최근 40건</span></div><div class="card hist" style="margin-top:0">${histRows}</div></div>` : ''}`;
+  wireView();
+}
+
+async function saveHangers() {
+  const st = document.getElementById('mgstatus'), btn = document.getElementById('mgsave');
+  const date = document.getElementById('mgdate').value;
+  const rows = [...document.querySelectorAll('.mg-row input')].flatMap((inp) => {
+    const raw = inp.value.trim(), cur = inp.dataset.cur;
+    if (raw === (cur ?? '') || (raw === '' && cur === '')) return [];
+    if (raw === '') return [];                      // 비워 둔 칸은 변경 없음(0개로 만들려면 0 입력)
+    const h = Number(raw);
+    return [{ store: S.mgStore, category: inp.dataset.cat, effective_date: date, hangers: h }];
+  });
+  if (!date) { st.className = 'status err'; st.textContent = '적용일을 입력해 주세요.'; return; }
+  if (rows.some((r) => !(r.hangers >= 0) || r.hangers >= 1000)) { st.className = 'status err'; st.textContent = '행거수는 0 이상 숫자로 입력해 주세요.'; return; }
+  if (!rows.length) { st.className = 'status'; st.textContent = '바뀐 칸이 없어요.'; return; }
+  btn.disabled = true;
+  try {
+    const { error } = await window.sb.from('store_hangers').upsert(rows, { onConflict: 'store,category,effective_date' });
+    if (error) throw error;
+    st.className = 'status'; st.textContent = `${rows.length}개 카테고리를 저장했어요.`;
+    await loadAnalysis(true);
+    await renderHg();
+    const st2 = document.getElementById('mgstatus');
+    if (st2) st2.textContent = `${rows.length}개 카테고리를 저장했어요. 분석에도 반영됐어요.`;
+  } catch (e) {
+    st.className = 'status err'; st.textContent = '저장 실패: ' + (e.message || e);
+  } finally { btn.disabled = false; }
+}
+
+// ── 엑셀 ────────────────────────────────────────────────────
+const HEAD_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCC785C' } };
+const NUMF = '#,##0;-#,##0;-';
+function buildWorkbook() {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = '마켓인유'; wb.created = new Date();
+  const heads = ['구분', '카테고리', '판매벌수', '판매액(원)', '평균가(원)', '직전 대비 벌수', '직전 대비 판매액', '평균 행거수',
+    '행거당 판매액(원)', '행거당 판매수', '행거당 일평균 판매액(원)', '매출비중', '행거비중', '효율지수', '신호',
+    '현재 재고', '재고 소진 예상(일)', '입고 후 30일 내 판매', '판매까지 일수(중앙값)', ...BAND_LABELS.map((l) => '가격대 ' + l)];
+  for (const s of [ALL, ...S.stores]) {
+    const view = storeView(s);
+    const ws = wb.addWorksheet(s === ALL ? '총합' : s);
+    ws.addRow([`${s === ALL ? '총합' : s} — 카테고리 판매 분석`]).font = { bold: true, size: 14 };
+    ws.addRow([`기간 ${S.from} ~ ${S.to} (${S.days}일)${S.compare && S.prev ? ` · 직전 ${S.days}일 대비` : ''}`]).font = { color: { argb: 'FF6B6B6B' } };
+    ws.addRow([]);
+    const hr = ws.addRow(heads);
+    hr.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+    hr.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+    hr.eachCell((c) => { c.fill = HEAD_FILL; });
+    const pct = (d) => (d == null ? '' : d === Infinity ? '신규' : d);
+    for (const sec of SECTIONS) {
+      for (const i of view.items.filter((x) => x.section === sec).sort((a, b) => b.rev - a.rev)) {
+        ws.addRow([sec, i.category, i.qty, i.rev, i.avgPrice != null ? Math.round(i.avgPrice) : '', pct(i.dQty), pct(i.dRev),
+          i.h > 0 ? Math.round(i.h * 100) / 100 : '', i.revPerH != null ? Math.round(i.revPerH) : '',
+          i.qtyPerH != null ? Math.round(i.qtyPerH * 100) / 100 : '', i.revPerHDay != null ? Math.round(i.revPerHDay) : '',
+          i.revShare ?? '', i.hShare ?? '', i.index != null ? Math.round(i.index) : '', i.signal.t,
+          i.stock, i.stockDays != null ? Math.round(i.stockDays * 10) / 10 : '', i.d30r ?? '', i.med ?? '', ...i.bands]);
+      }
+    }
+    const last = ws.rowCount;
+    ws.eachRow((row, n) => {
+      if (n < 5) return;
+      [3, 4, 5, 9, 11, 16, ...BAND_LABELS.map((_, k) => 20 + k)].forEach((c) => { row.getCell(c).numFmt = NUMF; });
+      [6, 7].forEach((c) => { if (typeof row.getCell(c).value === 'number') row.getCell(c).numFmt = '+0%;-0%;0%'; });
+      [12, 13, 18].forEach((c) => { row.getCell(c).numFmt = '0.0%'; });
+    });
+    [10, 16, 11, 13, 11, 11, 11, 10, 14, 11, 16, 9, 9, 9, 11, 9, 12, 12, 12, ...BAND_LABELS.map(() => 10)].forEach((w, k) => { ws.getColumn(k + 1).width = w; });
+    ws.getRow(4).height = 32;
+    ws.views = [{ state: 'frozen', xSplit: 2, ySplit: 4 }];
+    if (last >= 5) ws.autoFilter = { from: { row: 4, column: 1 }, to: { row: last, column: heads.length } };
+  }
+  const ws = wb.addWorksheet('기준');
+  ws.getColumn(1).width = 110;
+  ws.addRow(['집계 기준']).font = { bold: true, size: 14 };
+  ws.addRow([]);
+  [
+    `기간: ${S.from} ~ ${S.to} (${S.days}일, 판매일 기준 양 끝 포함)`,
+    '판매벌수·판매액: 환불일이 기록된 판매는 제외, 마이너스 수량(취소)은 차감. 카테고리는 입고 때 등록된 값(영문 대소문자 통일).',
+    '평균 행거수: 기간의 하루하루에 그날 유효한 행거수를 적용해 평균. 기간 중 행거수를 바꿨다면 바뀐 날짜가 반영됨. 첫 입력일 이전 기간은 첫 입력값으로 채움.',
+    '행거당 판매액 = 판매액 ÷ 평균 행거수. 행거당 판매수 = 판매벌수 ÷ 평균 행거수. 행거당 일평균 판매액 = 판매액 ÷ (행거수×일수 합).',
+    '매출비중·행거비중: 같은 구간(물류/온라인) 안에서 행거수가 입력된 카테고리끼리의 비중. 효율지수 = 매출비중 ÷ 행거비중 × 100 (100 = 구간 평균).',
+    `신호: 효율지수 ${IDX_UP} 이상 늘리기, ${IDX_DOWN} 이하 줄이기, 그 사이 유지. 판매 ${MIN_QTY}벌 미만의 늘리기는 표본 적음. 행거수 미입력은 판단 불가. 가방·패션잡화·ETC·패브릭·신발·모자·봉투·위탁은 "행거 외".`,
+    '현재 재고·재고 소진 예상(재고 ÷ 일평균 판매벌수): 조회 기간이 아니라 지금 시점의 매장 재고 기준.',
+    '입고 후 30일 내 판매 / 판매까지 일수: 입고일을 아는 판매 기준. 이전 이력이 오래된 물건이 섞여 평균 대신 중앙값을 사용.',
+    '가격대: 개당 판매가 기준, 하한 포함·상한 미포함. 값은 수량.',
+    `생성: ${new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', dateStyle: 'short', timeStyle: 'short' }).format(new Date())} (KST)`,
+  ].forEach((l) => { ws.addRow([l]).alignment = { wrapText: true, vertical: 'top' }; });
+  return wb;
+}
+
+async function downloadXlsx() {
+  const btn = document.getElementById('xl');
+  btn.disabled = true;
+  try {
+    const buf = await buildWorkbook().xlsx.writeBuffer();
+    const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = `카테고리분석_${S.from}_${S.to}.xlsx`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  } catch (e) { alert('엑셀 생성 실패: ' + (e.message || e)); } finally { btn.disabled = false; }
+}
+
+// ── 흐름 ────────────────────────────────────────────────────
+function renderView() {
+  if (S.tab === 'hg') { renderHg(); return; }
+  if (S.tab === 'cat') renderCat(); else renderMx();
+  wireView();
+}
+
+function wireView() {
+  const v = document.getElementById('view');
+  v.querySelectorAll('.item-head').forEach((b) => {
+    b.onclick = () => {
+      const it = b.parentElement, c = it.dataset.cat;
+      it.classList.toggle('open');
+      if (it.classList.contains('open')) S.open.add(c); else S.open.delete(c);
+    };
+  });
+  const sort = document.getElementById('sort'); if (sort) sort.onchange = () => { S.sort = sort.value; renderView(); };
+  const mxm = document.getElementById('mxm'); if (mxm) mxm.onchange = () => { S.mxMetric = mxm.value; renderView(); };
+  const xl = document.getElementById('xl'); if (xl) xl.onclick = downloadXlsx;
+  v.querySelectorAll('[data-mgstore]').forEach((b) => { b.onclick = () => { S.mgStore = b.dataset.mgstore; renderView(); }; });
+  const mgdate = document.getElementById('mgdate'); if (mgdate) mgdate.onchange = () => { S.mgDate = mgdate.value; };
+  v.querySelectorAll('.mg-row input').forEach((inp) => {
+    inp.oninput = () => inp.classList.toggle('chg', inp.value.trim() !== '' && inp.value.trim() !== (inp.dataset.cur ?? ''));
+  });
+  const save = document.getElementById('mgsave'); if (save) save.onclick = saveHangers;
+  v.querySelectorAll('[data-del]').forEach((b) => {
+    b.onclick = async () => {
+      if (!confirm('이 변경 이력을 삭제할까요? 분석 결과도 함께 바뀌어요.')) return;
+      const { error } = await window.sb.from('store_hangers').delete().eq('id', b.dataset.del);
+      if (error) { alert('삭제 실패: ' + error.message); return; }
+      await loadAnalysis(true);
+      renderView();
+    };
+  });
+}
+
+async function loadAnalysis(silent) {
+  const st = document.getElementById('status'), go = document.getElementById('go');
+  const say = (m, err) => { if (st) { st.textContent = m; st.classList.toggle('err', !!err); } };
+  if (!S.from || !S.to) return say('기간을 입력해 주세요.', true);
+  if (S.from > S.to) return say('시작일이 종료일보다 늦어요.', true);
+  if (diffDays(S.from, S.to) > 365) return say('기간은 1년 이내로 골라 주세요.', true);
+  S.days = diffDays(S.from, S.to) + 1;
+  if (go) go.disabled = true;
+  if (!silent) say('불러오는 중…');
+  try {
+    const prevTo = addDays(S.from, -1), prevFrom = addDays(prevTo, -(S.days - 1));
+    const [cur, prev] = await Promise.all([fetchPerf(S.from, S.to), S.compare ? fetchPerf(prevFrom, prevTo) : Promise.resolve(null)]);
+    S.cur = cur; S.prev = prev;
+    say(`${S.from} ~ ${S.to} (${S.days}일)${prev ? ` · 직전 ${md(prevFrom)}~${md(prevTo)}와 비교` : ''}`);
+    if (S.tab !== 'hg' || !silent) renderView();
+  } catch (e) {
+    say('불러오지 못했어요: ' + (e.message || e), true);
+  } finally { if (go) go.disabled = false; }
+}
+
+function mount() {
+  root.innerHTML = ctrlHtml();
+  const $ = (id) => document.getElementById(id);
+  $('go').onclick = () => { S.from = $('from').value; S.to = $('to').value; S.compare = $('cmp').checked; loadAnalysis(); };
+  $('cmp').onchange = () => { S.compare = $('cmp').checked; loadAnalysis(); };
+  root.querySelectorAll('.chip[data-days]').forEach((b) => {
+    b.onclick = () => {
+      const to = addDays(kstDate(), -1);
+      $('to').value = to; $('from').value = addDays(to, -(+b.dataset.days - 1));
+      S.from = $('from').value; S.to = $('to').value; S.compare = $('cmp').checked; loadAnalysis();
+    };
+  });
+  $('storechips').onclick = (e) => {
+    const b = e.target.closest('[data-store]'); if (!b || !S.cur) return;
+    S.store = b.dataset.store;
+    if (S.store !== ALL) S.mgStore = S.store;
+    $('storechips').querySelectorAll('.chip').forEach((c) => c.classList.toggle('on', c === b));
+    renderView();
+  };
+  $('tabs').onclick = (e) => {
+    const b = e.target.closest('[data-tab]'); if (!b || !S.cur) return;
+    S.tab = b.dataset.tab;
+    $('tabs').querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
+    renderView();
+  };
+}
+
+async function fetchStoreNames() {
+  const { data, error } = await window.sb.from('locations').select('name').eq('is_active', true).order('created_at');
+  if (error) throw error;
+  return data.map((l) => l.name).filter((n) => !WAREHOUSE.includes(n) && !EXCLUDED.includes(n) && !n.includes('재고조사'));
+}
+
+(async function init() {
+  for (let i = 0; i < 50 && window.MIU_PROFILE === undefined; i++) await new Promise((r) => setTimeout(r, 100));
+  if (!ALLOWED_NAMES.includes(window.MIU_PROFILE?.name)) {
+    root.innerHTML = '<div class="empty">이 기능은 사용할 수 없어요.</div>';
+    return;
+  }
+  try {
+    S.stores = await fetchStoreNames();
+  } catch (e) { root.innerHTML = '<div class="empty">불러오지 못했어요.</div>'; return; }
+  const yesterday = addDays(kstDate(), -1);
+  S.to = yesterday; S.from = addDays(yesterday, -13); S.mgDate = kstDate();
+  mount();
+  loadAnalysis();
+})();
+</script>
+</body>
+</html>
