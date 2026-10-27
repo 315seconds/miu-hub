@@ -130,6 +130,7 @@ function aggregate(rows, catMap) {
     let cat = catMap.get(r.barcode);
     if (!cat) { cat = /^pb/i.test(r.barcode) ? '봉투' : UNKNOWN; if (cat === UNKNOWN) unmatched++; }
     cat = cat.trim().toUpperCase();                       // 온pk / 온PK 같은 표기 차이 통합
+    if (cat === 'PK') cat = 'PK셔츠'; else if (cat === '온PK') cat = '온PK셔츠';   // PK와 PK셔츠는 혼용 입력이라 같은 것으로 본다
     const store = r.store.replace(SOLD_PFX, '');
     if (!stores.has(store)) stores.set(store, new Map());
     const byCat = stores.get(store);
@@ -252,7 +253,7 @@ function buildWorkbook({ from, to, storeLabel, agg }) {
     '환불: 환불일이 기록된 판매는 제외했고, 마이너스 수량으로 기록된 취소는 차감했습니다.',
     `가격대: 개당 판매가 기준(${BANDS.map((b) => b.label).join(' / ')}), 하한 포함·상한 미포함입니다. 예) 10,000원은 "1~2만"에 들어갑니다. 가격대 열의 값도 수량입니다.`,
     '매출·평균단가: 매출은 실제 판매 금액 합계, 평균단가는 매출 ÷ 판매수량입니다.',
-    '카테고리: 입고 때 등록된 카테고리입니다. 영문 대소문자 표기 차이(온pk / 온PK 등)는 한 줄로 합쳤습니다.',
+    '카테고리: 입고 때 등록된 카테고리입니다. 영문 대소문자 표기 차이(온pk / 온PK 등)는 한 줄로 합쳤고, PK와 PK셔츠(온PK와 온PK셔츠)는 같은 카테고리로 봐서 합쳤습니다.',
     '구분: C로 시작=C, 온으로 시작=온라인(해외 경매 등 온라인에서 수급한 물건이며 판매 채널이 아님), 위탁, 봉투(PB=종이봉투), 나머지=물류.',
     `C · 위탁 · 온 · 봉투는 모두 포함했습니다.${agg.unmatched ? ` 카테고리를 찾지 못한 판매 ${agg.unmatched}건은 "${UNKNOWN}"로 표시했습니다.` : ''}`,
     '오늘 판매분은 아직 반영되지 않았을 수 있어 기간 끝을 어제로 두는 것을 권장합니다.',

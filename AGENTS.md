@@ -59,7 +59,8 @@
 - 읽기 전용 조회: `supabase db query --linked "<SQL>"` (운영 직결).
 - 쓰기 SQL은 `scripts/<이름>-<날짜>.sql` 파일로 남기고 `supabase db query --linked -f`로 적용. 마이그레이션 이력 없음.
 - 최신 SQL: `weekly-letters-admin-view-20261026`(레터 열람 현황 본문 보기; `letter_read_status` 재정의), `approve-inventory-session / bulk-move-and-reopen-guard / force-login-name / hardening-step2`(2026-10-25). `hardening-step2` 헤더는 "적용 전 초안"이지만 **적용 완료**. `item-scanner/supabase/schema.sql` 헤더의 "테스트 전용"은 낡았다(2026-09-03 `miu_ops` 단일 프로젝트 통합).
-- 행거수: 테이블 `store_hangers`(매장·카테고리·적용일·행거수 **변경 이력**)가 원본. 기간 평균 행거수 = 그 기간 하루하루에 그날 유효한 값을 적용한 일수 가중 평균, 첫 입력일 이전 기간은 첫 값으로 채움. 초기값은 매니저 시트의 2026-10-27 현재 값(`category-performance-seed-20261027.sql`; 시트 카테고리명은 허브명과 동일하고 허브 `PK`는 시트에 없는 별개 카테고리). 재고·재고 소진은 조회 기간이 아닌 **현재** `inventory_items` 기준이라 과거 기간과 시점이 어긋난다.
+- 행거수: 테이블 `store_hangers`(매장·카테고리·적용일·행거수 **변경 이력**)가 원본. 기간 평균 행거수 = 그 기간 하루하루에 그날 유효한 값을 적용한 일수 가중 평균, 첫 입력일 이전 기간은 첫 값으로 채움. 초기값은 매니저 시트의 2026-10-27 현재 값(`category-performance-seed-20261027.sql`). 재고·재고 소진은 조회 기간이 아닌 **현재** `inventory_items` 기준이라 과거 기간과 시점이 어긋난다.
+- 카테고리 통일: `PK`와 `PK셔츠`(`온PK`·`온PK셔츠`)는 혼용 입력이라 **같은 것**으로 본다. `norm_category()`(대소문자·공백 + PK→PK셔츠)가 `category_performance`에서, `logistics-request/`는 클라이언트에서 같은 규칙을 적용한다. `inventory_items` 원본 값은 그대로 둔다.
 - Storage(모두 public 버킷): `inventory-photos`, `item-photos`, `letter-thumbs`(**쓰기는 service_role만**), `stocktake-reports`.
 - 스테이징(`scripts/staging-setup/`)은 운영 스키마 덤프 복원용이며 RPC·트리거·item-scanner 테이블이 없다. `30-copy-seed-data.sh`는 운영 개인정보를 복사하니 주의.
 

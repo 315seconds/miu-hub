@@ -18,10 +18,22 @@ language sql stable security definer set search_path = public as $$
     )
 $$;
 
+-- 카테고리 이름 통일: 대소문자·공백, 그리고 PK / PK셔츠를 혼용해 입력해 왔으므로 같은 것으로 본다(온PK = 온PK셔츠).
+-- inventory_items 원본 값은 건드리지 않고 집계할 때만 통일한다.
+create or replace function public.norm_category(c text)
+returns text
+language sql immutable as $$
+    select case upper(btrim(c))
+        when 'PK'  then 'PK셔츠'
+        when '온PK' then '온PK셔츠'
+        else upper(btrim(c))
+    end
+$$;
+
 create table if not exists public.store_hangers (
     id             uuid primary key default gen_random_uuid(),
     store          text not null,                 -- 짧은 매장명(성수, 무성 …) = locations.name
-    category       text not null,                 -- upper(btrim(inventory_items.category)) 형태
+    category       text not null,                 -- norm_category(inventory_items.category) 형태
     effective_date date not null,
     hangers        numeric(5,1) not null check (hangers >= 0),
     updated_by     text,
@@ -100,8 +112,8 @@ begin
     ),
     sold as (
         select replace(s.store, '공동판매', '') as store,
-               upper(btrim(coalesce(nullif(v.category, ''),
-                    case when s.barcode ilike 'pb%' then '봉투' else '(카테고리 미확인)' end))) as category,
+               public.norm_category(coalesce(nullif(v.category, ''),
+                    case when s.barcode ilike 'pb%' then '봉투' else '(카테고리 미확인)' end)) as category,
                coalesce(s.quantity, 1) as q,
                s.price,
                abs(s.price::numeric / coalesce(s.quantity, 1)) as unit,
@@ -135,7 +147,7 @@ begin
         group by grouping sets ((sd.store, sd.category), (sd.category))
     ),
     stk as (
-        select i.location as store, upper(btrim(i.category)) as category, count(*)::int as n
+        select i.location as store, public.norm_category(i.category) as category, count(*)::int as n
         from inventory_items i
         where i.status = 'in_stock'
           and i.category is not null and btrim(i.category) <> ''

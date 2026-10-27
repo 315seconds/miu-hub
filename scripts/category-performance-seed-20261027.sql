@@ -1,7 +1,7 @@
 -- store_hangers 초기값: 매니저가 준 "카테고리자동화" 시트의 현재 행거수(0개인 칸은 제외)
 -- 적용: supabase db query --linked -f scripts/category-performance-seed-20261027.sql
 -- 적용일(2026-10-27)을 effective_date로 둔다. 이 날짜 이전 기간은 이 값으로 채워 계산된다(화면에 표시).
--- 시트 카테고리명 = 허브 카테고리명(대문자 정규화). 허브의 'PK'는 시트에 없는 별개 카테고리.
+-- 시트 카테고리명 = 허브 카테고리명. 허브에서 PK와 PK셔츠는 같은 것으로 보며 'PK셔츠'로 통일한다(norm_category).
 insert into public.store_hangers (store, category, effective_date, hangers) values
   ('성수', '자켓', date '2026-10-27', 10),
   ('성수', '바람막이', date '2026-10-27', 4),
