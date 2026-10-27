@@ -159,6 +159,7 @@
   .accent-calendar   { --tile-accent: var(--miu-primary); }
   .accent-admin      { --tile-accent: var(--miu-body-strong); }
   #admin-section { display: none; }
+  #logistics-section { display: none; }
 
   /* ── Callout (전면 코랄) ── */
   .callout {
@@ -443,6 +444,25 @@
   </div>
 </div>
 
+<!-- 섹션 6: 물류 요청 (최영훈 · 황태훈 전용) -->
+<div class="section" id="logistics-section">
+  <div class="section-head">
+    <span class="num">06</span>
+    <span class="label">물류 요청</span>
+    <span class="divider"></span>
+  </div>
+  <div class="tiles">
+    <a href="logistics-request/" class="tile tile-wide accent-admin">
+      <div class="tile-icon"><i class="ph-bold ph-truck"></i></div>
+      <div class="tile-body">
+        <div class="tile-title">물류요청 판매 집계</div>
+        <div class="tile-desc">기간 · 매장별 카테고리 판매수량 엑셀</div>
+      </div>
+      <span class="tile-arrow">›</span>
+    </a>
+  </div>
+</div>
+
 <div class="footer">
   <div class="user" id="user-label"></div>
   <button class="logout" id="logout-btn">로그아웃</button>
@@ -527,6 +547,17 @@ if (window.MIU_USER) {
   if (!window.MIU_PROFILE) return;
   const { data } = await window.sb.rpc('is_letter_admin');
   if (data === true) document.getElementById('letter-status-tile').style.display = 'flex';
+})();
+
+// 물류요청 판매 집계: 최영훈 · 황태훈에게만 노출(화면 게이트)
+(async function showLogisticsTile() {
+  for (let i = 0; i < 30; i++) {
+    if (window.MIU_PROFILE !== undefined) break;
+    await new Promise(r => setTimeout(r, 100));
+  }
+  if (['최영훈', '황태훈'].includes(window.MIU_PROFILE?.name)) {
+    document.getElementById('logistics-section').style.display = 'block';
+  }
 })();
 document.getElementById('logout-btn').addEventListener('click', async () => {
   if (!confirm('로그아웃하시겠습니까?')) return;

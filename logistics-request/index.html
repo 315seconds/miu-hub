@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>물류요청 판매 집계 — 마켓인유</title>
+<meta name="theme-color" content="#faf9f5">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202610250918">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202610250918">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<style>
+body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
+.wrap { max-width: 560px; margin: 0 auto; padding: 8px 20px 48px; }
+.card { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 18px 16px; margin-top: 16px; }
+.card h2 { font-size: 13px; font-weight: 700; color: var(--miu-body-strong); margin-bottom: 12px; }
+.dates { display: flex; align-items: center; gap: 8px; }
+.dates input[type=date] { flex: 1; min-width: 0; height: 44px; padding: 0 12px; font: inherit; font-size: 15px; color: var(--miu-ink); background: var(--miu-canvas); border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); }
+.dates input[type=date]:focus { outline: none; border-color: var(--miu-primary); box-shadow: 0 0 0 3px rgba(204,120,92,0.15); }
+.dates .sep { color: var(--miu-muted); }
+.chips { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.chip { padding: 7px 14px; border-radius: var(--miu-r-pill); border: 1px solid var(--miu-hairline); background: var(--miu-canvas); font: inherit; font-size: 13px; font-weight: 600; color: var(--miu-body); cursor: pointer; }
+.chip:active { background: var(--miu-surface-strong); }
+.stores { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+.stores label { display: flex; align-items: center; gap: 8px; font-size: 15px; cursor: pointer; }
+.stores label.all { grid-column: span 2; font-weight: 600; padding-bottom: 10px; border-bottom: 1px solid var(--miu-hairline-soft); }
+.stores input { width: 18px; height: 18px; accent-color: var(--miu-primary); }
+.go { display: block; width: 100%; margin-top: 20px; padding: 15px; border: none; border-radius: var(--miu-r-lg); background: var(--miu-primary); color: #fff; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.go:disabled { opacity: 0.6; cursor: default; }
+.status { margin-top: 14px; font-size: 13.5px; line-height: 1.6; color: var(--miu-body); min-height: 22px; }
+.status.err { color: var(--miu-error); }
+.hint { margin-top: 20px; font-size: 12.5px; color: var(--miu-muted); line-height: 1.7; }
+.empty { text-align: center; padding: 96px 32px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
+</style>
+<script src="/miu-hub/shared/config.js?v=202610250918"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202610250918"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202610250918"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+</head>
+<body>
+
+<header class="miu-header">
+  <a href="/miu-hub/" class="miu-header-back" aria-label="허브로">
+    <i class="ph-bold ph-caret-left"></i>
+  </a>
+  <div class="miu-header-title">
+    <div class="miu-header-eyebrow">LOGISTICS REQUEST</div>
+    <h1 class="miu-header-h1">물류요청 판매 집계</h1>
+  </div>
+</header>
+
+<div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
+
+<script>
+// 이 화면은 최영훈(사용자) · 황태훈(관리) 전용. 화면 게이트일 뿐이며(데이터 권한은 로그인 직원 공통, AGENTS.md 4.1) 서버 차단은 아니다.
+const ALLOWED_NAMES = ['최영훈', '황태훈'];
+const SOLD_PFX = '공동판매';
+const WAREHOUSE = ['공동물류', '온라인', '재봉합성수', '재봉합부천'];
+const EXCLUDED = ['폐기', '위탁종료'];
+const UNKNOWN = '(카테고리 미확인)';
+// 개당 판매가 구간. 하한 포함, 상한 미포함.
+const BANDS = [
+  { label: '~1만', max: 10000 }, { label: '1~2만', max: 20000 }, { label: '2~3만', max: 30000 },
+  { label: '3~4만', max: 40000 }, { label: '4~5만', max: 50000 }, { label: '5~7만', max: 70000 },
+  { label: '7~10만', max: 100000 }, { label: '10만~', max: Infinity },
+];
+const GROUPS = ['일반', 'C(저가)', '온(온라인 수급)', '위탁', '봉투(PB)', '미확인'];
+
+const root = document.getElementById('root');
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const kstDate = (d = new Date()) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(d);
+const kstStamp = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul', dateStyle: 'short', timeStyle: 'short' }).format(new Date());
+const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+
+// ── 데이터 조회 ──────────────────────────────────────────────
+async function fetchSold(from, to, stores, onProgress) {
+  const rows = [];
+  for (let off = 0; ; off += 1000) {
+    let q = window.sb.from('sold_items').select('barcode,store,price,quantity,refund_date')
+      .gte('sold_date', from).lte('sold_date', to)
+      .order('sold_date').order('id').range(off, off + 999);
+    if (stores) q = q.in('store', stores.map((n) => SOLD_PFX + n));
+    const { data, error } = await q;
+    if (error) throw error;
+    rows.push(...data);
+    onProgress(rows.length);
+    if (data.length < 1000) break;
+  }
+  return rows;
+}
+
+async function fetchCategories(barcodes) {
+  const map = new Map();
+  const chunks = [];
+  for (let i = 0; i < barcodes.length; i += 150) chunks.push(barcodes.slice(i, i + 150));
+  let next = 0;
+  await Promise.all(Array.from({ length: 5 }, async () => {
+    while (next < chunks.length) {
+      const chunk = chunks[next++];
+      const { data, error } = await window.sb.from('inventory_items').select('barcode,category').in('barcode', chunk);
+      if (error) throw error;
+      for (const r of data) if (r.category && !map.get(r.barcode)) map.set(r.barcode, r.category);
+    }
+  }));
+  return map;
+}
+
+// ── 집계 ────────────────────────────────────────────────────
+function groupOf(cat) {
+  if (cat === UNKNOWN) return '미확인';
+  if (cat.startsWith('온')) return '온(온라인 수급)';
+  if (cat === '위탁') return '위탁';
+  if (cat === '봉투') return '봉투(PB)';
+  if (cat.startsWith('C')) return 'C(저가)';
+  return '일반';
+}
+const newStat = () => ({ qty: 0, rev: 0, bands: BANDS.map(() => 0) });
+const bandOf = (unit) => BANDS.findIndex((b) => unit < b.max);
+
+// 반환: { stores: Map<매장, Map<카테고리, stat>>, skippedRefund, unmatched }
+function aggregate(rows, catMap) {
+  const stores = new Map();
+  let skippedRefund = 0, unmatched = 0;
+  for (const r of rows) {
+    if (r.refund_date) { skippedRefund++; continue; }   // 환불 처리된 판매는 제외
+    const qty = r.quantity ?? 1;
+    if (!qty) continue;
+    const price = r.price ?? 0;
+    let cat = catMap.get(r.barcode);
+    if (!cat) { cat = /^pb/i.test(r.barcode) ? '봉투' : UNKNOWN; if (cat === UNKNOWN) unmatched++; }
+    cat = cat.trim().toUpperCase();                       // 온pk / 온PK 같은 표기 차이 통합
+    const store = r.store.replace(SOLD_PFX, '');
+    if (!stores.has(store)) stores.set(store, new Map());
+    const byCat = stores.get(store);
+    if (!byCat.has(cat)) byCat.set(cat, newStat());
+    const s = byCat.get(cat);
+    s.qty += qty;                                         // 마이너스 수량(취소)은 차감
+    s.rev += price;
+    s.bands[bandOf(Math.abs(price / qty))] += qty;
+  }
+  return { stores, skippedRefund, unmatched };
+}
+
+function mergeStats(maps) {
+  const out = new Map();
+  for (const m of maps) for (const [cat, s] of m) {
+    if (!out.has(cat)) out.set(cat, newStat());
+    const o = out.get(cat);
+    o.qty += s.qty; o.rev += s.rev;
+    s.bands.forEach((v, i) => { o.bands[i] += v; });
+  }
+  return out;
+}
+
+function sortedCats(byCat) {
+  return [...byCat.keys()].sort((a, b) =>
+    GROUPS.indexOf(groupOf(a)) - GROUPS.indexOf(groupOf(b)) || byCat.get(b).qty - byCat.get(a).qty || a.localeCompare(b, 'ko'));
+}
+
+// ── 엑셀 ────────────────────────────────────────────────────
+const NUM = '#,##0;-#,##0;-';
+const HEAD_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFCC785C' } };
+const TOTAL_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF5F0E8' } };
+
+function styleHeader(row) {
+  row.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+  row.alignment = { vertical: 'middle', horizontal: 'center' };
+  row.eachCell((c) => { c.fill = HEAD_FILL; });
+}
+function styleTotal(row) {
+  row.font = { bold: true };
+  row.eachCell((c) => { c.fill = TOTAL_FILL; c.border = { top: { style: 'thin', color: { argb: 'FF999999' } } }; });
+}
+const safeSheetName = (n) => n.replace(/[\\/*?:[\]]/g, '_').slice(0, 31);
+
+function addTitle(ws, title, sub) {
+  ws.addRow([title]).font = { bold: true, size: 14 };
+  ws.addRow([sub]).font = { color: { argb: 'FF6B6B6B' } };
+  ws.addRow([]);
+}
+
+function addCategorySheet(wb, name, title, sub, byCat) {
+  const ws = wb.addWorksheet(safeSheetName(name));
+  addTitle(ws, title, sub);
+  const head = ws.addRow(['구분', '카테고리', '판매수량', '비중', '매출(원)', '평균단가(원)', ...BANDS.map((b) => b.label)]);
+  styleHeader(head);
+  const cats = sortedCats(byCat);
+  const total = newStat();
+  cats.forEach((c) => { const s = byCat.get(c); total.qty += s.qty; total.rev += s.rev; s.bands.forEach((v, i) => { total.bands[i] += v; }); });
+  const line = (group, label, s) => [group, label, s.qty, total.qty ? s.qty / total.qty : 0, s.rev, s.qty > 0 ? Math.round(s.rev / s.qty) : 0, ...s.bands];
+  cats.forEach((c) => ws.addRow(line(groupOf(c), c, byCat.get(c))));
+  const lastData = ws.rowCount;
+  const totalRow = ws.addRow(line('', '합계', total));
+  styleTotal(totalRow);
+  ws.eachRow((row, i) => {
+    if (i < 5) return;
+    for (let col = 3; col <= 6 + BANDS.length; col++) row.getCell(col).numFmt = col === 4 ? '0.0%' : NUM;
+  });
+  [10, 18, 11, 8, 13, 13, ...BANDS.map(() => 9)].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  ws.views = [{ state: 'frozen', xSplit: 2, ySplit: 4 }];
+  ws.autoFilter = { from: { row: 4, column: 1 }, to: { row: lastData, column: 6 + BANDS.length } };
+}
+
+function addMatrixSheet(wb, sub, storeMaps, totalByCat) {
+  const ws = wb.addWorksheet('매장×카테고리');
+  addTitle(ws, '매장별 카테고리 판매수량', sub);
+  const storeNames = [...storeMaps.keys()].sort((a, b) =>
+    [...storeMaps.get(b).values()].reduce((x, s) => x + s.qty, 0) - [...storeMaps.get(a).values()].reduce((x, s) => x + s.qty, 0));
+  styleHeader(ws.addRow(['구분', '카테고리', ...storeNames, '합계']));
+  const cats = sortedCats(totalByCat);
+  const colTotals = storeNames.map(() => 0);
+  cats.forEach((c) => {
+    const vals = storeNames.map((n) => storeMaps.get(n).get(c)?.qty ?? 0);
+    vals.forEach((v, i) => { colTotals[i] += v; });
+    ws.addRow([groupOf(c), c, ...vals, totalByCat.get(c).qty]);
+  });
+  const lastData = ws.rowCount;
+  styleTotal(ws.addRow(['', '합계', ...colTotals, colTotals.reduce((a, b) => a + b, 0)]));
+  ws.eachRow((row, i) => { if (i >= 5) for (let col = 3; col <= 3 + storeNames.length; col++) row.getCell(col).numFmt = NUM; });
+  [10, 18, ...storeNames.map(() => 11), 11].forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+  ws.views = [{ state: 'frozen', xSplit: 2, ySplit: 4 }];
+  ws.autoFilter = { from: { row: 4, column: 1 }, to: { row: lastData, column: 3 + storeNames.length } };
+}
+
+function addNotesSheet(wb, lines) {
+  const ws = wb.addWorksheet('기준');
+  ws.getColumn(1).width = 100;
+  ws.addRow(['집계 기준']).font = { bold: true, size: 14 };
+  ws.addRow([]);
+  lines.forEach((l) => ws.addRow([l]).alignment = { wrapText: true, vertical: 'top' });
+}
+
+function buildWorkbook({ from, to, storeLabel, agg }) {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = '마켓인유';
+  wb.created = new Date();
+  const sub = `기간 ${from} ~ ${to} · ${storeLabel}`;
+  const totalByCat = mergeStats([...agg.stores.values()]);
+  addCategorySheet(wb, '요약', '카테고리별 판매수량 · 가격대 분포', sub, totalByCat);
+  if (agg.stores.size > 1) {
+    addMatrixSheet(wb, sub, agg.stores, totalByCat);
+    [...agg.stores.keys()].sort((a, b) => a.localeCompare(b, 'ko'))
+      .forEach((n) => addCategorySheet(wb, n, `${n} — 카테고리별 판매수량 · 가격대 분포`, sub, agg.stores.get(n)));
+  }
+  addNotesSheet(wb, [
+    `기간: ${from} ~ ${to} (판매일 기준, 양 끝 포함)`,
+    `매장: ${storeLabel}`,
+    `생성: ${kstStamp()} (KST)`,
+    '',
+    '판매수량: 판매 건수가 아니라 판매 기록의 수량 합계입니다. 한 번에 여러 개 팔린 경우(봉투 등)도 그 수량대로 반영됩니다.',
+    '환불: 환불일이 기록된 판매는 제외했고, 마이너스 수량으로 기록된 취소는 차감했습니다.',
+    `가격대: 개당 판매가 기준(${BANDS.map((b) => b.label).join(' / ')}), 하한 포함·상한 미포함입니다. 예) 10,000원은 "1~2만"에 들어갑니다. 가격대 열의 값도 수량입니다.`,
+    '매출·평균단가: 매출은 실제 판매 금액 합계, 평균단가는 매출 ÷ 판매수량입니다.',
+    '카테고리: 입고 때 등록된 카테고리입니다. 영문 대소문자 표기 차이(온pk / 온PK 등)는 한 줄로 합쳤습니다.',
+    '구분: C로 시작=C(저가), 온으로 시작=온(해외 경매 등 온라인에서 수급한 물건, 판매 채널이 아님), 위탁, 봉투(PB=종이봉투), 나머지=일반.',
+    `C · 위탁 · 온 · 봉투는 모두 포함했습니다.${agg.unmatched ? ` 카테고리를 찾지 못한 판매 ${agg.unmatched}건은 "${UNKNOWN}"로 표시했습니다.` : ''}`,
+    '오늘 판매분은 아직 반영되지 않았을 수 있어 기간 끝을 어제로 두는 것을 권장합니다.',
+  ]);
+  return wb;
+}
+
+async function download(wb, filename) {
+  const buf = await wb.xlsx.writeBuffer();
+  const url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+
+// ── 화면 ────────────────────────────────────────────────────
+async function fetchStoreNames() {
+  const { data, error } = await window.sb.from('locations').select('name').eq('is_active', true).order('created_at');
+  if (error) throw error;
+  return data.map((l) => l.name)
+    .filter((n) => !WAREHOUSE.includes(n) && !EXCLUDED.includes(n) && !n.includes('재고조사'));
+}
+
+function render(storeNames) {
+  const yesterday = addDays(kstDate(), -1);
+  root.innerHTML = `
+    <div class="card">
+      <h2>기간</h2>
+      <div class="dates">
+        <input type="date" id="from" value="${addDays(yesterday, -13)}" max="${kstDate()}">
+        <span class="sep">~</span>
+        <input type="date" id="to" value="${yesterday}" max="${kstDate()}">
+      </div>
+      <div class="chips">
+        ${[7, 14, 30].map((n) => `<button type="button" class="chip" data-days="${n}">최근 ${n}일</button>`).join('')}
+      </div>
+    </div>
+    <div class="card">
+      <h2>매장</h2>
+      <div class="stores" id="stores">
+        <label class="all"><input type="checkbox" id="all" checked>전체 매장</label>
+        ${storeNames.map((n) => `<label><input type="checkbox" class="st" value="${esc(n)}">${esc(n)}</label>`).join('')}
+      </div>
+    </div>
+    <button class="go" id="go" type="button">엑셀 다운로드</button>
+    <div class="status" id="status"></div>
+    <p class="hint">카테고리별 판매수량과 그 안의 가격대 분포를 엑셀로 받아요. C · 위탁 · 온 · 봉투도 모두 포함돼요. 「전체 매장」은 기간 안에 판매가 있었던 모든 매장(현재 운영 중이 아닌 매장 포함)을 합쳐요. 자세한 집계 기준은 엑셀의 「기준」 시트에 있어요.</p>`;
+
+  const $ = (id) => document.getElementById(id);
+  const all = $('all');
+  const sts = [...root.querySelectorAll('.st')];
+  all.onchange = () => { if (all.checked) sts.forEach((c) => { c.checked = false; }); else all.checked = true; };
+  sts.forEach((c) => { c.onchange = () => { all.checked = !sts.some((x) => x.checked); }; });
+  root.querySelectorAll('.chip').forEach((b) => {
+    b.onclick = () => { $('to').value = yesterday; $('from').value = addDays(yesterday, -(+b.dataset.days - 1)); };
+  });
+
+  const status = $('status'), go = $('go');
+  const say = (msg, err = false) => { status.textContent = msg; status.classList.toggle('err', err); };
+
+  go.onclick = async () => {
+    const from = $('from').value, to = $('to').value;
+    if (!from || !to) return say('기간을 입력해 주세요.', true);
+    if (from > to) return say('시작일이 종료일보다 늦어요.', true);
+    const picked = all.checked ? null : sts.filter((c) => c.checked).map((c) => c.value);
+    go.disabled = true;
+    try {
+      say('판매 내역을 불러오는 중…');
+      const rows = await fetchSold(from, to, picked, (n) => say(`판매 내역을 불러오는 중… ${n.toLocaleString()}건`));
+      if (!rows.length) return say('이 기간에는 판매 내역이 없어요.', true);
+      say('카테고리를 확인하는 중…');
+      const catMap = await fetchCategories([...new Set(rows.map((r) => r.barcode).filter(Boolean))]);
+      say('엑셀을 만드는 중…');
+      const agg = aggregate(rows, catMap);
+      if (!agg.stores.size) return say('집계할 판매가 없어요. (환불·취소만 있는 기간)', true);
+      const storeLabel = picked ? picked.join(', ') : '전체 매장';
+      const wb = buildWorkbook({ from, to, storeLabel, agg });
+      await download(wb, `물류요청_판매집계_${from}_${to}${picked ? '_' + (picked.length <= 3 ? picked.join('-') : picked.length + '개매장') : ''}.xlsx`);
+      const total = [...mergeStats([...agg.stores.values()]).values()].reduce((a, s) => a + s.qty, 0);
+      say(`다운로드했어요 · ${agg.stores.size}개 매장, 총 ${total.toLocaleString()}개 판매`
+        + (agg.unmatched ? ` · 카테고리를 못 찾은 ${agg.unmatched}건은 「${UNKNOWN}」로 표시` : ''));
+    } catch (e) {
+      say('실패했어요: ' + (e.message || e), true);
+    } finally {
+      go.disabled = false;
+    }
+  };
+}
+
+(async function init() {
+  for (let i = 0; i < 50 && window.MIU_PROFILE === undefined; i++) await new Promise((r) => setTimeout(r, 100));
+  if (!ALLOWED_NAMES.includes(window.MIU_PROFILE?.name)) {
+    root.innerHTML = '<div class="empty">이 기능은 사용할 수 없어요.</div>';
+    return;
+  }
+  try {
+    render(await fetchStoreNames());
+  } catch (e) {
+    root.innerHTML = '<div class="empty">불러오지 못했어요.</div>';
+  }
+})();
+</script>
+</body>
+</html>
