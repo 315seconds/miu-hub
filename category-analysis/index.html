@@ -89,6 +89,22 @@ table.mx { border-collapse: collapse; font-size: 12.5px; min-width: 100%; }
 .xl { display: block; width: 100%; margin-top: 22px; padding: 13px; border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-lg); background: var(--miu-canvas); font: inherit; font-size: 14px; font-weight: 600; color: var(--miu-body-strong); cursor: pointer; }
 .empty { text-align: center; padding: 96px 32px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
 .hint { margin-top: 20px; font-size: 12.5px; color: var(--miu-muted); line-height: 1.7; }
+details.help { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); margin-top: 10px; }
+details.help > summary { list-style: none; cursor: pointer; padding: 15px 16px; font-size: 15px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
+details.help > summary::-webkit-details-marker { display: none; }
+details.help > summary::after { content: '+'; font-size: 20px; color: var(--miu-muted); font-weight: 400; }
+details.help[open] > summary::after { content: '−'; }
+.hbody { padding: 0 16px 16px; font-size: 13.5px; line-height: 1.7; color: var(--miu-body); }
+.hbody p { margin-top: 8px; }
+.hbody ol, .hbody ul { margin: 8px 0 0 18px; }
+.hbody li { margin-top: 4px; }
+.hbody dl { margin-top: 6px; }
+.hbody dt { margin-top: 12px; font-weight: 700; color: var(--miu-ink); }
+.hbody dd { margin: 2px 0 0; }
+.hbody .ex { margin-top: 10px; padding: 10px 12px; border-radius: var(--miu-r-md); background: var(--miu-canvas); font-size: 13px; }
+.hbody table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12.5px; }
+.hbody th, .hbody td { padding: 7px 6px; border-bottom: 1px solid var(--miu-hairline-soft); text-align: left; vertical-align: top; }
+.hbody th { color: var(--miu-muted); font-weight: 600; }
 </style>
 <script src="/miu-hub/shared/config.js?v=202610250918"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -283,6 +299,7 @@ function ctrlHtml() {
       <button data-tab="cat" class="${S.tab === 'cat' ? 'on' : ''}">카테고리</button>
       <button data-tab="mx" class="${S.tab === 'mx' ? 'on' : ''}">매장 비교</button>
       <button data-tab="hg" class="${S.tab === 'hg' ? 'on' : ''}">행거수</button>
+      <button data-tab="help" class="${S.tab === 'help' ? 'on' : ''}">사용법</button>
     </div>
     <div id="view"></div>`;
 }
@@ -367,7 +384,7 @@ function renderCat() {
   }
   if (!view.items.length) html += '<div class="empty">이 기간·매장에는 판매가 없어요.</div>';
   html += `<button class="xl" id="xl" type="button">엑셀로 내려받기 (총합 + 매장별)</button>
-    <p class="hint">효율지수는 같은 구간(물류/온라인)에서 매출비중 ÷ 행거비중 × 100이에요. ${IDX_UP} 이상이면 늘리기, ${IDX_DOWN} 이하면 줄이기, 그 사이는 유지로 봐요(판매 ${MIN_QTY}벌 미만의 늘리기는 표본 적음). 재고·재고 소진 예상은 조회 기간이 아니라 <b>지금</b> 재고 기준이에요. *는 행거수 입력 이전 기간을 첫 입력값으로 채웠다는 뜻이에요.</p>`;
+    <p class="hint">숫자의 뜻과 판단 순서는 「사용법」 탭에 정리해 두었어요. 재고·재고 소진 예상은 조회 기간이 아니라 <b>지금</b> 재고 기준이고, 행거수 옆 *는 행거수 입력 이전 기간을 첫 입력값으로 채웠다는 뜻이에요.</p>`;
   document.getElementById('view').innerHTML = html;
 }
 
@@ -565,9 +582,117 @@ async function downloadXlsx() {
   } catch (e) { alert('엑셀 생성 실패: ' + (e.message || e)); } finally { btn.disabled = false; }
 }
 
+// ── 사용법 탭 ───────────────────────────────────────────────
+function renderHelp() {
+  document.getElementById('view').innerHTML = `
+  <details class="help" open><summary>이 화면으로 알 수 있는 것</summary><div class="hbody">
+    <p>매장 행거는 한정돼 있어서 "많이 팔렸나"만으로는 진열을 정하기 어려워요. 이 화면은 세 가지를 같이 보여줘요.</p>
+    <ul>
+      <li><b>무엇이 잘 팔리나</b> — 판매벌수, 판매액, 평균가, 가격대, 직전 기간 대비</li>
+      <li><b>행거를 효율적으로 쓰고 있나</b> — 행거당 판매액, 효율지수, 늘리기/줄이기 신호</li>
+      <li><b>재고가 얼마나 버티나</b> — 현재 재고, 재고 소진 예상, 입고 후 팔리는 속도</li>
+    </ul>
+  </div></details>
+
+  <details class="help"><summary>처음 쓰는 순서</summary><div class="hbody">
+    <ol>
+      <li><b>기간 고르기</b> — 최근 14일 이상을 권장해요. 7일 미만이면 신호가 흔들려요. 「조회」를 누르면 직전 같은 길이의 기간과 자동으로 비교해요(끄려면 「직전 기간 대비」 해제).</li>
+      <li><b>매장 고르기</b> — 「총합」은 전체 매장 합산, 아래 칩은 한 매장만 봐요. 다시 조회하지 않고 바로 바뀌어요.</li>
+      <li><b>카테고리 탭 위에서 아래로</b> — 위 요약 카드 → 구간(물류/온라인/행거 외)별 목록. 한 줄을 누르면 상세가 펼쳐져요.</li>
+      <li><b>매장 비교 탭</b> — 같은 카테고리가 어느 매장에서 잘 팔리는지 한눈에 봐요.</li>
+      <li><b>행거를 바꿨다면</b> — 「행거수」 탭에서 바로 입력해요. 안 하면 행거당 숫자가 틀어져요.</li>
+      <li><b>엑셀</b> — 카테고리 탭 맨 아래에서 총합과 매장별 시트로 내려받아요.</li>
+    </ol>
+  </div></details>
+
+  <details class="help"><summary>숫자 읽는 법</summary><div class="hbody">
+    <dl>
+      <dt>판매벌수 · 판매액 · 평균가</dt><dd>기간 동안 팔린 수량과 금액, 판매액 ÷ 판매벌수. 환불은 빼고, 취소는 차감해요. ▲▼는 직전 기간 대비 증감이에요.</dd>
+      <dt>평균 행거수</dt><dd>기간의 하루하루에 그날 유효한 행거수를 적용한 평균이에요. 기간 중 바꿨다면 「10→12」처럼 같이 보여요. 숫자 옆 *는 행거수를 처음 입력한 날보다 이전 기간이라 첫 입력값으로 채웠다는 뜻이에요.</dd>
+      <dt>행거당 판매액</dt><dd>판매액 ÷ 평균 행거수. 행거 한 개가 이 기간에 번 돈이에요. 기간이 길수록 커지니 <b>같은 길이의 기간끼리</b> 비교하세요. 기간이 다를 때는 「행거당 일평균 판매액」(판매액 ÷ (행거수×일수))을 보세요.</dd>
+      <dt>행거당 판매수</dt><dd>판매벌수 ÷ 평균 행거수. 행거 한 개에서 몇 벌이 빠졌는지예요. 값이 작으면 걸어만 두고 안 나가는 행거예요.</dd>
+      <dt>매출비중 · 행거비중</dt><dd>같은 구간(물류/온라인) 안에서, 행거수가 입력된 카테고리끼리 계산한 비중이에요. 매출비중은 그 카테고리가 번 몫, 행거비중은 차지한 행거 몫이에요.</dd>
+      <dt>효율지수</dt><dd>매출비중 ÷ 행거비중 × 100. <b>100이 같은 구간의 평균</b>이에요. 143이면 평균보다 행거를 43% 더 효율적으로 쓰는 거예요. 50이면 차지한 자리의 절반만 벌고 있어요.</dd>
+      <dt>신호 (늘리기 / 유지 / 줄이기)</dt><dd>효율지수 ${IDX_UP} 이상이면 <b>늘리기</b>, ${IDX_DOWN} 이하면 <b>줄이기</b>, 그 사이는 <b>유지</b>예요. 판매가 ${MIN_QTY}벌 미만인데 지수만 높으면 <b>표본 적음</b>, 행거수를 입력하지 않았는데 팔렸으면 <b>행거 미입력</b>, 가방·패션잡화·모자·ETC·패브릭·신발·봉투·위탁은 <b>행거 외</b>로 따로 둬요.</dd>
+      <dt>현재 재고 · 재고 소진 예상</dt><dd>그 매장에 지금 있는 재고, 그리고 재고 ÷ (판매벌수 ÷ 기간 일수). 지금 속도로 팔면 며칠치인지예요. 재고는 <b>조회 기간이 아니라 지금</b> 기준이에요.</dd>
+      <dt>입고 후 30일 내 판매 · 판매까지 걸린 일수</dt><dd>팔린 물건 중 입고 후 30일 안에 팔린 비율, 그리고 입고부터 판매까지 걸린 일수의 중앙값(오래 묵은 물건이 평균을 끌어올리지 않게 중앙값을 써요). 높은 비율·짧은 일수일수록 회전이 빠른 카테고리예요.</dd>
+      <dt>가격대별 판매벌수</dt><dd>개당 판매가 기준 8구간 막대예요(하한 포함, 상한 미포함: 1만원은 「1~2만」). 어느 가격대가 팔리는지 보고 어떤 가격대 물건을 채울지 정할 때 써요.</dd>
+    </dl>
+    <div class="ex"><b>예시 (성수 자켓, 10/13~10/26 조회)</b><br>66벌 · 2,790,600원 · 평균 행거 10개<br>→ 행거당 판매액 279,060원 · 행거당 판매수 6.6벌<br>→ 매출비중 22.6% ÷ 행거비중 15.9% = 효율지수 143 → <b>늘리기</b><br>→ 재고 260벌 ÷ (66벌 ÷ 14일) = 약 55일치</div>
+  </div></details>
+
+  <details class="help"><summary>신호를 보고 판단하는 법</summary><div class="hbody">
+    <p>신호는 <b>참고용 첫 단서</b>예요. 효율지수만 보지 말고 <b>재고 소진 예상</b>을 같이 보세요. 아래는 해석 가이드이고, 기준 숫자는 계절과 상황에 맞게 매니저가 정하면 돼요.</p>
+    <table>
+      <tr><th>효율지수</th><th>재고 소진</th><th>해석 · 할 일</th></tr>
+      <tr><td>높음 (늘리기)</td><td>짧음 (대략 2주 이하)</td><td>잘 팔리는데 곧 떨어져요. <b>물류요청 수량을 늘리고</b>, 자리가 부족하면 행거도 늘리기.</td></tr>
+      <tr><td>높음 (늘리기)</td><td>긺 (대략 8주 이상)</td><td>잘 팔리고 재고도 충분해요. 행거를 늘려 <b>더 많이 보여주면</b> 매출이 더 오를 수 있어요.</td></tr>
+      <tr><td>낮음 (줄이기)</td><td>긺</td><td>자리만 차지하고 안 나가요. <b>행거를 줄이거나</b> 다른 매장으로 옮기기(매장 비교 탭 참고).</td></tr>
+      <tr><td>낮음 (줄이기)</td><td>짧음/재고 적음</td><td>재고가 적어서 못 파는 걸 수 있어요. 줄이기 전에 <b>보충</b>이 먼저인지 보세요.</td></tr>
+      <tr><td>유지</td><td>—</td><td>평균 수준이에요. 급하게 건드리지 않아도 돼요.</td></tr>
+    </table>
+    <p>다음은 판단 전에 확인하세요.</p>
+    <ul>
+      <li>기간이 짧거나 날씨·행사로 한쪽에 몰렸다면 신호를 그대로 믿지 마세요.</li>
+      <li>효율지수는 <b>상대 평가</b>예요. 모든 카테고리가 잘 팔려도 일부는 100 아래로 나와요. 절대 매출은 판매액·행거당 판매액을 보세요.</li>
+      <li>평균 행거수가 0.5~1개처럼 작으면 지수가 크게 출렁여요. 판매벌수도 같이 보세요.</li>
+      <li>신호가 "행거 미입력"이면 판단하기 전에 「행거수」 탭에서 값을 채우세요.</li>
+    </ul>
+  </div></details>
+
+  <details class="help"><summary>정렬은 언제 쓰나</summary><div class="hbody">
+    <dl>
+      <dt>매출순 (기본)</dt><dd>돈이 되는 카테고리부터. 가장 먼저 훑어볼 때.</dd>
+      <dt>판매벌수순</dt><dd>많이 나가는 카테고리부터. 물류팀에 보낼 수량을 가늠할 때.</dd>
+      <dt>효율지수 높은순</dt><dd>행거 대비 가장 잘 버는 카테고리부터. 행거를 <b>늘릴 후보</b>를 찾을 때.</dd>
+      <dt>효율지수 낮은순</dt><dd>자리 대비 가장 못 버는 카테고리부터. 행거를 <b>줄일 후보</b>를 찾을 때.</dd>
+      <dt>재고 소진일 짧은순</dt><dd>곧 떨어질 카테고리부터. <b>보충 요청</b>이 급한 것을 찾을 때.</dd>
+    </dl>
+  </div></details>
+
+  <details class="help"><summary>매장 비교 탭 활용</summary><div class="hbody">
+    <p>위 선택 칸에서 지표를 고르면 카테고리 × 매장 표가 바뀌어요. 진한 칸은 <b>그 카테고리에서 상대적으로 큰 매장</b>이에요(총합 열은 색 비교에서 제외).</p>
+    <ul>
+      <li><b>행거당 판매액</b> — 같은 카테고리를 매장별로 비교. 한 매장은 진하고 다른 매장은 연하면, 연한 매장의 재고를 진한 매장으로 옮기는 걸 검토해요.</li>
+      <li><b>효율지수</b> — 매장별 효율 비교. 매장마다 자기 매장 평균 대비라 규모가 다른 매장끼리도 비교할 수 있어요.</li>
+      <li><b>판매벌수 · 판매액</b> — 매장별 절대 규모. 물류요청 수량을 매장에 나눌 때 근거로 써요.</li>
+      <li><b>재고 소진 예상(일)</b> — 어느 매장이 먼저 떨어지는지. 이 지표만 색칠은 하지 않아요.</li>
+      <li><b>평균 행거수 · 현재 재고</b> — 매장별 자리와 재고 현황.</li>
+    </ul>
+  </div></details>
+
+  <details class="help"><summary>행거수 입력 방법</summary><div class="hbody">
+    <ol>
+      <li>「행거수」 탭에서 매장을 고르고 <b>적용일</b>을 정해요(기본은 오늘).</li>
+      <li>바뀐 카테고리 칸만 숫자를 고쳐요(0.5 단위 가능). 안 바꾼 칸은 그대로 두면 저장되지 않아요.</li>
+      <li>카테고리에서 행거를 모두 뺐다면 <b>0</b>을 입력해요. 비워 두면 변경 없음이에요.</li>
+      <li>「변경 저장」을 누르면 분석에 바로 반영돼요.</li>
+    </ol>
+    <p><b>적용일부터 그 값이 유효</b>해요. 행거를 바꾼 날이 어제였다면 어제 날짜로 입력하세요. 그래야 어제부터 새 값으로 평균이 계산돼요. 잘못 입력했다면 같은 날짜로 다시 저장하거나, 아래 「변경 이력」의 ×로 지우세요.</p>
+    <div class="ex"><b>평균 계산 예</b><br>10/13~10/26(14일) 중 10/20에 자켓 10개 → 12개로 변경<br>10개×7일 + 12개×7일 ÷ 14일 = <b>평균 11개</b> (화면에는 10→12로 표시)</div>
+    <p>마지막 입력이 ${STALE_DAYS}일 넘게 지나면 화면 위에 경고가 떠요. 날씨가 바뀌어 행거를 조정할 때마다 입력해 주세요.</p>
+  </div></details>
+
+  <details class="help"><summary>알아둘 점</summary><div class="hbody">
+    <ul>
+      <li><b>온으로 시작하는 카테고리</b>는 온라인 채널 판매가 아니라 해외 경매 등 온라인에서 수급한 물건이에요. 온라인 구간으로 따로 계산해요.</li>
+      <li><b>C</b> 카테고리는 물류 구간에 포함돼요. 행거를 쓰는 카테고리로 봐요.</li>
+      <li><b>셋업</b> 카테고리는 판매가 허브에 따로 집계되지 않아 행거만 있고 판매는 0으로 나올 수 있어요.</li>
+      <li>오늘 판매분은 아직 반영되지 않았을 수 있어요. 기간 끝을 어제로 두는 걸 기본으로 해요.</li>
+      <li>재고는 입고·이동·재고조사가 허브에 반영된 만큼만 정확해요. 숫자가 이상하면 해당 매장 재고조사·이동 기록부터 확인하세요.</li>
+      <li>행거수가 아직 입력되지 않은 매장·카테고리는 행거당 지표가 비어(-) 나와요.</li>
+    </ul>
+  </div></details>
+
+  <details class="help"><summary>엑셀 파일</summary><div class="hbody">
+    <p>카테고리 탭 맨 아래 버튼으로 내려받아요. 「총합」 시트와 매장별 시트에 위 숫자(판매·행거당 지표·효율지수·신호·재고·소진 예상·가격대 8구간·직전 대비)가 모두 들어 있고, 「기준」 시트에 계산 방식이 적혀 있어요. 필터가 걸려 있어 원하는 열로 정렬해 쓸 수 있어요.</p>
+  </div></details>`;
+}
+
 // ── 흐름 ────────────────────────────────────────────────────
 function renderView() {
   if (S.tab === 'hg') { renderHg(); return; }
+  if (S.tab === 'help') { renderHelp(); return; }
   if (S.tab === 'cat') renderCat(); else renderMx();
   wireView();
 }
