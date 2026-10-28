@@ -2342,10 +2342,24 @@ async function downloadLogExcel() {
 
     if (!sessions || sessions.length === 0) { showToast('해당 기간에 데이터가 없어요', 'error'); return; }
 
-    // 아이템 데이터
+    // 아이템 데이터: 응답이 1000행에서 잘리므로 세션을 나눠 id 순으로 페이지를 넘기며 전부 모은다.
+    // 중간에 실패하면 일부만 담긴 엑셀을 내려주지 않고 멈춘다.
     const ids = sessions.map(s => s.id);
-    const { data: items } = await app.supabase
-      .from('session_items').select('*').in('session_id', ids).limit(10000);
+    const items = [];
+    const SESSION_CHUNK = 20, PAGE = 1000;
+    for (let i = 0; i < ids.length; i += SESSION_CHUNK) {
+      const chunk = ids.slice(i, i + SESSION_CHUNK);
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await app.supabase
+          .from('session_items').select('*')
+          .in('session_id', chunk)
+          .order('id', { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (error) throw new Error('이동 항목 조회에 실패했어요: ' + error.message);
+        items.push(...data);
+        if (data.length < PAGE) break;
+      }
+    }
 
     const sessionMap = {};
     sessions.forEach(s => { sessionMap[s.id] = s; });
