@@ -43,8 +43,8 @@ async function loadAll() {
   const [ov, un, it, ar] = await Promise.all([
     sb.rpc('store_checklist_overview', { p_from: addDays(today, -(DAYS - 1)), p_to: today }),
     sb.from('store_notes').select('*').is('confirmed_at', null).order('work_date', { ascending: false }).order('created_at', { ascending: false }).limit(50),
-    sb.from('checklist_items').select('*').order('sort_order').order('created_at'),
-    sb.from('manual_articles').select('*').order('category').order('sort_order').order('created_at'),
+    sb.from('checklist_items').select('*').order('sort_order').order('id'),
+    sb.from('manual_articles').select('*').order('category').order('sort_order').order('id'),
   ]);
   for (const r of [ov, un, it, ar]) if (r.error) throw r.error;
   overview = ov.data; unconfirmed = un.data; allItems = it.data; articles = ar.data;

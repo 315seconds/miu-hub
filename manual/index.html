@@ -42,7 +42,7 @@ let tab = 'check', query = '', cat = '';
 // ── 데이터 ─────────────────────────────────────────────
 async function loadItems() {
   const { data, error } = await sb.from('checklist_items').select('*').eq('is_active', true)
-    .order('sort_order').order('created_at');
+    .order('sort_order').order('id');
   if (error) throw error;
   items = data;
 }
@@ -70,7 +70,7 @@ async function loadNotes() {
 }
 async function loadArticles() {
   const { data, error } = await sb.from('manual_articles').select('*').eq('is_active', true)
-    .order('category').order('sort_order').order('created_at');
+    .order('category').order('sort_order').order('id');
   if (error) throw error;
   articles = data;
 }
