@@ -29,6 +29,9 @@ body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(-
 .row .view:active { background: var(--miu-surface-strong); }
 .empty { text-align: center; padding: 96px 32px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
 .hint { margin-top: 20px; font-size: 12.5px; color: var(--miu-muted); line-height: 1.6; }
+.kind { margin: 36px 0 0; font-size: 13px; font-weight: 700; letter-spacing: 0.8px; color: var(--miu-primary); }
+.kind + .week { margin-top: 12px; }
+.row .n small { display: block; font-weight: 400; color: var(--miu-muted); font-size: 12px; margin-top: 1px; }
 </style>
 <script src="/miu-hub/shared/config.js?v=202610250918"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -42,7 +45,7 @@ body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(-
     <i class="ph-bold ph-caret-left"></i>
   </a>
   <div class="miu-header-title">
-    <div class="miu-header-eyebrow">WEEKLY LETTER</div>
+    <div class="miu-header-eyebrow">LETTERS</div>
     <h1 class="miu-header-h1">레터 열람 현황</h1>
   </div>
 </header>
@@ -61,38 +64,64 @@ const fmtKst = (iso) => {
 };
 const daysSince = (iso) => Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
 
-(async function init() {
-  for (let i = 0; i < 50 && window.MIU_PROFILE === undefined; i++) await new Promise((r) => setTimeout(r, 100));
-  const { data, error } = await window.sb.rpc('letter_read_status');
-  if (error) {
-    root.innerHTML = '<div class="empty">불러오지 못했어요.</div>';
-    return;
-  }
-  if (!data.length) {
-    root.innerHTML = '<div class="empty">볼 수 있는 열람 현황이 없어요.</div>';
-    return;
-  }
-  const byWeek = new Map();
-  data.forEach((r) => { if (!byWeek.has(r.week_start)) byWeek.set(r.week_start, []); byWeek.get(r.week_start).push(r); });
+const DOW = ['일', '월', '화', '수', '목', '금', '토'];
+const mdw = (iso) => `${md(iso)}(${DOW[new Date(iso + 'T00:00:00Z').getUTCDay()]})`;
 
-  root.innerHTML = [...byWeek].map(([week, rows]) => {
-    const readN = rows.filter((r) => r.read_at).length;
+const statusHtml = (r) => (r.read_at
+  ? `<span class="st read">열람 완료<small>${fmtKst(r.read_at)}</small></span>`
+  : `<span class="st unread">아직 안 읽음<small>${daysSince(r.created_at)}일 경과</small></span>`);
+
+function weeklyHtml(rows) {
+  const byWeek = new Map();
+  rows.forEach((r) => { if (!byWeek.has(r.week_start)) byWeek.set(r.week_start, []); byWeek.get(r.week_start).push(r); });
+  return `<div class="kind">주간 프라이싱 레터</div>` + [...byWeek].map(([week, rs]) => {
+    const readN = rs.filter((r) => r.read_at).length;
     return `
       <section class="week">
-        <div class="week-head"><span class="t">${md(week)} – ${md(addDays(week, 6))}</span><span class="s">${rows.length}명 중 ${readN}명 열람</span></div>
-        <div class="list">${rows.map((r) => `
+        <div class="week-head"><span class="t">${md(week)} – ${md(addDays(week, 6))}</span><span class="s">${rs.length}명 중 ${readN}명 열람</span></div>
+        <div class="list">${rs.map((r) => `
           <div class="row">
             <span class="n">${esc(r.recipient_name)}</span>
             <span class="right">
-              ${r.read_at
-                ? `<span class="st read">열람 완료<small>${fmtKst(r.read_at)}</small></span>`
-                : `<span class="st unread">아직 안 읽음<small>${daysSince(r.created_at)}일 경과</small></span>`}
+              ${statusHtml(r)}
               <a class="view" href="index.html?id=${encodeURIComponent(r.id)}&as=admin">레터 보기<i class="ph-bold ph-caret-right"></i></a>
             </span>
           </div>`).join('')}
         </div>
       </section>`;
-  }).join('') + '<p class="hint">열람 시각은 수신자가 레터를 처음 열어본 때예요. “레터 보기”는 실제 발송된 레터를 읽기만 하며, 열람 기록은 바뀌지 않아요.</p>';
+  }).join('');
+}
+
+function salesHtml(rows) {
+  const label = (r) => (r.period_start === r.period_end ? `${mdw(r.period_end)} 판매` : `${md(r.period_start)}~${md(r.period_end)} 판매(지난주)`);
+  return `<div class="kind">판매 레터</div>
+    <section class="week">
+      <div class="list">${rows.map((r) => `
+        <div class="row">
+          <span class="n">${label(r)}<small>${esc(r.recipient_name)}</small></span>
+          <span class="right">
+            ${statusHtml(r)}
+            <a class="view" href="../sales-letter/index.html?id=${encodeURIComponent(r.id)}&as=admin">레터 보기<i class="ph-bold ph-caret-right"></i></a>
+          </span>
+        </div>`).join('')}
+      </div>
+    </section>`;
+}
+
+(async function init() {
+  for (let i = 0; i < 50 && window.MIU_PROFILE === undefined; i++) await new Promise((r) => setTimeout(r, 100));
+  const [weekly, sales] = await Promise.all([window.sb.rpc('letter_read_status'), window.sb.rpc('sales_letter_read_status')]);
+  if (weekly.error || sales.error) {
+    root.innerHTML = '<div class="empty">불러오지 못했어요.</div>';
+    return;
+  }
+  if (!weekly.data.length && !sales.data.length) {
+    root.innerHTML = '<div class="empty">볼 수 있는 열람 현황이 없어요.</div>';
+    return;
+  }
+  root.innerHTML = (weekly.data.length ? weeklyHtml(weekly.data) : '')
+    + (sales.data.length ? salesHtml(sales.data) : '')
+    + '<p class="hint">열람 시각은 수신자가 레터를 처음 열어본 때예요. “레터 보기”는 실제 발송된 레터를 읽기만 하며, 열람 기록은 바뀌지 않아요.</p>';
 })();
 </script>
 </body>

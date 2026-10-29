@@ -229,6 +229,7 @@
   .accent-letter { --tile-accent: var(--miu-accent-teal); }
   #letter-tile { display: none; position: relative; }
   #letter-status-tile { display: none; }
+  #sales-letter-tile { display: none; position: relative; }
   .new-badge {
     background: var(--miu-primary); color: #fff; font-size: 10px; font-weight: 700;
     letter-spacing: 0.5px; padding: 3px 8px; border-radius: var(--miu-r-pill); margin-right: 4px;
@@ -389,6 +390,15 @@
       <span id="letter-new" class="new-badge" hidden>NEW</span>
       <span class="tile-arrow">›</span>
     </a>
+    <a href="sales-letter/" class="tile tile-wide accent-letter" id="sales-letter-tile">
+      <div class="tile-icon"><i class="ph-bold ph-receipt"></i></div>
+      <div class="tile-body">
+        <div class="tile-title">판매 레터</div>
+        <div class="tile-desc">지난 영업일 판매 · 입고 후 소요 일수</div>
+      </div>
+      <span id="sales-letter-new" class="new-badge" hidden>NEW</span>
+      <span class="tile-arrow">›</span>
+    </a>
   </div>
 </div>
 
@@ -544,6 +554,19 @@ if (window.MIU_USER) {
     sessionStorage.setItem(key, unread.id);
     modal.classList.remove('open');
   });
+})();
+
+// 판매 레터: 본인에게 도착한 레터가 있으면(수신자 김민지) 타일 노출, 안 읽은 게 있으면 NEW
+(async function showSalesLetterTile() {
+  for (let i = 0; i < 30; i++) {
+    if (window.MIU_PROFILE !== undefined) break;
+    await new Promise(r => setTimeout(r, 100));
+  }
+  if (!window.MIU_PROFILE) return;
+  const { data, error } = await window.sb.from('sales_letters').select('id,read_at').limit(60);
+  if (error || !data.length) return;
+  document.getElementById('sales-letter-tile').style.display = 'flex';
+  if (data.some(l => !l.read_at)) document.getElementById('sales-letter-new').hidden = false;
 })();
 
 // 레터 열람 현황 타일: 서버 함수가 허용한 사용자(황태훈)에게만 노출

@@ -24,6 +24,7 @@
 | `sold-report/`, `turnover/` | 일별 판매 리포트 / 회전율(`turnover`는 홈 메뉴에 없음, 직접 URL) |
 | `report/` | 매출 리포트(키오스크 엑셀 업로드→파싱→분석→`sales_reports`). `migrate.html`, `patch-*.html`은 일회성 |
 | `letter/` | 주간 프라이싱 레터(`index`, `all`, `status`=황태훈 전용 열람 현황) |
+| `sales-letter/` | 판매 레터(김민지 수신, 황태훈은 열람 현황에서 확인): 평일 아침 지난 영업일 판매된 대상 물건 목록(`sales_letters`) |
 | `logistics-request/` | 매장 매니저 최영훈(+황태훈) 전용 물류요청 보조: 기간·매장 선택 → 카테고리별 판매수량+가격대 분포 엑셀. 브라우저에서 `sold_items`×`inventory_items.category` 집계(DB 변경 없음) |
 | `category-analysis/` | 최영훈·황태훈 전용 카테고리 판매 분석(시트 "카테고리자동화"의 허브판). 기간·매장 → 판매벌수·판매액·평균가·행거당 판매액·효율지수/신호·재고 소진·가격대·직전 기간 대비, 매장 비교, **행거수 이력 입력**, 엑셀. 집계는 RPC `category_performance` |
 | `item-scanner/` | 브랜드·사진 스캐너 |
@@ -65,12 +66,16 @@
 - 스테이징(`scripts/staging-setup/`)은 운영 스키마 덤프 복원용이며 RPC·트리거·item-scanner 테이블이 없다. `30-copy-seed-data.sh`는 운영 개인정보를 복사하니 주의.
 
 ## 5. 저장소 밖과 이어지는 흐름
-`../work_automation/`(비공개, Oracle VM 크론, service_role). 정식 원본은 거기이며 VM 코드 변경은 거기서 먼저 커밋. 크론(KST): `move_update` 매분 · `inventory_process`·`price_update` 2분 · `sold_sync` 00:30 · `sales_sheet_sync` 01:00 · `auto_approve` 22:00 · `reconcile` 03:00 · `weekly_letter` 월 07:30.
+`../work_automation/`(비공개, Oracle VM 크론, service_role). 정식 원본은 거기이며 VM 코드 변경은 거기서 먼저 커밋. 크론(KST): `move_update` 매분 · `inventory_process`·`price_update` 2분 · `sold_sync` 00:30 · `sales_sheet_sync` 01:00 · `auto_approve` 22:00 · `reconcile` 03:00 · `weekly_letter` 월 07:30 · `daily_sales_letter` 월~금 07:30.
 - **입고**: 앱에서 승인(RPC가 바코드 발급) → VM `inventory_process`가 엑셀/시트 반영 후 `status=processed`, `excel_updated` → 라벨 출력(`printed_at`) / 키오스크 XLSX(`kiosk_exported_at`). 반영·출력 후엔 승인 취소 불가. 바코드: 공동물류 `A`+YY+6자리, 온라인 `U`+YYMM+4자리. 이전 날 pending 세션은 새 세션 화면 진입 때 비었으면 삭제·아니면 `expired`.
 - **이동**: pending 저장 → 22:00 VM `auto_approve`가 오늘 pending을 approved → 매분 VM이 승인분 엑셀/Dropbox 반영. 판매 리포트는 approved만 쓴다. 화면에 승인 UI는 없다 `[수동 승인 경로 확인 못 함]`. 상태값: pending/approved/expired(+`processed`, `correction` 코드상 존재).
 - **주간 레터**: VM `jobs/weekly_letter.py --all`(`run_weekly_letter.sh`)이 코드 상수 `LETTER_RECIPIENTS`(5명) 각자의 레터를 만들어 `weekly_letters`에 upsert(`on_conflict recipient_id,subject_name,week_start`, 재실행해도 `read_at` 유지)하고 썸네일을 `letter-thumbs`에 올린다. 판매 데이터가 해당 주 끝까지 없으면 중단.
   - **정식 발송** = `subject_name == 수신자 이름`. 미리보기 = 다른 사람 통계를 본인에게(`--subject X --recipient 황태훈`; 화면에 "미리보기" 배너). 열람 현황·`letter_admin_view`는 정식 발송분만.
   - 수신자가 처음 열면 `read_at` 기록. 황태훈이 열람 현황에서 `index.html?id=…&as=admin`으로 볼 땐 기록하지 않는다. 홈 레터 타일/팝업은 내게 온 `weekly_letters`(미리보기 포함)가 있을 때 뜬다.
+- **판매 레터**: VM `jobs/daily_sales_letter.py`(`run_daily_sales_letter.sh`)가 코드 상수 `RECIPIENTS`(김민지)에게 `sales_letters`에 upsert(`on_conflict recipient_id,period_start,period_end`, 재실행해도 `read_at` 유지). 월요일=지난주 월~일 전체, 화~금=전날, 토·일 없음. 판매 0건이어도 "판매 없음" 레터를 보낸다. 환불(`refund_date`) 제외.
+  - 대상 규칙(코드 `is_target`): 바코드 접두사(숫자 앞 글자)가 **정확히** `U, SB, YH, M, N, G, H, T, LOST, SEL, BIBLE, WW, WWA` / 카테고리 ETC(대소문자·"온" 무시, 접두사 무관) / `CR`+(ETC·모자) / `YGH`+모자. `MB·MA·MU·TT·HK`는 대상 아님.
+  - 입고일 = 세션 `session_date`, 없으면(엑셀 일괄 반영분) `inventory_items.created_at`의 한국 날짜(운영상 검증된 값으로 취급). 매장 도착일 = 승인된 이동 중 판매 매장으로 간 마지막 이동일(`move_sessions.to_location`, 판매일 이전). 이동 기록이 없으면 "매장 이동 기록 없음".
+  - 홈 "판매 레터" 타일은 본인 행이 있을 때만 뜬다(RLS). 수신자 변경은 코드 수정. 황태훈은 수신자가 아니며 `letter/status.html`의 "판매 레터" 섹션에서 열람 여부를 보고, "레터 보기"(`sales-letter/index.html?id=…&as=admin`)로 발송 내용을 읽기만 한다(`sales_letter_read_status()`·`sales_letter_admin_view()`, `is_letter_admin()` 게이트, `scripts/sales-letters-admin-20261029.sql`).
 - **매출 리포트**: 키오스크 엑셀(영수증·카드·입고 시트)을 `report/js/*`가 파싱·조인·분석 → `sales_reports`/`sales_report_items`. 현금매출은 구글시트 `현금매출` 탭을 gviz로 읽는다. 열 위치·시트명 하드코딩이라 원본 포맷이 바뀌면 파싱부터 깨진다. 저장은 비원자적(항목 delete 후 insert 실패 시 항목 유실).
 - `longterm/scripts/update_kiosk.py`(VM 키오스크 업로드)는 `kiosk_updates`를 폴링하지만 그 테이블은 사실상 미사용(미처리 553건 방치).
 - `docs/POPUP_REPORT_ANALYSIS.md`는 팝업 매출 리포트의 옛 Streamlit 로직 분석(리포트 파이프라인 배경).
@@ -83,6 +88,7 @@
 - 카테고리 규칙: 분석에서 제외 C·위탁, `pb\d+` 바코드 제외, 이름이 '온'으로 시작하면 온라인, 외국 카드는 키워드 포함 여부로 판정.
 
 ## 7. 이력 (줄기만, 최신순)
+- 2026-10-28 판매 레터(`sales-letter/`, DB `sales_letters`, VM `daily_sales_letter` 평일 07:30).
 - 2026-10-27 매장 매니저 전용 화면 2개(홈 "매장 매니저" 섹션): 물류요청 판매 집계 엑셀(`logistics-request/`), 카테고리 판매 분석+행거수 이력(`category-analysis/`, DB `store_hangers`·`category_performance`).
 - 2026-10-26 레터 열람 현황에서 발송된 레터 읽기 전용 보기(`letter_admin_view`, `?as=admin`).
 - 2026-10-25 보안 강화: 비로그인 차단, 입고 승인·대량 이동·승인 취소·담당자 서버 강제, returnTo 검증, 판매 리포트·회전율·item-scanner 세션 토큰 사용.

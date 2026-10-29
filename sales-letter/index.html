@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>판매 레터 — 마켓인유</title>
+<meta name="theme-color" content="#faf9f5">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202610250918">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202610250918">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<style>
+body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
+.wrap { max-width: 560px; margin: 0 auto; padding-bottom: 48px; }
+
+/* 레터 칩 */
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 14px 20px 4px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip {
+  flex-shrink: 0; position: relative; border: 1px solid var(--miu-hairline); background: transparent;
+  border-radius: var(--miu-r-pill); padding: 7px 14px; font-size: 13px; font-weight: 600;
+  color: var(--miu-body); font-family: var(--miu-sans); cursor: pointer;
+}
+.chip.active { background: var(--miu-ink); border-color: var(--miu-ink); color: var(--miu-on-dark); }
+.chip .dot { position: absolute; top: -2px; right: -2px; width: 9px; height: 9px; border-radius: 50%; background: var(--miu-primary); border: 2px solid var(--miu-canvas); }
+
+/* 히어로 */
+.hero { padding: 28px 20px 8px; }
+.hero .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; color: var(--miu-primary); text-transform: uppercase; margin-bottom: 10px; }
+.hero .title { font-family: var(--miu-serif); font-size: 28px; font-weight: 500; line-height: 1.2; letter-spacing: -0.8px; }
+.hero .sub { margin-top: 8px; font-size: 14px; color: var(--miu-muted); }
+
+/* 날짜 묶음 */
+.group { padding: 0 20px; margin-top: 28px; }
+.group-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+.group-head .label { font-size: 13px; font-weight: 600; letter-spacing: 0.8px; }
+.group-head .cnt { font-size: 12px; color: var(--miu-muted); }
+.group-head .divider { flex: 1; height: 1px; background: var(--miu-hairline); margin-left: 8px; }
+
+/* 황태훈 전용: 발송된 레터 읽기 전용 보기 */
+.preview-banner { margin: 14px 20px 0; padding: 10px 14px; border-radius: var(--miu-r-md); background: #fff3e0; color: #7a5210; font-size: 13px; line-height: 1.5; }
+
+/* 물건 카드 (가로형) */
+.cards { display: flex; flex-direction: column; gap: 10px; }
+.card { display: flex; background: var(--miu-surface-card); border-radius: var(--miu-r-lg); overflow: hidden; }
+.card .photo { width: 104px; flex-shrink: 0; aspect-ratio: 4 / 5; background: var(--miu-surface-strong); border: none; padding: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--miu-muted-soft); font-size: 28px; }
+.card .photo.nophoto { cursor: default; }
+.card .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.card .info { flex: 1; min-width: 0; padding: 12px 14px; display: flex; flex-direction: column; justify-content: center; gap: 2px; }
+.card .cat { font-size: 12px; color: var(--miu-muted); }
+.card .name { font-size: 15px; font-weight: 600; letter-spacing: -0.3px; }
+.card .bc { font-size: 11px; color: var(--miu-muted-soft); font-family: var(--miu-mono); }
+.card .store { margin-top: 6px; font-size: 13px; font-weight: 700; color: var(--miu-body-strong); }
+.card .line { font-size: 12.5px; color: var(--miu-body); line-height: 1.5; }
+.card .line.unknown { color: var(--miu-muted-soft); }
+
+.empty { text-align: center; padding: 96px 32px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
+.empty i { font-size: 36px; color: var(--miu-muted-soft); display: block; margin-bottom: 12px; }
+
+.lightbox { position: fixed; inset: 0; z-index: 1000; display: none; background: rgba(20,20,19,.85); align-items: center; justify-content: center; padding: 16px; }
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 100%; max-height: 100%; border-radius: var(--miu-r-md); }
+</style>
+<script src="/miu-hub/shared/config.js?v=202610250918"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202610250918"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202610250918"></script>
+</head>
+<body>
+
+<header class="miu-header">
+  <a href="/miu-hub/" class="miu-header-back" aria-label="허브로">
+    <i class="ph-bold ph-caret-left"></i>
+  </a>
+  <div class="miu-header-title">
+    <div class="miu-header-eyebrow">SALES LETTER</div>
+    <h1 class="miu-header-h1">판매 레터</h1>
+  </div>
+</header>
+
+<div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
+<div class="lightbox" id="lightbox"><img id="lightbox-img" alt=""></div>
+
+<script>
+const root = document.getElementById('root');
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const DOW = ['일', '월', '화', '수', '목', '금', '토'];
+const dow = (iso) => DOW[new Date(iso + 'T00:00:00Z').getUTCDay()];
+const md = (iso) => { const [, m, d] = iso.split('-'); return `${+m}/${+d}`; };
+const mdw = (iso) => `${md(iso)}(${dow(iso)})`;
+// 기준일(판매일)과 다른 해면 연도를 붙여 헷갈리지 않게
+const dateLabel = (iso, ref) => (iso.slice(0, 4) === ref.slice(0, 4) ? md(iso) : `${iso.slice(2, 4)}/${md(iso)}`);
+const days = (n) => (n === 0 ? '당일' : `${n}일`);
+
+window.fallback = (img, orig) => { img.onerror = null; img.src = orig; };
+
+let letters = [];
+// 황태훈 전용: 레터 열람 현황에서 수신자에게 실제 발송된 레터를 읽기 전용으로 본다(열람 기록 안 바뀜).
+const adminView = new URLSearchParams(location.search).get('as') === 'admin';
+
+function chipLabel(l) {
+  return l.period_start === l.period_end ? mdw(l.period_end) : `${md(l.period_start)}~${md(l.period_end)}`;
+}
+
+function cardHtml(it) {
+  const ref = it.sold_date;
+  const photo = it.thumb_url || it.photo_url;
+  const photoHtml = photo
+    ? `<button class="photo" type="button" data-full="${esc(it.medium_url || it.photo_url)}" aria-label="사진 크게 보기">
+         <img src="${esc(photo)}" alt="${esc(it.product_name || it.barcode)}" loading="lazy" decoding="async" onerror="fallback(this, '${esc(it.photo_url)}')">
+       </button>`
+    : '<div class="photo nophoto"><i class="ph-bold ph-image-square"></i></div>';
+  const intake = it.intake_date
+    ? `<div class="line">입고 ${dateLabel(it.intake_date, ref)} → 판매까지 <b>${days(it.days_since_intake)}</b></div>`
+    : '<div class="line unknown">입고일 미상</div>';
+  const arrival = it.store_arrival_date
+    ? `<div class="line">${esc(it.store)} 도착 ${dateLabel(it.store_arrival_date, ref)} → 판매까지 <b>${days(it.days_in_store)}</b></div>`
+    : '<div class="line unknown">매장 이동 기록 없음</div>';
+  return `
+    <article class="card">
+      ${photoHtml}
+      <div class="info">
+        <div class="cat">${esc(it.category || '카테고리 미입력')}</div>
+        <div class="name">${esc(it.product_name || '상품명 없음')}</div>
+        <div class="bc">${esc(it.barcode)}</div>
+        <div class="store">${esc(it.store)} · ${mdw(it.sold_date)} 판매</div>
+        ${intake}
+        ${arrival}
+      </div>
+    </article>`;
+}
+
+function letterHtml(l) {
+  const p = l.payload;
+  const isWeek = p.mode === 'week';
+  const title = isWeek ? `지난주 판매<br>${md(p.period_start)} – ${md(p.period_end)}` : `${mdw(p.period_start)} 판매`;
+  const byDate = new Map();
+  p.items.forEach((it) => byDate.set(it.sold_date, [...(byDate.get(it.sold_date) || []), it]));
+  const groups = [...byDate.entries()].map(([d, its]) => `
+    <section class="group">
+      <div class="group-head"><span class="label">${mdw(d)}</span><span class="cnt">${its.length}점</span><span class="divider"></span></div>
+      <div class="cards">${its.map(cardHtml).join('')}</div>
+    </section>`).join('');
+  return `
+    ${adminView ? `<div class="preview-banner">👀 <b>${esc(l.recipient_name)}</b>님에게 발송된 레터예요. 읽기만 하며 열람 기록은 바뀌지 않아요.</div>` : ''}
+    <div class="hero">
+      <div class="eyebrow">${isWeek ? 'WEEKLY' : 'DAILY'}</div>
+      <div class="title">${title}</div>
+      <div class="sub">${p.total ? `대상 물건 ${p.total}점이 팔렸어요.` : ''}</div>
+    </div>
+    ${p.total ? groups : '<div class="empty"><i class="ph-bold ph-tray"></i>판매 없음<br>이 기간에 팔린 대상 물건이 없어요.</div>'}`;
+}
+
+function chipsHtml(activeId) {
+  if (letters.length < 2) return '';
+  return `<div class="chips">${letters.map((l) => `
+    <button class="chip ${l.id === activeId ? 'active' : ''}" data-id="${l.id}">${chipLabel(l)}${l.read_at ? '' : '<span class="dot"></span>'}</button>`).join('')}</div>`;
+}
+
+async function show(id) {
+  const { data: letter, error } = adminView
+    ? await window.sb.rpc('sales_letter_admin_view', { p_id: id }).maybeSingle()
+    : await window.sb.from('sales_letters').select('id,period_start,period_end,read_at,payload').eq('id', id).single();
+  if (error || !letter) {
+    root.innerHTML = '<div class="empty"><i class="ph-bold ph-warning-circle"></i>레터를 불러오지 못했어요.</div>';
+    return;
+  }
+  root.innerHTML = (adminView ? '' : chipsHtml(id)) + letterHtml(letter);
+  root.querySelectorAll('.chip').forEach((b) => b.addEventListener('click', () => {
+    history.replaceState(null, '', `?id=${b.dataset.id}`);
+    show(b.dataset.id);
+  }));
+  root.querySelectorAll('.photo[data-full]').forEach((b) => b.addEventListener('click', () => {
+    document.getElementById('lightbox-img').src = b.dataset.full;
+    document.getElementById('lightbox').classList.add('open');
+  }));
+  window.scrollTo(0, 0);
+
+  if (!adminView && !letter.read_at) {
+    const readAt = new Date().toISOString();
+    const { error: upErr } = await window.sb.from('sales_letters')
+      .update({ read_at: readAt }).eq('id', id).is('read_at', null);
+    if (!upErr) {
+      const l = letters.find((x) => x.id === id);
+      if (l) l.read_at = readAt;
+      root.querySelectorAll(`.chip[data-id="${id}"] .dot`).forEach((d) => d.remove());
+    }
+  }
+}
+
+document.getElementById('lightbox').addEventListener('click', (e) => e.currentTarget.classList.remove('open'));
+
+(async function init() {
+  if (adminView) {
+    document.querySelector('.miu-header-back').href = '/miu-hub/letter/status.html';
+    const id = new URLSearchParams(location.search).get('id');
+    if (!id) { root.innerHTML = '<div class="empty"><i class="ph-bold ph-warning-circle"></i>레터를 찾을 수 없어요.</div>'; return; }
+    show(id);
+    return;
+  }
+  for (let i = 0; i < 50 && window.MIU_PROFILE === undefined; i++) {
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  if (!window.MIU_PROFILE) {
+    root.innerHTML = '<div class="empty"><i class="ph-bold ph-user-circle"></i>프로필을 불러오지 못했어요.</div>';
+    return;
+  }
+  // 칩은 최근 60통(약 3개월)까지. payload는 칩을 눌렀을 때 한 통씩 불러온다.
+  const { data, error } = await window.sb.from('sales_letters')
+    .select('id,period_start,period_end,read_at').order('period_end', { ascending: false }).limit(60);
+  if (error) {
+    root.innerHTML = '<div class="empty"><i class="ph-bold ph-warning-circle"></i>레터를 불러오지 못했어요.</div>';
+    return;
+  }
+  letters = data;
+  if (!letters.length) {
+    root.innerHTML = '<div class="empty"><i class="ph-bold ph-envelope-simple"></i>아직 도착한 레터가 없어요.<br>평일 아침 7:30에 도착해요.</div>';
+    return;
+  }
+  const want = new URLSearchParams(location.search).get('id');
+  show(letters.some((l) => l.id === want) ? want : letters[0].id);
+})();
+</script>
+</body>
+</html>
