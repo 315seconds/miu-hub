@@ -58,6 +58,7 @@
 ### 4.3 저장소에 정의가 없는 운영 DB 객체
 `profiles` 테이블, `is_admin()`, `next_barcode()`, `peek_next_barcode()`, `max_barcode_num()`, `handle_new_user()`, `sync_sold_status()`(sold_items AFTER INSERT 트리거). 변경·가정 전에 `pg_get_functiondef`로 조회한다.
 - 읽기 전용 조회: `supabase db query --linked "<SQL>"` (운영 직결).
+- `supabase/.temp/`(CLI 연결 상태)는 git 추적 밖(`.gitignore`). 새 기기·새 clone에서는 `supabase link --project-ref <프로젝트 id>`를 한 번 실행해야 `--linked`가 동작한다(비밀번호 불필요). 프로젝트 id는 `shared/config.js`의 Supabase URL 앞부분.
 - 쓰기 SQL은 `scripts/<이름>-<날짜>.sql` 파일로 남기고 `supabase db query --linked -f`로 적용. 마이그레이션 이력 없음.
 - 최신 SQL: `weekly-letters-admin-view-20261026`(레터 열람 현황 본문 보기; `letter_read_status` 재정의), `approve-inventory-session / bulk-move-and-reopen-guard / force-login-name / hardening-step2`(2026-10-25). `hardening-step2` 헤더는 "적용 전 초안"이지만 **적용 완료**. `item-scanner/supabase/schema.sql` 헤더의 "테스트 전용"은 낡았다(2026-09-03 `miu_ops` 단일 프로젝트 통합).
 - 행거수: 테이블 `store_hangers`(매장·카테고리·적용일·행거수 **변경 이력**)가 원본. 기간 평균 행거수 = 그 기간 하루하루에 그날 유효한 값을 적용한 일수 가중 평균, 첫 입력일 이전 기간은 첫 값으로 채움. 초기값은 매니저 시트의 2026-10-27 현재 값(`category-performance-seed-20261027.sql`). 재고·재고 소진은 조회 기간이 아닌 **현재** `inventory_items` 기준이라 과거 기간과 시점이 어긋난다.
