@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>매장 업무 — 마켓인유</title>
+<meta name="theme-color" content="#faf9f5">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202610290145">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202610290145">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<link rel="stylesheet" href="/miu-hub/manual/manual.css?v=202610290145">
+<script src="/miu-hub/shared/config.js?v=202610290145"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202610290145"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202610290145"></script>
+</head>
+<body>
+
+<header class="miu-header">
+  <a href="/miu-hub/" class="miu-header-back" aria-label="허브로"><i class="ph-bold ph-caret-left"></i></a>
+  <div class="miu-header-title">
+    <div class="miu-header-eyebrow">STORE MANUAL</div>
+    <h1 class="miu-header-h1">매장 업무</h1>
+  </div>
+  <div class="miu-header-actions">
+    <a href="admin.html" id="admin-link" class="miu-btn-sm miu-btn-secondary hidden">관리자 화면</a>
+  </div>
+</header>
+
+<div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
+
+<script src="/miu-hub/manual/common.js?v=202610290145"></script>
+<script>
+const root = document.getElementById('root');
+const LS_STORE = 'miu-manual-store';
+
+let role = null, uid = null, today = '', stores = [], store = '';
+let items = [], checks = new Map(), allChecks = new Map(), notes = [], articles = [];
+let tab = 'check', query = '', cat = '';
+
+// ── 데이터 ─────────────────────────────────────────────
+async function loadItems() {
+  const { data, error } = await sb.from('checklist_items').select('*').eq('is_active', true)
+    .order('sort_order').order('created_at');
+  if (error) throw error;
+  items = data;
+}
+function storeItems(s = store) {
+  // 오늘 요일·이 매장에 해당하는 항목. 공통 항목 먼저, 그다음 이 매장 전용 항목
+  const mine = items.filter((i) => appliesOn(i, s, today));
+  return [...mine.filter((i) => i.store === null), ...mine.filter((i) => i.store !== null)];
+}
+async function loadChecks() {
+  // 오늘 전 매장 분을 한 번에(매장 칩의 진행률용)
+  const { data, error } = await sb.from('checklist_checks').select('store,item_id,checked_by,checked_at').eq('work_date', today);
+  if (error) throw error;
+  allChecks = new Map();
+  for (const r of data) {
+    if (!allChecks.has(r.store)) allChecks.set(r.store, new Map());
+    allChecks.get(r.store).set(r.item_id, r);
+  }
+  checks = allChecks.get(store) ?? new Map();
+}
+async function loadNotes() {
+  const { data, error } = await sb.from('store_notes').select('*').eq('store', store)
+    .gte('work_date', addDays(today, -6)).order('created_at', { ascending: false });
+  if (error) throw error;
+  notes = data;
+}
+async function loadArticles() {
+  const { data, error } = await sb.from('manual_articles').select('*').eq('is_active', true)
+    .order('category').order('sort_order').order('created_at');
+  if (error) throw error;
+  articles = data;
+}
+async function refreshDay() {
+  today = await serverToday();
+  await Promise.all([loadChecks(), loadNotes()]);
+}
+
+// ── 화면 ───────────────────────────────────────────────
+function render() {
+  root.innerHTML = `
+    <div class="tabs">
+      <button class="tab ${tab === 'check' ? 'active' : ''}" data-tab="check">오늘 체크 · 메모</button>
+      <button class="tab ${tab === 'manual' ? 'active' : ''}" data-tab="manual">업무 매뉴얼</button>
+    </div>
+    <div id="pane"></div>`;
+  root.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => { tab = b.dataset.tab; render(); }));
+  if (tab === 'check') renderCheck(); else renderManual();
+}
+
+// 매장 칩: 키오스크 근무자는 하루에 여러 매장을 돌므로 매장별 진행률을 한눈에 본다
+function chipsHtml() {
+  return stores.map((s) => {
+    const list = storeItems(s), m = allChecks.get(s);
+    const d = m ? list.filter((i) => m.has(i.id)).length : 0;
+    const full = list.length > 0 && d === list.length;
+    return `<button class="tab ${s === store ? 'active' : ''} ${full ? 'full' : ''}" data-store="${esc(s)}">${esc(storeLabel(s))} <span class="n">${full ? '✓' : `${d}/${list.length}`}</span></button>`;
+  }).join('');
+}
+
+function renderCheck() {
+  const draft = document.getElementById('note-text')?.value || '';   // 다시 그려도 쓰던 메모는 유지
+  const list = storeItems();
+  const done = list.filter((i) => checks.has(i.id)).length;
+  const pct = list.length ? Math.round((done / list.length) * 100) : 0;
+
+  const groups = [];
+  for (const it of list) {
+    let g = groups.find((x) => x.grp === it.grp);
+    if (!g) groups.push((g = { grp: it.grp, items: [] }));
+    g.items.push(it);
+  }
+
+  const checkHtml = groups.map((g) => {
+    const n = g.items.filter((i) => checks.has(i.id)).length;
+    return `
+      <section class="group">
+        <div class="group-head"><span class="label">${esc(g.grp)}</span><span class="cnt">${n}/${g.items.length}</span><span class="divider"></span></div>
+        ${g.items.map((i) => {
+          const c = checks.get(i.id);
+          return `<button class="check ${c ? 'on' : ''}" data-id="${i.id}">
+            <span class="box">${c ? '<i class="ph-bold ph-check"></i>' : ''}</span>
+            <span class="txt"><span class="main">${esc(i.content)}</span>${c ? `<span class="who">${esc(c.checked_by)} · ${hhmm(c.checked_at)}</span>` : ''}</span>
+          </button>`;
+        }).join('')}
+      </section>`;
+  }).join('') || '<div class="empty">이 매장에 등록된 체크 항목이 없어요.</div>';
+
+  // 메모: 날짜별
+  const byDay = [];
+  for (const n of notes) {
+    let d = byDay.find((x) => x.date === n.work_date);
+    if (!d) byDay.push((d = { date: n.work_date, list: [] }));
+    d.list.push(n);
+  }
+  const notesHtml = byDay.map((d) => `
+    <div class="day-label">${d.date === today ? '오늘' : mdw(d.date)}</div>
+    ${d.list.map((n) => `
+      <div class="note">
+        <div class="meta"><b>${esc(n.author)}</b><span>${hhmm(n.created_at)}</span>
+          ${n.confirmed_at ? `<span class="badge ok">${esc(n.confirmed_by)} 확인</span>` : '<span class="badge">확인 전</span>'}</div>
+        <div class="body">${esc(n.body)}</div>
+        ${n.author_id === uid && n.work_date === today ? `<div class="acts"><button class="btn danger sm" data-del="${n.id}">삭제</button></div>` : ''}
+      </div>`).join('')}`).join('') || '<div class="empty" style="padding:24px">최근 7일간 메모가 없어요.</div>';
+
+  document.getElementById('pane').innerHTML = `
+    <div class="bar"><span class="date">${mdw(today)}</span></div>
+    <div class="tabs" style="padding-top:0">${chipsHtml()}</div>
+    <div class="progress">
+      <div class="track"><div class="fill" style="width:${pct}%"></div></div>
+      <div class="txt">${done} / ${list.length} 완료${list.length && done === list.length ? ' 🎉' : ''} · 체크는 같은 매장 직원끼리 공유돼요</div>
+    </div>
+    ${checkHtml}
+    <section class="notes">
+      <div class="group-head"><span class="label">${esc(storeLabel(store))} 특이사항 메모</span><span class="divider"></span></div>
+      <textarea id="note-text" maxlength="2000" placeholder="행거 고장, 손님 문의, 인수인계할 내용 등 그날의 특이사항을 적어 주세요"></textarea>
+      <div style="margin-top:8px;text-align:right"><button class="btn" id="note-add">메모 남기기</button></div>
+      ${notesHtml}
+    </section>`;
+  document.getElementById('note-text').value = draft;
+
+  document.querySelectorAll('[data-store]').forEach((b) => b.addEventListener('click', async () => {
+    if (b.dataset.store === store) return;
+    store = b.dataset.store; localStorage.setItem(LS_STORE, store);
+    document.getElementById('note-text').value = '';   // 다른 매장에 잘못 남기지 않게 초안 비움
+    try { await Promise.all([loadChecks(), loadNotes()]); } catch (err) { toast(errMsg(err), true); }
+    renderCheck();
+  }));
+  document.querySelectorAll('.check').forEach((b) => b.addEventListener('click', () => toggle(b.dataset.id)));
+  document.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => delNote(b.dataset.del)));
+  document.getElementById('note-add').addEventListener('click', addNote);
+}
+
+let busy = false;
+async function toggle(id) {
+  if (busy) return;
+  busy = true;
+  const was = checks.has(id);
+  try {
+    const { error } = await sb.rpc('checklist_set', { p_store: store, p_item: id, p_checked: !was });
+    if (error) throw error;
+    await loadChecks();   // 다른 직원이 먼저 체크했을 수 있으니 서버 값으로 다시 그린다
+  } catch (e) { toast(errMsg(e), true); }
+  busy = false;
+  renderCheck();
+}
+
+async function addNote() {
+  const ta = document.getElementById('note-text');
+  const body = ta.value.trim();
+  if (!body) return toast('메모 내용을 적어 주세요', true);
+  const btn = document.getElementById('note-add');
+  btn.disabled = true;
+  try {
+    const { error } = await sb.rpc('store_note_add', { p_store: store, p_body: body });
+    if (error) throw error;
+    ta.value = '';
+    await loadNotes();
+    toast('메모를 남겼어요');
+    renderCheck();
+  } catch (e) { toast(errMsg(e), true); btn.disabled = false; }
+}
+
+async function delNote(id) {
+  if (!confirm('이 메모를 삭제할까요?')) return;
+  try {
+    const { error } = await sb.rpc('store_note_delete', { p_id: id });
+    if (error) throw error;
+    await loadNotes();
+    renderCheck();
+  } catch (e) { toast(errMsg(e), true); }
+}
+
+function renderManual() {
+  const cats = [...new Set(articles.map((a) => a.category))];
+  const q = query.trim().toLowerCase();
+  const list = articles.filter((a) => (!cat || a.category === cat)
+    && (!q || a.title.toLowerCase().includes(q) || a.body.toLowerCase().includes(q)));
+  document.getElementById('pane').innerHTML = `
+    <div class="bar"><input type="text" id="q" placeholder="매뉴얼 검색 (예: 환불, 택분실, 키오스크)" value="${esc(query)}"></div>
+    <div class="catchips">
+      <button class="tab ${cat === '' ? 'active' : ''}" data-cat="">전체</button>
+      ${cats.map((c) => `<button class="tab ${cat === c ? 'active' : ''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}
+    </div>
+    <div id="arts">${list.map((a) => `
+      <details class="art" ${q ? 'open' : ''}>
+        <summary><span class="cat">${esc(a.category)}</span>${esc(a.title)}</summary>
+        <div class="art-body">${linkify(a.body)}</div>
+      </details>`).join('') || '<div class="empty">찾는 글이 없어요.<br>애매한 상황이면 혼자 해결하지 말고 매니저에게 전화하세요.</div>'}</div>`;
+  const qi = document.getElementById('q');
+  qi.addEventListener('input', () => {
+    query = qi.value;
+    renderManual();
+    const n = document.getElementById('q'); n.focus(); n.setSelectionRange(n.value.length, n.value.length);
+  });
+  document.querySelectorAll('[data-cat]').forEach((b) => b.addEventListener('click', () => { cat = b.dataset.cat; renderManual(); }));
+}
+
+// ── 시작 ───────────────────────────────────────────────
+(async function boot() {
+  try {
+    role = await manualRole();
+    if (!role) { root.innerHTML = '<div class="empty">이 메뉴는 매장 직원과 관리자만 볼 수 있어요.</div>'; return; }
+    if (role === 'manager') document.getElementById('admin-link').classList.remove('hidden');
+    uid = (await sb.auth.getSession()).data.session.user.id;
+    stores = await loadStores();
+    if (!stores.length) { root.innerHTML = '<div class="empty">등록된 매장이 없어요.</div>'; return; }
+    const saved = localStorage.getItem(LS_STORE);
+    store = stores.includes(saved) ? saved : stores[0];
+    await Promise.all([loadItems(), loadArticles()]);
+    await refreshDay();
+    render();
+    // 앱을 켜 둔 채 날이 바뀌었을 수 있다: 다시 열 때 서버 날짜로 새로 읽는다
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState !== 'visible' || tab !== 'check') return;
+      try { await Promise.all([loadItems(), refreshDay()]); renderCheck(); } catch (e) { toast(errMsg(e), true); }
+    });
+  } catch (e) {
+    root.innerHTML = `<div class="empty">불러오지 못했어요.<br>${esc(errMsg(e))}</div>`;
+  }
+})();
+</script>
+</body>
+</html>

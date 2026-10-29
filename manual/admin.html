@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>매장 업무 관리 — 마켓인유</title>
+<meta name="theme-color" content="#faf9f5">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202610290145">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202610290145">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<link rel="stylesheet" href="/miu-hub/manual/manual.css?v=202610290145">
+<script src="/miu-hub/shared/config.js?v=202610290145"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202610290145"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202610290145"></script>
+</head>
+<body>
+
+<header class="miu-header">
+  <a href="index.html" class="miu-header-back" aria-label="매장 업무로"><i class="ph-bold ph-caret-left"></i></a>
+  <div class="miu-header-title">
+    <div class="miu-header-eyebrow">STORE MANUAL · ADMIN</div>
+    <h1 class="miu-header-h1">매장 업무 관리</h1>
+  </div>
+</header>
+
+<div class="wrap wide" id="root"><div class="empty">불러오는 중…</div></div>
+<div class="overlay" id="overlay"><div class="sheet" id="sheet"></div></div>
+
+<script src="/miu-hub/manual/common.js?v=202610290145"></script>
+<script>
+const root = document.getElementById('root');
+let today = '', stores = [], allItems = [], articles = [];
+let tab = 'status';
+let overview = [], unconfirmed = [], sel = null, detail = null;
+let itemScope = '__all__';
+
+const DAYS = 14;
+
+// ── 데이터 ─────────────────────────────────────────────
+async function loadAll() {
+  const [ov, un, it, ar] = await Promise.all([
+    sb.rpc('store_checklist_overview', { p_from: addDays(today, -(DAYS - 1)), p_to: today }),
+    sb.from('store_notes').select('*').is('confirmed_at', null).order('work_date', { ascending: false }).order('created_at', { ascending: false }).limit(50),
+    sb.from('checklist_items').select('*').order('sort_order').order('created_at'),
+    sb.from('manual_articles').select('*').order('category').order('sort_order').order('created_at'),
+  ]);
+  for (const r of [ov, un, it, ar]) if (r.error) throw r.error;
+  overview = ov.data; unconfirmed = un.data; allItems = it.data; articles = ar.data;
+}
+
+async function loadDetail() {
+  if (!sel) { detail = null; return; }
+  const [ck, nt, dy] = await Promise.all([
+    sb.from('checklist_checks').select('item_id,checked_by,checked_at').eq('work_date', sel.date).eq('store', sel.store),
+    sb.from('store_notes').select('*').eq('work_date', sel.date).eq('store', sel.store).order('created_at'),
+    sb.from('checklist_days').select('total_items').eq('work_date', sel.date).eq('store', sel.store).maybeSingle(),
+  ]);
+  for (const r of [ck, nt, dy]) if (r.error) throw r.error;
+  detail = { checks: new Map(ck.data.map((r) => [r.item_id, r])), notes: nt.data, total: dy.data?.total_items ?? null };
+}
+
+// ── 렌더 ───────────────────────────────────────────────
+function render() {
+  root.innerHTML = `
+    <div class="tabs">
+      ${[['status', '현황'], ['articles', '매뉴얼 편집'], ['items', '체크리스트 편집']].map(([k, l]) =>
+        `<button class="tab ${tab === k ? 'active' : ''}" data-tab="${k}">${l}${k === 'status' && unconfirmed.length ? ` (확인 전 메모 ${unconfirmed.length})` : ''}</button>`).join('')}
+    </div>
+    <div id="pane"></div>`;
+  root.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => { tab = b.dataset.tab; render(); }));
+  ({ status: renderStatus, articles: renderArticles, items: renderItems })[tab]();
+}
+
+// 현황 ----------------------------------------------------
+function renderStatus() {
+  // 열: 성수 본점(근무자 항상 1명) → 활성 키오스크 매장 → 최근 기록이 있지만 철수한 매장
+  const kioskCols = [...stores.filter((s) => s !== HEAD_STORE),
+    ...[...new Set(overview.map((r) => r.store))].filter((s) => s !== HEAD_STORE && !stores.includes(s)).sort()];
+  const cols = [HEAD_STORE, ...kioskCols];
+  // 본점은 매일 근무자가 있으니 지난 날 기록이 비면 빨간 표시. 기능을 쓰기 시작하기 전 날짜는 제외(가장 이른 기록일부터)
+  const firstDate = overview.reduce((m, r) => (r.work_date < m ? r.work_date : m), today);
+  const cell = (date, store) => {
+    const r = overview.find((x) => x.work_date === date && x.store === store);
+    const on = sel && sel.date === date && sel.store === store ? ' sel' : '';
+    const at = `data-date="${date}" data-store="${esc(store)}"`;
+    if (!r) {
+      const missing = store === HEAD_STORE && date < today && date >= firstDate;
+      return `<button class="cell ${missing ? 'alert' : 'none'}${on}" ${at}>${missing ? '미기록' : '—'}</button>`;
+    }
+    const cls = r.total_items > 0 && r.checked_count >= r.total_items ? 'full' : r.checked_count > 0 ? 'part' : 'none';
+    return `<button class="cell ${cls}${on}" ${at}>${r.checked_count}/${r.total_items}${r.unconfirmed_count ? '<span class="dot" title="확인 전 메모"></span>' : ''}${r.last_checked_by ? `<span class="who">${esc(r.last_checked_by)}</span>` : ''}</button>`;
+  };
+  const dates = Array.from({ length: DAYS }, (_, i) => addDays(today, -i));
+
+  const unconfHtml = unconfirmed.length ? unconfirmed.map((n) => `
+    <div class="note">
+      <div class="meta"><b>${esc(storeLabel(n.store))}</b><span>${mdw(n.work_date)} ${hhmm(n.created_at)}</span><span>${esc(n.author)}</span></div>
+      <div class="body">${esc(n.body)}</div>
+      <div class="acts">
+        <button class="btn sm" data-confirm="${n.id}">확인</button>
+        <button class="btn sec sm" data-open-date="${n.work_date}" data-open-store="${esc(n.store)}">그날 보기</button>
+      </div>
+    </div>`).join('') : '<div class="empty" style="padding:20px">확인 전 메모가 없어요.</div>';
+
+  document.getElementById('pane').innerHTML = `
+    <section class="group"><div class="group-head"><span class="label">확인 전 메모</span><span class="cnt">${unconfirmed.length}건</span><span class="divider"></span></div>${unconfHtml}</section>
+    <section class="group">
+      <div class="group-head"><span class="label">최근 ${DAYS}일 체크 현황</span><span class="cnt">칸을 누르면 그날 내용</span><span class="divider"></span></div>
+      <div class="scroll-x"><table class="matrix"><thead>
+        <tr><th rowspan="2" style="text-align:left">날짜</th><th>본점</th>${kioskCols.length ? `<th colspan="${kioskCols.length}">키오스크 매장</th>` : ''}</tr>
+        <tr>${cols.map((s) => `<th>${esc(s)}${s !== HEAD_STORE && !stores.includes(s) ? '<br><span style="font-weight:400">철수</span>' : ''}</th>`).join('')}</tr></thead>
+        <tbody>${dates.map((d) => `<tr><td class="d ${['일', '토'].includes(dow(d)) ? 'wk' : ''}">${mdw(d)}${d === today ? ' · 오늘' : ''}</td>${cols.map((s) => `<td>${cell(d, s)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+    </section>
+    <section class="group" id="detail"></section>`;
+
+  document.querySelectorAll('.cell').forEach((b) => b.addEventListener('click', async () => { await openDay(b.dataset.date, b.dataset.store); document.getElementById('detail').scrollIntoView({ behavior: 'smooth' }); }));
+  document.querySelectorAll('[data-open-date]').forEach((b) => b.addEventListener('click', async () => { await openDay(b.dataset.openDate, b.dataset.openStore); document.getElementById('detail').scrollIntoView({ behavior: 'smooth' }); }));
+  document.querySelectorAll('[data-confirm]').forEach((b) => b.addEventListener('click', () => confirmNote(b.dataset.confirm, true)));
+  renderDetail();
+}
+
+async function openDay(date, store) {
+  sel = { date, store };
+  try { await loadDetail(); } catch (e) { toast(errMsg(e), true); }
+  renderStatus();
+}
+
+function renderDetail() {
+  const el = document.getElementById('detail');
+  if (!sel || !detail) { el.innerHTML = ''; return; }
+  const list = allItems.filter((i) => (i.is_active && appliesOn(i, sel.store, sel.date)) || detail.checks.has(i.id))
+    .sort((a, b) => (a.store === null ? 0 : 1) - (b.store === null ? 0 : 1));
+  const done = list.filter((i) => detail.checks.has(i.id)).length;
+  const total = detail.total ?? list.length;
+  const groups = [];
+  for (const it of list) {
+    let g = groups.find((x) => x.grp === it.grp);
+    if (!g) groups.push((g = { grp: it.grp, items: [] }));
+    g.items.push(it);
+  }
+  el.innerHTML = `
+    <div class="group-head"><span class="label">${esc(storeLabel(sel.store))} · ${mdw(sel.date)}</span><span class="cnt">체크 ${done}/${total}${detail.total === null ? ' (그날 체크 기록 없음)' : ''}</span><span class="divider"></span></div>
+    ${groups.map((g) => `
+      <div class="day-label">${esc(g.grp)}</div>
+      ${g.items.map((i) => {
+        const c = detail.checks.get(i.id);
+        return `<div class="check ro ${c ? 'on' : 'miss'}"><span class="box">${c ? '<i class="ph-bold ph-check"></i>' : ''}</span>
+          <span class="txt"><span class="main">${esc(i.content)}</span>${c ? `<span class="who">${esc(c.checked_by)} · ${hhmm(c.checked_at)}</span>` : ''}</span></div>`;
+      }).join('')}`).join('') || '<div class="empty">이 매장에 항목이 없어요.</div>'}
+    <div class="day-label" style="margin-top:24px">특이사항 메모</div>
+    ${detail.notes.map((n) => `
+      <div class="note">
+        <div class="meta"><b>${esc(n.author)}</b><span>${hhmm(n.created_at)}</span>
+          ${n.confirmed_at ? `<span class="badge ok">${esc(n.confirmed_by)} 확인 ${hhmm(n.confirmed_at)}</span>` : '<span class="badge warn">확인 전</span>'}</div>
+        <div class="body">${esc(n.body)}</div>
+        <div class="acts"><button class="btn ${n.confirmed_at ? 'sec' : ''} sm" data-confirm-d="${n.id}" data-to="${n.confirmed_at ? 0 : 1}">${n.confirmed_at ? '확인 취소' : '확인'}</button></div>
+      </div>`).join('') || '<div class="empty" style="padding:20px">이 날 메모가 없어요.</div>'}`;
+  el.querySelectorAll('[data-confirm-d]').forEach((b) => b.addEventListener('click', () => confirmNote(b.dataset.confirmD, b.dataset.to === '1')));
+}
+
+async function confirmNote(id, to) {
+  try {
+    const { error } = await sb.rpc('store_note_confirm', { p_id: id, p_confirmed: to });
+    if (error) throw error;
+    await loadAll();
+    await loadDetail();
+    render();
+  } catch (e) { toast(errMsg(e), true); }
+}
+
+// 편집 시트 -------------------------------------------------
+function openSheet(html, onSave) {
+  const sheet = document.getElementById('sheet');
+  sheet.innerHTML = html + `<div class="acts"><button class="btn sec" id="sh-cancel">취소</button><button class="btn" id="sh-save">저장</button></div>`;
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('sh-cancel').addEventListener('click', closeSheet);
+  document.getElementById('sh-save').addEventListener('click', async (e) => {
+    e.target.disabled = true;
+    try { await onSave(); closeSheet(); await loadAll(); render(); toast('저장했어요'); }
+    catch (err) { toast(errMsg(err), true); e.target.disabled = false; }
+  });
+}
+const closeSheet = () => document.getElementById('overlay').classList.remove('open');
+document.getElementById('overlay').addEventListener('click', (e) => { if (e.target.id === 'overlay') closeSheet(); });
+const val = (id) => document.getElementById(id).value;
+
+// 매뉴얼 편집 -------------------------------------------------
+function renderArticles() {
+  const byCat = [];
+  for (const a of articles) {
+    let g = byCat.find((x) => x.cat === a.category);
+    if (!g) byCat.push((g = { cat: a.category, list: [] }));
+    g.list.push(a);
+  }
+  document.getElementById('pane').innerHTML = `
+    <div class="bar"><span class="sp"></span><button class="btn" id="art-new">+ 새 글</button></div>
+    ${byCat.map((g) => `
+      <section class="group"><div class="group-head"><span class="label">${esc(g.cat)}</span><span class="divider"></span></div>
+      ${g.list.map((a) => `
+        <div class="row ${a.is_active ? '' : 'off'}">
+          <div class="main">${esc(a.title)}<div class="sub">순서 ${a.sort_order} · ${esc(a.updated_by || '')} ${a.updated_at ? mdw(a.updated_at.slice(0, 10)) : ''}${a.is_active ? '' : ' · 숨김'}</div></div>
+          <button class="btn sec sm" data-edit="${a.id}">수정</button>
+        </div>`).join('')}</section>`).join('') || '<div class="empty">글이 없어요.</div>'}`;
+  document.getElementById('art-new').addEventListener('click', () => editArticle(null));
+  document.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => editArticle(articles.find((a) => a.id === b.dataset.edit))));
+}
+
+function editArticle(a) {
+  const cats = [...new Set(articles.map((x) => x.category))];
+  const nextSort = (articles.filter((x) => x.category === (a?.category ?? cats[0])).reduce((m, x) => Math.max(m, x.sort_order), 0)) + 10;
+  openSheet(`
+    <h2>${a ? '글 수정' : '새 글'}</h2>
+    <label class="fld"><span>분류</span><input type="text" id="f-cat" list="cat-list" value="${esc(a?.category ?? cats[0] ?? '')}"><datalist id="cat-list">${cats.map((c) => `<option value="${esc(c)}">`).join('')}</datalist></label>
+    <label class="fld"><span>제목</span><input type="text" id="f-title" value="${esc(a?.title ?? '')}"></label>
+    <label class="fld"><span>내용 (줄바꿈 그대로 보여요. https:// 주소는 링크가 돼요)</span><textarea id="f-body" rows="12">${esc(a?.body ?? '')}</textarea></label>
+    <label class="fld"><span>순서 (작을수록 위)</span><input type="number" id="f-sort" value="${a?.sort_order ?? nextSort}"></label>
+    <label class="fld"><input type="checkbox" id="f-active" ${a?.is_active ?? true ? 'checked' : ''}> 직원에게 보이기</label>
+    ${a ? '<button class="btn danger sm" id="f-del" style="margin-bottom:12px">이 글 삭제</button>' : ''}`,
+  async () => {
+    const row = { category: val('f-cat').trim(), title: val('f-title').trim(), body: val('f-body'), sort_order: parseInt(val('f-sort'), 10) || 0, is_active: document.getElementById('f-active').checked };
+    if (!row.category || !row.title) throw new Error('분류와 제목을 적어 주세요');
+    const { error } = a ? await sb.from('manual_articles').update(row).eq('id', a.id) : await sb.from('manual_articles').insert(row);
+    if (error) throw error;
+  });
+  document.getElementById('f-del')?.addEventListener('click', async () => {
+    if (!confirm(`"${a.title}" 글을 삭제할까요? (되돌릴 수 없어요. 잠시 감추려면 '직원에게 보이기'를 끄세요)`)) return;
+    const { error } = await sb.from('manual_articles').delete().eq('id', a.id);
+    if (error) return toast(errMsg(error), true);
+    closeSheet(); await loadAll(); render(); toast('삭제했어요');
+  });
+}
+
+// 체크리스트 편집 -----------------------------------------------
+function renderItems() {
+  const scopes = [['__all__', '전체'], ['', '공통'], ...stores.map((s) => [s, storeLabel(s)])];
+  const list = allItems.filter((i) => itemScope === '__all__' || (i.store ?? '') === itemScope);
+  const groups = [];
+  for (const it of list) {
+    const key = `${it.store ?? ''}|${it.grp}`;
+    let g = groups.find((x) => x.key === key);
+    if (!g) groups.push((g = { key, store: it.store, grp: it.grp, list: [] }));
+    g.list.push(it);
+  }
+  groups.sort((a, b) => (a.store === null ? 0 : 1) - (b.store === null ? 0 : 1));
+  document.getElementById('pane').innerHTML = `
+    <div class="bar">
+      <select id="scope">${scopes.map(([v, l]) => `<option value="${esc(v)}" ${v === itemScope ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
+      <span class="sp"></span><button class="btn" id="it-new">+ 새 항목</button>
+    </div>
+    <div class="group-head" style="margin-top:4px"><span class="cnt">항목은 삭제하지 않고 숨겨요(지난 기록 보존). 바꾼 내용은 오늘 체크부터 적용돼요.</span></div>
+    ${groups.map((g) => `
+      <section class="group"><div class="group-head"><span class="label">${esc(g.store ? storeLabel(g.store) : '공통')} · ${esc(g.grp)}</span><span class="divider"></span></div>
+      ${g.list.map((i) => `
+        <div class="row ${i.is_active ? '' : 'off'}">
+          <div class="main">${esc(i.content)}<div class="sub">순서 ${i.sort_order}${i.weekdays ? ` · ${weekdaysLabel(i.weekdays)}요일만` : ''}${i.is_active ? '' : ' · 숨김'}</div></div>
+          <button class="btn sec sm" data-edit="${i.id}">수정</button>
+        </div>`).join('')}</section>`).join('') || '<div class="empty">항목이 없어요.</div>'}`;
+  document.getElementById('scope').addEventListener('change', (e) => { itemScope = e.target.value; renderItems(); });
+  document.getElementById('it-new').addEventListener('click', () => editItem(null));
+  document.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => editItem(allItems.find((i) => i.id === b.dataset.edit))));
+}
+
+function editItem(it) {
+  const defStore = it ? it.store : (itemScope === '__all__' || itemScope === '' ? null : itemScope);
+  const opts = [...new Set([...stores, ...(it?.store ? [it.store] : [])])];
+  const grps = [...new Set(allItems.map((x) => x.grp))];
+  const nextSort = allItems.filter((x) => x.store === defStore).reduce((m, x) => Math.max(m, x.sort_order), 0) + 10;
+  openSheet(`
+    <h2>${it ? '체크 항목 수정' : '새 체크 항목'}</h2>
+    <label class="fld"><span>적용 매장</span><select id="f-store" style="width:100%"><option value="">공통 (모든 매장)</option>${opts.map((s) => `<option value="${esc(s)}" ${s === defStore ? 'selected' : ''}>${esc(storeLabel(s))}</option>`).join('')}</select></label>
+    <label class="fld"><span>묶음 (예: 장비 점검, 청소)</span><input type="text" id="f-grp" list="grp-list" value="${esc(it?.grp ?? '')}"><datalist id="grp-list">${grps.map((g) => `<option value="${esc(g)}">`).join('')}</datalist></label>
+    <label class="fld"><span>내용</span><textarea id="f-content" rows="3">${esc(it?.content ?? '')}</textarea></label>
+    <label class="fld"><span>순서 (작을수록 위)</span><input type="number" id="f-sort" value="${it?.sort_order ?? nextSort}"></label>
+    <div class="fld2"><span>적용 요일 (고르지 않으면 매일)</span><div class="wd">${[1, 2, 3, 4, 5, 6, 7].map((n) => `<label><input type="checkbox" class="f-wd" value="${n}" ${it?.weekdays?.includes(n) ? 'checked' : ''}> ${DOW[n % 7]}</label>`).join('')}</div></div>
+    <label class="fld"><input type="checkbox" id="f-active" ${it?.is_active ?? true ? 'checked' : ''}> 사용 (끄면 숨김)</label>`,
+  async () => {
+    const wd = [...document.querySelectorAll('.f-wd:checked')].map((c) => +c.value);
+    const row = { store: val('f-store') || null, grp: val('f-grp').trim(), content: val('f-content').trim(), sort_order: parseInt(val('f-sort'), 10) || 0, weekdays: wd.length && wd.length < 7 ? wd : null, is_active: document.getElementById('f-active').checked };
+    if (!row.grp || !row.content) throw new Error('묶음과 내용을 적어 주세요');
+    const { error } = it ? await sb.from('checklist_items').update(row).eq('id', it.id) : await sb.from('checklist_items').insert(row);
+    if (error) throw error;
+  });
+}
+
+// ── 시작 ───────────────────────────────────────────────
+(async function boot() {
+  try {
+    if ((await manualRole()) !== 'manager') { root.innerHTML = '<div class="empty">관리자만 볼 수 있어요.</div>'; return; }
+    today = await serverToday();
+    stores = await loadStores();
+    await loadAll();
+    render();
+  } catch (e) {
+    root.innerHTML = `<div class="empty">불러오지 못했어요.<br>${esc(errMsg(e))}</div>`;
+  }
+})();
+</script>
+</body>
+</html>

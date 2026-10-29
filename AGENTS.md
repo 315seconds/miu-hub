@@ -27,6 +27,7 @@
 | `sales-letter/` | 판매 레터(김민지 수신, 황태훈은 열람 현황에서 확인): 평일 아침 지난 영업일 판매된 대상 물건 목록(`sales_letters`) |
 | `logistics-request/` | 매장 매니저 최영훈(+황태훈) 전용 물류요청 보조: 기간·매장 선택 → 카테고리별 판매수량+가격대 분포 엑셀. 브라우저에서 `sold_items`×`inventory_items.category` 집계(DB 변경 없음) |
 | `category-analysis/` | 최영훈·황태훈 전용 카테고리 판매 분석(시트 "카테고리자동화"의 허브판). 기간·매장 → 판매벌수·판매액·평균가·행거당 판매액·효율지수/신호·재고 소진·가격대·직전 기간 대비, 매장 비교, **행거수 이력 입력**, 엑셀. 집계는 RPC `category_performance` |
+| `manual/` | 매장 업무: `index.html`=오늘 체크리스트·특이사항 메모·업무 매뉴얼(검색), `admin.html`=관리자 전용 날짜별 현황(매장×최근 14일 표, 체크한 사람·시각, 메모 확인)·매뉴얼 글·체크 항목 편집. 홈 "매장 업무" 섹션 |
 | `item-scanner/` | 브랜드·사진 스캐너 |
 | `admin/` | 통합 관리(role=admin): 매장, 직원(이름·등급·담당자), 거래처 |
 | `calendar/`, `login.html`, `design-system.html`(미링크 데모) | |
@@ -47,6 +48,8 @@
 - **황태훈 1명 전용**: `is_letter_admin()`(profile id 고정, `scripts/weekly-letters-admin-20261023.sql`). 범위를 넓히려면 이 함수만 고친다. 홈 타일 `#letter-status-tile`은 `#admin-section` 안이라 role=admin 이면서 `is_letter_admin()`일 때만 보인다. `status.html` 자체엔 클라이언트 게이트가 없고 RPC가 막는다.
 - **최영훈·황태훈 전용 화면**: `logistics-request/`. 홈 타일(`index.html`)과 페이지(`ALLOWED_NAMES`) 두 곳에서 `MIU_PROFILE.name` 이 `['최영훈','황태훈']`에 드는지 클라이언트 체크뿐(서버 차단 아님; 데이터는 로그인 직원 공통 권한). 이름 변경·동명이인·대상 추가 시 두 곳을 같이 고친다.
 - **category-analysis도 같은 두 사람 전용이며 서버가 강제**: `is_logistics_user()`(profile id 고정, `scripts/category-performance-20261027.sql`)가 RPC `category_performance`와 테이블 `store_hangers` RLS를 막는다. 홈 타일·페이지의 이름 체크(UI)는 별개이니 대상 변경 시 **함수 + 두 화면 + `logistics-request/`** 를 같이 고친다.
+- **매장 업무(`manual/`): 직원 3명 + 관리자 2명만(서버가 강제)**: `is_store_staff()`(전수지·천현수·정경환)·`is_store_manager()`(황태훈·최영훈)가 profile id 고정(`scripts/store-manual-20261029.sql`). 5명 밖의 로그인 직원은 이 5개 테이블을 읽지도 못한다. 직원은 읽기 + RPC(`checklist_set`, `store_note_add`, `store_note_delete`)로만 쓰고, 관리자는 `manual_articles`·`checklist_items` 편집(RLS)과 메모 확인(`store_note_confirm`)·기간 현황(`store_checklist_overview`). 체크·메모는 (날짜, 매장) 단위로 같은 매장 직원이 공유하고 **서버 KST 오늘만** 기록된다(지난 날 수정 불가). 항목은 삭제 없이 `is_active=false`로 숨긴다. 항목의 `weekdays`(1=월…7=일, null=매일; `store-manual-weekdays-20261029.sql`)에 없는 요일엔 체크리스트·분모에서 빠진다(성수 마네킹 디피·스팀은 월·수·금).
+- **매장 업무의 매장 목록 = `locations` 연동**: 성수 = 본점(근무자 항상 1명), 그 밖의 활성 위치 = 키오스크(무인 팝업) 근무자가 하루 한 번 도는 매장. 통합 관리에서 매장을 추가하면 자동으로 나타나고, 매장 현황판 "철수완료"(`is_active=false`)로 빠진다(과거 기록은 관리자 현황표에 "철수" 열로 남음). 매장이 아닌 위치만 `manual/common.js`의 `NON_STORE`(공동물류·온라인·폐기·재봉합부천·재봉합성수)로 걸러내므로 **새 비매장 위치를 만들면 거기에 추가**. 관리자 현황표에서 본점의 지난 날 빈 칸은 "미기록"(빨강), 키오스크 매장의 빈 칸은 근무자가 없는 날일 수 있어 중립 "—". 엑셀 원본에 있던 관리자번호·원격 접속 주소/입력값·리커버리 비밀번호는 공개 저장소라 시드에서 뺐고 해당 글(키오스크 분류)에 "매니저에게 문의"로 적어 둠 — 허브 편집 화면(`manual/admin.html`)에서 직접 채운다. 대상 인원 변경 시 **함수 `is_store_staff`/`is_store_manager`만** 고친다(화면은 `store_manual_role()` 결과로 분기).
 
 ### 4.2 서버가 강제 (화면 우회 불가; 로그인 직원에게만, service_role/VM은 예외)
 - 입고 승인 = RPC `approve_inventory_session(uuid)` 한 번(바코드 발급+승인 기록 원자적, 동시 승인 직렬화, 승인자=로그인 이름).
@@ -89,6 +92,7 @@
 - 카테고리 규칙: 분석에서 제외 C·위탁, `pb\d+` 바코드 제외, 이름이 '온'으로 시작하면 온라인, 외국 카드는 키워드 포함 여부로 판정.
 
 ## 7. 이력 (줄기만, 최신순)
+- 2026-10-29 매장 업무(`manual/`, 홈 "매장 업무" 섹션, DB `manual_articles`·`checklist_items`·`checklist_days`·`checklist_checks`·`store_notes`). 매장직원 3명(전수지·천현수·정경환) 일일 체크리스트·특이사항 메모·상황별 대처 매뉴얼, 관리자 2명(황태훈·최영훈) 날짜별 현황·메모 확인·편집. 성수 본점/키오스크 매장 구분, 매장 칩+진행률, 항목 적용 요일. 운영 DB 적용 완료(`store-manual-20261029.sql` → `store-manual-seed-20261029.sql` → `store-manual-weekdays-20261029.sql`).
 - 2026-10-28 판매 레터(`sales-letter/`, DB `sales_letters`, VM `daily_sales_letter` 평일 07:30).
 - 2026-10-27 매장 매니저 전용 화면 2개(홈 "매장 매니저" 섹션): 물류요청 판매 집계 엑셀(`logistics-request/`), 카테고리 판매 분석+행거수 이력(`category-analysis/`, DB `store_hangers`·`category_performance`).
 - 2026-10-26 레터 열람 현황에서 발송된 레터 읽기 전용 보기(`letter_admin_view`, `?as=admin`).

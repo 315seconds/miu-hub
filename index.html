@@ -160,6 +160,7 @@
   .accent-admin      { --tile-accent: var(--miu-body-strong); }
   #admin-section { display: none; }
   #logistics-section { display: none; }
+  #store-manual-section { display: none; }
 
   /* ── Callout (전면 코랄) ── */
   .callout {
@@ -481,6 +482,33 @@
   </div>
 </div>
 
+<!-- 섹션 7: 매장 업무 (매장직원 3명 + 관리자 2명, 서버가 강제) -->
+<div class="section" id="store-manual-section">
+  <div class="section-head">
+    <span class="num">07</span>
+    <span class="label">매장 업무</span>
+    <span class="divider"></span>
+  </div>
+  <div class="tiles">
+    <a href="manual/" class="tile tile-wide accent-inventory">
+      <div class="tile-icon"><i class="ph-bold ph-list-checks"></i></div>
+      <div class="tile-body">
+        <div class="tile-title">업무 매뉴얼 · 체크리스트</div>
+        <div class="tile-desc">오늘 체크 · 특이사항 메모 · 상황별 대처</div>
+      </div>
+      <span class="tile-arrow">›</span>
+    </a>
+    <a href="manual/admin.html" class="tile tile-wide accent-admin" id="store-manual-admin-tile" style="display:none">
+      <div class="tile-icon"><i class="ph-bold ph-clipboard-text"></i></div>
+      <div class="tile-body">
+        <div class="tile-title">체크리스트 현황</div>
+        <div class="tile-desc">날짜별 체크 · 메모 확인 · 매뉴얼 편집</div>
+      </div>
+      <span class="tile-arrow">›</span>
+    </a>
+  </div>
+</div>
+
 <div class="footer">
   <div class="user" id="user-label"></div>
   <button class="logout" id="logout-btn">로그아웃</button>
@@ -589,6 +617,14 @@ if (window.MIU_USER) {
   if (['최영훈', '황태훈'].includes(window.MIU_PROFILE?.name)) {
     document.getElementById('logistics-section').style.display = 'block';
   }
+})();
+
+// 매장 업무(매뉴얼·체크리스트): 서버 함수가 직원 3명·관리자 2명에게만 'staff'/'manager'를 돌려준다
+(async function showStoreManual() {
+  const { data } = await window.sb.rpc('store_manual_role');
+  if (!data) return;
+  document.getElementById('store-manual-section').style.display = 'block';
+  if (data === 'manager') document.getElementById('store-manual-admin-tile').style.display = 'flex';
 })();
 document.getElementById('logout-btn').addEventListener('click', async () => {
   if (!confirm('로그아웃하시겠습니까?')) return;
