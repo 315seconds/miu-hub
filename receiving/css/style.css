@@ -587,6 +587,7 @@ a.link:active { opacity: 0.7; }
 .status-active   { background: var(--w-blue-95);   color: var(--w-blue-40); }
 .status-sold     { background: var(--w-green-95);  color: var(--w-green-40); }
 .status-moved    { background: var(--w-orange-95); color: var(--w-orange-60); }
+.status-disposed { background: var(--w-red-95);    color: var(--w-red-50); }
 .tl-accordion .tl-item { font-size: var(--text-2xs); }
 .tl-accordion .tl-empty { color: var(--fg-tertiary); font-size: var(--text-2xs); padding: 10px 0; }
 .tl-card {

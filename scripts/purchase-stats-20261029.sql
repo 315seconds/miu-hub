@@ -5,8 +5,7 @@
 -- 원가 규칙(엑셀과 동일): 물건 원가 = 최초 프라이싱 × 차시 사입 총액 ÷ 차시 최초 프라이싱 합(제외 물건은 합에서 뺌).
 --   가격을 수정해도 원가 안분은 불변(최초 프라이싱 고정). 수정되는 건 현재 프라이싱(현재가)과 판매액뿐.
 -- 폐기: 입고 등록 전에 폐기된 물건 = excluded(차시에서 제외, 안분 기준에서도 뺌).
---       등록 후 폐기된 물건 = inventory_items.location = '폐기' 인 물건(purchase_items_v.disposed). 수량·프라이싱 합에서 빠지고 원가는 입고 원가에 그대로 남는다.
---       폐기를 위치 대신 상태로 정리하게 되면 purchase_items_v 의 disposed 식 한 곳만 고친다.
+--       등록 후 폐기된 물건 = inventory_items.status = 'disposed' 인 물건(purchase_items_v.disposed; 위치가 '폐기'가 되면 트리거가 상태를 바꿈, disposed-status-20261102.sql). 수량·프라이싱 합에서 빠지고 원가는 입고 원가에 그대로 남는다.
 -- 판매: sold_items(2026-04-01~) + purchase_sales_legacy(그 이전, 엑셀 판매시트에서 이관). purchase_sale_events_v 가 합친다.
 --   수량이 2 이상이면 중복결제로 보고 단가(price÷quantity) 1건으로 센다. 환불(refund_date)은 환불일에 음수 이벤트.
 -- 권한: 조회는 로그인 직원 전체(직원들이 같이 골라 사 오는 거라 원가도 공유), 쓰기(차시·원가·스냅샷·제외 행)는 김민지·황태훈만(서버 강제).
@@ -195,7 +194,7 @@ grant select, insert, update, delete on public.purchase_batches, public.purchase
 -- ── 뷰 (security_invoker: 호출자의 RLS가 적용되어 직원에겐 빈 결과) ──────────
 create or replace view public.purchase_items_v with (security_invoker = true) as
 with inv as (
-    select distinct on (upper(btrim(barcode))) upper(btrim(barcode)) as barcode, price, location, source
+    select distinct on (upper(btrim(barcode))) upper(btrim(barcode)) as barcode, price, location, source, status
     from public.inventory_items
     where upper(btrim(barcode)) in (select barcode from public.purchase_batch_items)
     order by upper(btrim(barcode)), created_at desc
@@ -206,7 +205,7 @@ select b.barcode,
        coalesce(i.price, b.last_known_price, b.initial_price) as current_price,
        b.category,
        b.excluded,
-       (not b.excluded and coalesce(i.location, '') = '폐기') as disposed,
+       (not b.excluded and coalesce(i.status, '') = 'disposed') as disposed,
        -- 물건의 출처. 한 차시에 여러 출처가 섞일 수 있다(예: 에코옥션 차시에 야후옥션 물건 10벌). 허브에 없거나 출처가 빈 옛 물건은 차시의 출처로 본다.
        coalesce(nullif(i.source, ''), s.name) as item_source
 from public.purchase_batch_items b

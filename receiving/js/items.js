@@ -254,7 +254,7 @@ async function searchBarcodes(barcodes) {
 }
 
 // ── 렌더 ─────────────────────────────────────────────────────────────────────
-const STATUS_LABEL = { active: '보유중', sold: '판매됨', moved: '이동중' };
+const STATUS_LABEL = { active: '보유중', sold: '판매됨', moved: '이동중', disposed: '폐기' };
 
 function renderSingle(data) {
   let html = '';
@@ -376,7 +376,7 @@ function buildLookupWorkbook(barcodes, results) {
       brand: item?.brand || '',
       price: item?.price != null ? Number(item.price) : '',
       location: item?.location || '',
-      status: item ? (item.status === 'sold' ? '판매됨' : '보유중') : '-',
+      status: item ? (item.status === 'sold' ? '판매됨' : item.status === 'disposed' ? '폐기' : '보유중') : '-',
       moves,
       ingested: fmtDate(ingestEv?.ts),
       updated: fmtDate(lastEv?.ts),
