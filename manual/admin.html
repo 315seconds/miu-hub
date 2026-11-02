@@ -6,14 +6,14 @@
 <title>매장 업무 관리 — 마켓인유</title>
 <meta name="theme-color" content="#faf9f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611020145">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611020145">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611020719">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611020719">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
-<link rel="stylesheet" href="/miu-hub/manual/manual.css?v=202611020145">
-<script src="/miu-hub/shared/config.js?v=202611020145"></script>
+<link rel="stylesheet" href="/miu-hub/manual/manual.css?v=202611020719">
+<script src="/miu-hub/shared/config.js?v=202611020719"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611020145"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611020145"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611020719"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611020719"></script>
 </head>
 <body>
 
@@ -28,37 +28,42 @@
 <div class="wrap wide" id="root"><div class="empty">불러오는 중…</div></div>
 <div class="overlay" id="overlay"><div class="sheet" id="sheet"></div></div>
 
-<script src="/miu-hub/manual/common.js?v=202611020145"></script>
+<script src="/miu-hub/manual/common.js?v=202611020719"></script>
 <script>
 const root = document.getElementById('root');
 let today = '', stores = [], allItems = [], articles = [];
 let tab = 'status';
 let overview = [], unconfirmed = [], sel = null, detail = null;
+let visitors = new Map();   // 날짜 → 성수 본점 방문자 행(최근 DAYS일)
 let itemScope = '__all__';
 
 const DAYS = 14;
 
 // ── 데이터 ─────────────────────────────────────────────
 async function loadAll() {
-  const [ov, un, it, ar] = await Promise.all([
+  const [ov, un, it, ar, vs] = await Promise.all([
     sb.rpc('store_checklist_overview', { p_from: addDays(today, -(DAYS - 1)), p_to: today }),
     sb.from('store_notes').select('*').is('confirmed_at', null).order('work_date', { ascending: false }).order('created_at', { ascending: false }).limit(50),
     sb.from('checklist_items').select('*').order('sort_order').order('id'),
     sb.from('manual_articles').select('*').order('category').order('sort_order').order('id'),
+    sb.from('store_visitors').select('work_date,visitors').eq('store', HEAD_STORE)
+      .gte('work_date', addDays(today, -(DAYS - 1))).lte('work_date', today),
   ]);
-  for (const r of [ov, un, it, ar]) if (r.error) throw r.error;
+  for (const r of [ov, un, it, ar, vs]) if (r.error) throw r.error;
   overview = ov.data; unconfirmed = un.data; allItems = it.data; articles = ar.data;
+  visitors = new Map(vs.data.map((r) => [r.work_date, r]));
 }
 
 async function loadDetail() {
   if (!sel) { detail = null; return; }
-  const [ck, nt, dy] = await Promise.all([
+  const [ck, nt, dy, vi] = await Promise.all([
     sb.from('checklist_checks').select('item_id,checked_by,checked_at').eq('work_date', sel.date).eq('store', sel.store),
     sb.from('store_notes').select('*').eq('work_date', sel.date).eq('store', sel.store).order('created_at'),
     sb.from('checklist_days').select('total_items').eq('work_date', sel.date).eq('store', sel.store).maybeSingle(),
+    sb.from('store_visitors').select('visitors,updated_by,updated_at').eq('work_date', sel.date).eq('store', sel.store).maybeSingle(),
   ]);
-  for (const r of [ck, nt, dy]) if (r.error) throw r.error;
-  detail = { checks: new Map(ck.data.map((r) => [r.item_id, r])), notes: nt.data, total: dy.data?.total_items ?? null };
+  for (const r of [ck, nt, dy, vi]) if (r.error) throw r.error;
+  detail = { checks: new Map(ck.data.map((r) => [r.item_id, r])), notes: nt.data, total: dy.data?.total_items ?? null, visitors: vi.data };
 }
 
 // ── 렌더 ───────────────────────────────────────────────
@@ -92,6 +97,11 @@ function renderStatus() {
     const cls = r.total_items > 0 && r.checked_count >= r.total_items ? 'full' : r.checked_count > 0 ? 'part' : 'none';
     return `<button class="cell ${cls}${on}" ${at}>${r.checked_count}/${r.total_items}${r.unconfirmed_count ? '<span class="dot" title="확인 전 메모"></span>' : ''}${r.last_checked_by ? `<span class="who">${esc(r.last_checked_by)}</span>` : ''}</button>`;
   };
+  const visCell = (date) => {
+    const r = visitors.get(date);
+    const on = sel && sel.date === date && sel.store === HEAD_STORE ? ' sel' : '';
+    return `<button class="cell ${r ? '' : 'none'}${on}" data-vdate="${date}">${r ? r.visitors.toLocaleString('ko-KR') : '—'}</button>`;
+  };
   const dates = Array.from({ length: DAYS }, (_, i) => addDays(today, -i));
 
   const unconfHtml = unconfirmed.length ? unconfirmed.map((n) => `
@@ -109,14 +119,15 @@ function renderStatus() {
     <section class="group">
       <div class="group-head"><span class="label">최근 ${DAYS}일 체크 현황</span><span class="cnt">칸을 누르면 그날 내용</span><span class="divider"></span></div>
       <div class="scroll-x"><table class="matrix"><thead>
-        <tr><th rowspan="2" style="text-align:left">날짜</th><th>본점</th>${kioskCols.length ? `<th colspan="${kioskCols.length}">키오스크 매장</th>` : ''}</tr>
+        <tr><th rowspan="2" style="text-align:left">날짜</th><th rowspan="2">성수<br>방문자</th><th>본점</th>${kioskCols.length ? `<th colspan="${kioskCols.length}">키오스크 매장</th>` : ''}</tr>
         <tr>${cols.map((s) => `<th>${esc(s)}${s !== HEAD_STORE && !stores.includes(s) ? '<br><span style="font-weight:400">철수</span>' : ''}</th>`).join('')}</tr></thead>
-        <tbody>${dates.map((d) => `<tr><td class="d ${['일', '토'].includes(dow(d)) ? 'wk' : ''}">${mdw(d)}${d === today ? ' · 오늘' : ''}</td>${cols.map((s) => `<td>${cell(d, s)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+        <tbody>${dates.map((d) => `<tr><td class="d ${['일', '토'].includes(dow(d)) ? 'wk' : ''}">${mdw(d)}${d === today ? ' · 오늘' : ''}</td><td>${visCell(d)}</td>${cols.map((s) => `<td>${cell(d, s)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
     </section>
     <section class="group" id="detail"></section>`;
 
-  document.querySelectorAll('.cell').forEach((b) => b.addEventListener('click', async () => { await openDay(b.dataset.date, b.dataset.store); document.getElementById('detail').scrollIntoView({ behavior: 'smooth' }); }));
+  document.querySelectorAll('.cell[data-date]').forEach((b) => b.addEventListener('click', async () => { await openDay(b.dataset.date, b.dataset.store); document.getElementById('detail').scrollIntoView({ behavior: 'smooth' }); }));
   document.querySelectorAll('[data-open-date]').forEach((b) => b.addEventListener('click', async () => { await openDay(b.dataset.openDate, b.dataset.openStore); document.getElementById('detail').scrollIntoView({ behavior: 'smooth' }); }));
+  document.querySelectorAll('[data-vdate]').forEach((b) => b.addEventListener('click', async () => { await openDay(b.dataset.vdate, HEAD_STORE); document.getElementById('detail').scrollIntoView({ behavior: 'smooth' }); }));
   document.querySelectorAll('[data-confirm]').forEach((b) => b.addEventListener('click', () => confirmNote(b.dataset.confirm, true)));
   renderDetail();
 }
@@ -140,6 +151,11 @@ function renderDetail() {
     if (!g) groups.push((g = { grp: it.grp, items: [] }));
     g.items.push(it);
   }
+  const v = detail.visitors;
+  const visHtml = sel.store === HEAD_STORE ? `
+    <div class="day-label" style="margin-top:24px">방문자 수</div>
+    <div class="vis-row"><input type="number" id="vis-input" inputmode="numeric" min="0" step="1" placeholder="하루 총 방문자 수" value="${esc(v?.visitors ?? '')}"><button class="btn" id="vis-save">저장</button></div>
+    <div class="vis-meta">${v ? `${esc(v.updated_by)} · ${new Date(v.updated_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })} 저장` : '기록 없음'} · 관리자는 지난 날짜도 정정할 수 있어요.</div>` : '';
   el.innerHTML = `
     <div class="group-head"><span class="label">${esc(storeLabel(sel.store))} · ${mdw(sel.date)}</span><span class="cnt">체크 ${done}/${total}${detail.total === null ? ' (그날 체크 기록 없음)' : ''}</span><span class="divider"></span></div>
     ${groups.map((g) => `
@@ -149,6 +165,7 @@ function renderDetail() {
         return `<div class="check ro ${c ? 'on' : 'miss'}"><span class="box">${c ? '<i class="ph-bold ph-check"></i>' : ''}</span>
           <span class="txt"><span class="main">${esc(i.content)}</span>${c ? `<span class="who">${esc(c.checked_by)} · ${hhmm(c.checked_at)}</span>` : ''}</span></div>`;
       }).join('')}`).join('') || '<div class="empty">이 매장에 항목이 없어요.</div>'}
+    ${visHtml}
     <div class="day-label" style="margin-top:24px">특이사항 메모</div>
     ${detail.notes.map((n) => `
       <div class="note">
@@ -158,6 +175,7 @@ function renderDetail() {
         <div class="acts"><button class="btn ${n.confirmed_at ? 'sec' : ''} sm" data-confirm-d="${n.id}" data-to="${n.confirmed_at ? 0 : 1}">${n.confirmed_at ? '확인 취소' : '확인'}</button></div>
       </div>`).join('') || '<div class="empty" style="padding:20px">이 날 메모가 없어요.</div>'}`;
   el.querySelectorAll('[data-confirm-d]').forEach((b) => b.addEventListener('click', () => confirmNote(b.dataset.confirmD, b.dataset.to === '1')));
+  document.getElementById('vis-save')?.addEventListener('click', saveDayVisitors);
 }
 
 async function confirmNote(id, to) {
@@ -168,6 +186,21 @@ async function confirmNote(id, to) {
     await loadDetail();
     render();
   } catch (e) { toast(errMsg(e), true); }
+}
+
+async function saveDayVisitors() {
+  const raw = document.getElementById('vis-input').value.trim();
+  if (!/^\d+$/.test(raw)) return toast('방문자 수를 0 이상의 정수로 적어 주세요', true);
+  const btn = document.getElementById('vis-save');
+  btn.disabled = true;
+  try {
+    const { error } = await sb.rpc('store_visitors_set_day', { p_store: sel.store, p_date: sel.date, p_visitors: parseInt(raw, 10) });
+    if (error) throw error;
+    await loadAll();
+    await loadDetail();
+    render();
+    toast('저장했어요');
+  } catch (e) { toast(errMsg(e), true); btn.disabled = false; }
 }
 
 // 편집 시트 -------------------------------------------------

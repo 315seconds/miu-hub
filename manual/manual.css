@@ -92,6 +92,9 @@ details.art .art-body a { color: var(--miu-primary-active); word-break: break-al
 .cell.alert { background: color-mix(in srgb, var(--miu-error) 14%, transparent); color: var(--miu-error); font-weight: 600; }
 .fld2 { margin-bottom: 12px; font-size: 12.5px; font-weight: 600; color: var(--miu-body-strong); }
 .fld2 .wd { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 6px; font-weight: 400; font-size: 14px; }
+.vis-row { display: flex; gap: 8px; }
+.vis-row input { flex: 1; }
+.vis-meta { margin-top: 6px; font-size: 12px; color: var(--miu-muted); }
 .scroll-x { overflow-x: auto; }
 
 /* 편집 목록 */
