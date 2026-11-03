@@ -5,20 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>새 리포트 · 마켓인유</title>
 
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611020719">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611020719">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611030745">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611030745">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
-<script src="/miu-hub/shared/config.js?v=202611020719"></script>
+<script src="/miu-hub/shared/config.js?v=202611030745"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611020719"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611020719"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611030745"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611030745"></script>
 <!-- Phase 3: xlsx 파싱 + 집계 + 저장 -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="js/xlsx-parse.js?v=202611020719"></script>
-<script src="js/join.js?v=202611020719"></script>
-<script src="js/analyze.js?v=202611020719"></script>
-<script src="js/save-report.js?v=202611020719"></script>
+<script src="js/xlsx-parse.js?v=202611030745"></script>
+<script src="js/join.js?v=202611030745"></script>
+<script src="js/analyze.js?v=202611030745"></script>
+<script src="js/save-report.js?v=202611030745"></script>
 
 <style>
   .type-choice {
@@ -736,7 +736,16 @@ $('generate-btn').addEventListener('click', async () => {
     // 3. 조인 · 바코드 리졸브
     setProgress('데이터 조인 중...');
     const resolve = buildResolveFn(ingoItems);
-    const { transactions } = combineAllKiosks(kioskDataArr, storeLabel, resolve);
+    const { transactions, issues } = combineAllKiosks(kioskDataArr, storeLabel, resolve);
+    if (issues.length) {
+      const lines = issues.map(x => `· 키오스크 ${x.kiosk}: ` + [
+        x.amountUnreadable ? `금액을 읽지 못한 영수증 ${x.amountUnreadable}건` : '',
+        x.cardMissing ? `카드 승인 내역에 없는 신용카드 영수증 ${x.cardMissing}건` : '',
+      ].filter(Boolean).join(', '));
+      if (!confirm(`영수증 일부를 매출에 넣지 못했어요.\n\n${lines.join('\n')}\n\n이대로 저장하면 매출이 실제보다 적게 나와요. 그래도 저장할까요?`)) {
+        throw new Error('저장을 취소했어요. 영수증·카드 파일(기간, 키오스크 짝)을 확인해 주세요.');
+      }
+    }
 
     // 4. 집계 (해외판정·시간대·TOP3)
     setProgress('집계 · 분석 중...');

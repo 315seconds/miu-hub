@@ -117,7 +117,11 @@ function buildResolveFn(ingoItems) {
 }
 
 // ─── 키오스크 하나의 영수증 + 카드 조인 ────────────────────────
-// 반환: [{ 거래일시, 지점명, 승인금액, 카드발급사명, items: [바코드...] }, ...]
+// 반환: { txs: [{ 거래일시, 지점명, 승인금액, 카드발급사명, items: [바코드...] }, ...],
+//         issues: { amountUnreadable, cardMissing } }  — 매출에 못 넣은(넣었어야 할) 영수증 수
+//   amountUnreadable: 결제수단은 읽었는데 금액을 못 읽음(파일 열 구조가 예상과 다름)
+//   cardMissing: 신용카드 결제인데 카드 승인 파일에 없음(카드 파일 기간·범위 불일치)
+//   현금·0원·취소(음수) 영수증은 정상적으로 빠지므로 세지 않는다.
 function joinReceiptCard(receipts, cards, storeLabel) {
   // 카드 인덱스: (날짜, 전표번호) → 카드 정보
   const cardIdx = new Map();
@@ -127,6 +131,7 @@ function joinReceiptCard(receipts, cards, storeLabel) {
 
   const joined = [];
   const qrpayRecs = [];
+  const issues = { amountUnreadable: 0, cardMissing: 0 };
 
   for (const r of receipts) {
     const key = `${r.날짜}|${r.전표번호}`;
@@ -151,23 +156,30 @@ function joinReceiptCard(receipts, cards, storeLabel) {
         카드발급사명: card.카드발급사명,
         items: r.items,
       });
+    } else if (r.결제수단 != null && r.결제금액 == null) {
+      issues.amountUnreadable++;
+    } else if (r.결제수단 === '신용카드' && r.결제금액 > 0) {
+      issues.cardMissing++;
     }
-    // else: 매칭 실패한 영수증 (드묾) — 스킵
+    // else: 현금 등 카드파일에 없는 정상 영수증 — 스킵(현금은 현금매출 시트로 따로 더함)
   }
 
-  return [...joined, ...qrpayRecs].sort((a, b) => a.거래일시 - b.거래일시);
+  return { txs: [...joined, ...qrpayRecs].sort((a, b) => a.거래일시 - b.거래일시), issues };
 }
 
 // ─── 전체 키오스크 통합 · 바코드 리졸브 적용 ──────────────────
+// 반환: { transactions, qrpayCnt, issues: [{ kiosk: 1부터, amountUnreadable, cardMissing }] } (문제가 있는 키오스크만)
 function combineAllKiosks(kioskDataArr, storeLabel, resolve) {
   const all = [];
+  const issueList = [];
   let qrpayCnt = 0;
 
-  for (const { receipts, cards } of kioskDataArr) {
-    const merged = joinReceiptCard(receipts, cards, storeLabel);
-    qrpayCnt += merged.filter(m => QRPAY_METHODS.has(m.카드발급사명)).length;
-    all.push(...merged);
-  }
+  kioskDataArr.forEach(({ receipts, cards }, i) => {
+    const { txs, issues } = joinReceiptCard(receipts, cards, storeLabel);
+    qrpayCnt += txs.filter(m => QRPAY_METHODS.has(m.카드발급사명)).length;
+    all.push(...txs);
+    if (issues.amountUnreadable || issues.cardMissing) issueList.push({ kiosk: i + 1, ...issues });
+  });
 
   // 정렬 (전체 통합)
   all.sort((a, b) => a.거래일시 - b.거래일시);
@@ -179,5 +191,5 @@ function combineAllKiosks(kioskDataArr, storeLabel, resolve) {
     tx.resolvedItems = validItems.map(bc => resolve(bc, tx.승인금액, n)).filter(v => v != null);
   }
 
-  return { transactions: all, qrpayCnt };
+  return { transactions: all, qrpayCnt, issues: issueList };
 }

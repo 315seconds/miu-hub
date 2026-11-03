@@ -72,6 +72,7 @@ async function parseReceipt(file, storeLabel) {
   const transactions = [];
   let cur = null;
   let items = [];
+  let amtCol = 4;   // 결제 행의 금액 열. 키오스크 파일마다 한 칸씩 밀릴 수 있어(2026-08 성수 2는 5) 머리글에서 찾는다
 
   const flush = () => {
     if (cur) {
@@ -84,6 +85,13 @@ async function parseReceipt(file, storeLabel) {
 
   for (let i = 3; i < rows.length; i++) {
     const row = rows[i] || [];
+
+    // 결제 행 머리글("번호 | 결제 수단 | … | 금액 | 거스름"): 이 아래 결제 행들의 금액 열 위치를 갱신
+    if (row.some(v => v != null && String(v).replace(/\s/g, '') === '결제수단')) {
+      const ai = row.findIndex(v => v != null && String(v).trim() === '금액');
+      if (ai >= 0) amtCol = ai;
+      continue;
+    }
 
     // 트랜잭션 시작 행: col0=날짜, col{slipCol}=전표번호(숫자)
     if (row[0] != null && isNumeric(row[slipCol])) {
@@ -109,9 +117,9 @@ async function parseReceipt(file, storeLabel) {
           items.push(bc);
         }
       } else if (row[2] != null && cur.결제수단 == null) {
-        // 결제 행: col2=결제수단 텍스트, col4=금액
+        // 결제 행: col2=결제수단 텍스트, col{amtCol}=금액
         cur.결제수단 = String(row[2]).trim();
-        cur.결제금액 = toNum(row[4]);
+        cur.결제금액 = toNum(row[amtCol]);
       }
     }
   }
