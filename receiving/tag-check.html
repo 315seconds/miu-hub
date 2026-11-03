@@ -172,7 +172,7 @@
 
     function render() {
       const it = current;
-      const needPhoto = !it.photo_url;
+      const needPhoto = !it.photo_url || it.replacing === true;
       const needBrand = !(it.brand && it.brand.trim());
       const category = it.category || it.inventory_hangers?.category || "";
       const s = it.soldInfo;
@@ -189,6 +189,9 @@
       html += it.photo_url
         ? `<img class="tc-photo" id="photo" src="${escapeHtml(it.photo_url)}" alt="${escapeHtml(it.barcode)}">`
         : `<div class="tc-nophoto" id="photo-empty">사진 없음</div>`;
+      if (it.photo_url && !it.replacing) {
+        html += `<button type="button" class="btn btn-outline btn-block" id="replace-btn" style="margin-top:8px">📷 사진 다시 찍기 (교체)</button>`;
+      }
 
       html += `<div class="tc-info">
         <div class="tc-brand">${needBrand ? '<span style="color:var(--fg-disabled)">브랜드 없음</span>' : escapeHtml(it.brand)}</div>
@@ -204,7 +207,8 @@
       </div>`;
 
       if (needPhoto || needBrand) {
-        html += `<div class="tc-fill"><h2>${needPhoto && needBrand ? "사진·브랜드 입력" : needPhoto ? "사진 입력" : "브랜드 입력"}</h2>`;
+        const photoTitle = it.replacing ? "사진 교체" : "사진 입력";
+        html += `<div class="tc-fill"><h2>${needPhoto && needBrand ? photoTitle + "·브랜드 입력" : needPhoto ? photoTitle : "브랜드 입력"}</h2>`;
         if (needPhoto) {
           html += `<label class="btn btn-secondary btn-block" id="shoot-btn">📷 사진 촬영
             <input type="file" accept="image/*" capture="environment" id="photo-file" style="display:none">
@@ -214,7 +218,9 @@
           html += `<input type="text" id="brand-input" placeholder="브랜드명" autocomplete="off" autocorrect="off" spellcheck="false">
             <div class="tc-row"><button type="button" class="btn btn-outline btn-sm" id="vintage-btn">브랜드 없음 (Vintage)</button></div>`;
         }
-        html += `<button type="button" class="btn btn-primary btn-block btn-lg" id="save-btn" style="margin-top:12px" disabled>저장</button></div>`;
+        html += `<button type="button" class="btn btn-primary btn-block btn-lg" id="save-btn" style="margin-top:12px" disabled>저장</button>`;
+        if (it.replacing) html += `<button type="button" class="btn btn-outline btn-block" id="cancel-replace-btn" style="margin-top:8px">교체 취소</button>`;
+        html += `</div>`;
       }
 
       resultEl.innerHTML = html;
@@ -225,6 +231,10 @@
         document.getElementById("vintage-btn").addEventListener("click", () => { bi.value = "Vintage"; updateSave(); });
       }
       if (needPhoto || needBrand) document.getElementById("save-btn").addEventListener("click", save);
+      const replaceBtn = document.getElementById("replace-btn");
+      if (replaceBtn) replaceBtn.addEventListener("click", () => { it.replacing = true; render(); });
+      const cancelBtn = document.getElementById("cancel-replace-btn");
+      if (cancelBtn) cancelBtn.addEventListener("click", () => { it.replacing = false; resetPending(); render(); });
       scanEl.focus();
     }
 
@@ -242,7 +252,7 @@
     function updateSave() {
       const btn = document.getElementById("save-btn");
       if (!btn) return;
-      const photoOk = !!current.photo_url || !!pendingFile;
+      const photoOk = (!!current.photo_url && !current.replacing) || !!pendingFile;
       const bi = document.getElementById("brand-input");
       const brandOk = !bi || bi.value.trim().length > 0;
       btn.disabled = !(photoOk && brandOk);
@@ -256,7 +266,7 @@
       clearError();
       try {
         const patch = {};
-        if (!it.photo_url && pendingFile) {
+        if ((!it.photo_url || it.replacing) && pendingFile) {
           const compressed = await compressImage(pendingFile);
           patch.photo_url = await sbUploadPhoto(it.hanger_id || "tag-check", compressed);
         }
@@ -266,7 +276,7 @@
         const { error } = await sb.from("inventory_items").update(patch).eq("id", it.id);
         if (error) throw error;
         if (current !== it) return; // 저장 중 다른 바코드를 스캔했으면 화면은 건드리지 않는다
-        Object.assign(it, patch);
+        Object.assign(it, patch, { replacing: false });
         resetPending();
         render();
       } catch (e) {
