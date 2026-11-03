@@ -113,18 +113,12 @@
       scanEl.value = "";
       if (bc) lookup(bc);
     });
-    // 오늘(2026-11-03)만 쓰는 임시 기능: 황태훈·김민지 전용. 화면 게이트일 뿐 서버 차단은 아니다(AGENTS.md 4.1).
-    (async function gate() {
-      const ALLOWED_NAMES = ["황태훈", "김민지"];
+    // 오늘(2026-11-03)만 쓰는 임시 기능: 로그인한 직원 전체 사용(로그인은 auth-guard가 강제).
+    (function gate() {
       const LAST_DAY = "2026-11-03"; // KST, 이 날짜가 지나면 사용 불가
       const gateEl = document.getElementById("gate");
-      for (let i = 0; i < 50 && window.MIU_PROFILE === undefined; i++) await new Promise((r) => setTimeout(r, 100));
       if (new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" }) > LAST_DAY) {
         gateEl.textContent = "오늘만 쓰는 임시 기능이라 종료됐어요.";
-        return;
-      }
-      if (!ALLOWED_NAMES.includes(window.MIU_PROFILE?.name)) {
-        gateEl.textContent = "이 기능은 사용할 수 없어요.";
         return;
       }
       gateEl.style.display = "none";
