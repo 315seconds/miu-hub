@@ -519,7 +519,7 @@
   </div>
 </div>
 
-<!-- 임시(2026-11-03 하루): 택갈이 확인 — 전 직원. 다음날 이 섹션·아래 스크립트·receiving/tag-check.html 삭제 -->
+<!-- 임시(2026-11-03~04 이틀): 택갈이 확인 — 전 직원. 끝나면 이 섹션·아래 스크립트·receiving/tag-check.html 삭제 -->
 <div class="section" id="tag-check-section">
   <div class="section-head">
     <span class="num">임시</span>
@@ -710,10 +710,10 @@ if (window.MIU_USER) {
   }
 })();
 
-// 임시(2026-11-03 하루): 택갈이 확인 타일 — 로그인한 전 직원에게, 오늘(KST)만 노출
+// 임시(2026-11-03~04): 택갈이 확인 타일 — 로그인한 전 직원에게, 2026-11-04(KST)까지만 노출
 (function showTagCheckTile() {
   const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
-  if (today <= '2026-11-03') document.getElementById('tag-check-section').style.display = 'block';
+  if (today <= '2026-11-04') document.getElementById('tag-check-section').style.display = 'block';
 })();
 
 // 매장 업무(매뉴얼·체크리스트): 서버 함수가 직원 3명·관리자 2명에게만 'staff'/'manager'를 돌려준다
