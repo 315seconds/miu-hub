@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>택갈이 확인 (임시)</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+  <link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611020719">
+  <link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611020719">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+  <link rel="stylesheet" href="css/style.css?v=202611020719">
+  <!-- 임시 페이지(2026-11-03 택갈이 점검용). 사용 후 이 파일만 지우면 된다. -->
+  <script src="/miu-hub/shared/config.js?v=202611020719"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/miu-hub/shared/supabase-client.js?v=202611020719"></script>
+  <script src="/miu-hub/shared/auth-guard.js?v=202611020719"></script>
+  <style>
+    .tc-scan { width: 100%; box-sizing: border-box; font-size: 22px; font-weight: 700; padding: 14px 16px; border: 2px solid var(--brand-primary); border-radius: var(--radius-md); background: #fff; }
+    .tc-hint { margin: 6px 2px 14px; color: var(--fg-tertiary); font-size: var(--text-xs); }
+    .tc-photo { width: 100%; max-height: 62vh; object-fit: contain; display: block; background: var(--bg-tertiary); border-radius: var(--radius-md); }
+    .tc-nophoto { display: flex; align-items: center; justify-content: center; height: 220px; background: var(--bg-tertiary); border-radius: var(--radius-md); color: var(--fg-tertiary); font-weight: 600; }
+    .tc-banner { margin-bottom: 10px; padding: 10px 14px; border-radius: var(--radius-sm); font-weight: 700; font-size: var(--text-sm); }
+    .tc-banner.sold, .tc-banner.disposed { background: var(--status-danger-bg); color: var(--status-danger); }
+    .tc-banner.notfound { background: var(--status-warning-bg); color: #8a6100; }
+    .tc-info { margin-top: 12px; padding: 14px 16px; background: #fff; border: 1px solid var(--line-default); border-radius: var(--radius-md); }
+    .tc-brand { font-size: 24px; font-weight: 800; }
+    .tc-price { margin-top: 2px; font-size: 20px; font-weight: 700; color: var(--brand-primary); }
+    .tc-grid { margin-top: 10px; display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: var(--text-sm); }
+    .tc-grid dt { color: var(--fg-tertiary); }
+    .tc-grid dd { margin: 0; font-weight: 600; }
+    .tc-fill { margin-top: 12px; padding: 14px 16px; border: 2px dashed var(--status-warning); border-radius: var(--radius-md); background: var(--status-warning-bg); }
+    .tc-fill h2 { margin: 0 0 10px; font-size: var(--text-base); }
+    .tc-fill label.btn { margin-bottom: 10px; }
+    .tc-fill input[type=text] { width: 100%; box-sizing: border-box; font-size: 18px; padding: 12px 14px; }
+    .tc-row { display: flex; gap: 8px; margin-top: 8px; }
+    .tc-count { margin-top: 14px; text-align: center; color: var(--fg-tertiary); font-size: var(--text-xs); }
+  </style>
+</head>
+<body>
+  <div class="page-wrap">
+    <header class="miu-header">
+      <a href="../" class="miu-header-back" aria-label="허브로">
+        <i class="ph-bold ph-caret-left"></i>
+      </a>
+      <div class="miu-header-title">
+        <h1 class="miu-header-h1">택갈이 확인</h1>
+      </div>
+    </header>
+
+    <div class="page-body">
+      <div id="gate" class="empty">확인 중…</div>
+      <div id="app" style="display:none">
+        <div id="error-msg" class="error" style="display:none"></div>
+        <input id="scan" class="tc-scan" type="text" inputmode="none" placeholder="바코드를 스캔하세요" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">
+        <div class="tc-hint">스캔하면 사진이 바로 뜹니다. 사진·브랜드가 없는 물건은 아래에서 바로 채울 수 있습니다.</div>
+        <div id="result"></div>
+        <div id="count" class="tc-count"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js?v=202611020719"></script>
+  <script src="js/api.js?v=202611020719"></script>
+  <script>
+    // 한글 2벌식 → 영어 역변환 + 대문자 (receiving/js/items.js와 동일; 스캐너가 한글 입력 상태일 때 대비)
+    function normalizeBarcode(input) {
+      const JAMO_TO_ENG = {
+        'ㄱ':'r','ㄲ':'R','ㄴ':'s','ㄷ':'e','ㄸ':'E','ㄹ':'f','ㅁ':'a','ㅂ':'q','ㅃ':'Q',
+        'ㅅ':'t','ㅆ':'T','ㅇ':'','ㅈ':'w','ㅉ':'W','ㅊ':'c','ㅋ':'z','ㅌ':'x','ㅍ':'v','ㅎ':'g',
+        'ㅏ':'k','ㅐ':'o','ㅑ':'i','ㅒ':'O','ㅓ':'j','ㅔ':'p','ㅕ':'u','ㅖ':'P',
+        'ㅗ':'h','ㅘ':'hk','ㅙ':'ho','ㅚ':'hl','ㅛ':'y',
+        'ㅜ':'n','ㅝ':'nj','ㅞ':'np','ㅟ':'nl','ㅠ':'b',
+        'ㅡ':'m','ㅢ':'ml','ㅣ':'l',
+      };
+      const INITIALS = ['ㄱ','ㄲ','ㄴ','ㄷ','ㄸ','ㄹ','ㅁ','ㅂ','ㅃ','ㅅ','ㅆ','ㅇ','ㅈ','ㅉ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+      const VOWELS   = ['ㅏ','ㅐ','ㅑ','ㅒ','ㅓ','ㅔ','ㅕ','ㅖ','ㅗ','ㅘ','ㅙ','ㅚ','ㅛ','ㅜ','ㅝ','ㅞ','ㅟ','ㅠ','ㅡ','ㅢ','ㅣ'];
+      const FINALS   = ['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
+      let result = '';
+      for (const ch of input) {
+        const code = ch.charCodeAt(0);
+        if (code >= 0xAC00 && code <= 0xD7A3) {
+          const offset = code - 0xAC00;
+          const iIdx = Math.floor(offset / (21 * 28));
+          const vIdx = Math.floor((offset % (21 * 28)) / 28);
+          const fIdx = offset % 28;
+          result += JAMO_TO_ENG[INITIALS[iIdx]] ?? '';
+          result += JAMO_TO_ENG[VOWELS[vIdx]]  ?? '';
+          if (fIdx > 0) result += JAMO_TO_ENG[FINALS[fIdx]] ?? '';
+        } else if (code >= 0x3130 && code <= 0x318F) {
+          result += JAMO_TO_ENG[ch] ?? ch;
+        } else {
+          result += ch;
+        }
+      }
+      return result.toUpperCase().trim();
+    }
+
+    const STATUS_LABEL = { in_stock: "보유중", sold: "판매됨", disposed: "폐기" };
+    const scanEl = document.getElementById("scan");
+    const resultEl = document.getElementById("result");
+    const countEl = document.getElementById("count");
+    let current = null;      // 화면에 떠 있는 물건 행
+    let pendingFile = null;  // 촬영했지만 아직 저장 안 한 사진
+    let previewUrl = null;
+    let seq = 0;             // 늦게 도착한 이전 조회 응답 무시용
+    let checked = 0;
+
+    scanEl.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      const bc = normalizeBarcode(scanEl.value);
+      scanEl.value = "";
+      if (bc) lookup(bc);
+    });
+    // 오늘(2026-11-03)만 쓰는 임시 기능: 황태훈·김민지 전용. 화면 게이트일 뿐 서버 차단은 아니다(AGENTS.md 4.1).
+    (async function gate() {
+      const ALLOWED_NAMES = ["황태훈", "김민지"];
+      const LAST_DAY = "2026-11-03"; // KST, 이 날짜가 지나면 사용 불가
+      const gateEl = document.getElementById("gate");
+      for (let i = 0; i < 50 && window.MIU_PROFILE === undefined; i++) await new Promise((r) => setTimeout(r, 100));
+      if (new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" }) > LAST_DAY) {
+        gateEl.textContent = "오늘만 쓰는 임시 기능이라 종료됐어요.";
+        return;
+      }
+      if (!ALLOWED_NAMES.includes(window.MIU_PROFILE?.name)) {
+        gateEl.textContent = "이 기능은 사용할 수 없어요.";
+        return;
+      }
+      gateEl.style.display = "none";
+      document.getElementById("app").style.display = "block";
+      scanEl.focus();
+    })();
+
+    function resetPending() {
+      pendingFile = null;
+      if (previewUrl) { URL.revokeObjectURL(previewUrl); previewUrl = null; }
+    }
+
+    async function lookup(bc) {
+      const my = ++seq;
+      clearError();
+      resetPending();
+      current = null;
+      resultEl.innerHTML = '<div class="tc-hint">⏳ 조회 중…</div>';
+      try {
+        const [inv, sold] = await Promise.all([
+          sb.from("inventory_items")
+            .select("id, barcode, brand, price, photo_url, color, pattern, category, location, status, hanger_id, created_at, inventory_hangers(category)")
+            .eq("barcode", bc),
+          sb.from("sold_items").select("store, sold_date, refund_date").eq("barcode", bc),
+        ]);
+        if (my !== seq) return;
+        if (inv.error) throw inv.error;
+        const rows = inv.data || [];
+        if (!rows.length) {
+          resultEl.innerHTML = `<div class="tc-banner notfound">재고에 없는 바코드: ${escapeHtml(bc)}</div>`;
+          return;
+        }
+        current = rows[0];
+        current.soldInfo = (sold.data || [])[0] || null;
+        current.dupCount = rows.length;
+        checked++;
+        countEl.textContent = `이번 화면에서 확인한 물건 ${checked}건`;
+        render();
+      } catch (e) {
+        if (my !== seq) return;
+        resultEl.innerHTML = "";
+        showError("조회 실패: " + (e.message || e));
+      }
+    }
+
+    function render() {
+      const it = current;
+      const needPhoto = !it.photo_url;
+      const needBrand = !(it.brand && it.brand.trim());
+      const category = it.category || it.inventory_hangers?.category || "";
+      const s = it.soldInfo;
+      let html = "";
+
+      if (it.dupCount > 1) html += `<div class="tc-banner notfound">같은 바코드 ${it.dupCount}건 — 첫 번째만 표시</div>`;
+      if (it.status === "sold") {
+        const refunded = s?.refund_date ? " (환불됨)" : "";
+        html += `<div class="tc-banner sold">판매됨${s ? ` · ${escapeHtml(s.store || "")} ${fmtDate(s.sold_date)}` : ""}${refunded}</div>`;
+      } else if (it.status === "disposed") {
+        html += `<div class="tc-banner disposed">폐기된 물건</div>`;
+      }
+
+      html += it.photo_url
+        ? `<img class="tc-photo" id="photo" src="${escapeHtml(it.photo_url)}" alt="${escapeHtml(it.barcode)}">`
+        : `<div class="tc-nophoto" id="photo-empty">사진 없음</div>`;
+
+      html += `<div class="tc-info">
+        <div class="tc-brand">${needBrand ? '<span style="color:var(--fg-disabled)">브랜드 없음</span>' : escapeHtml(it.brand)}</div>
+        <div class="tc-price">${fmtPrice(it.price)}</div>
+        <dl class="tc-grid">
+          <dt>바코드</dt><dd>${escapeHtml(it.barcode)}</dd>
+          <dt>카테고리</dt><dd>${escapeHtml(category) || "-"}</dd>
+          <dt>색상</dt><dd>${escapeHtml(it.color || "-")}${it.pattern ? " / " + escapeHtml(it.pattern) : ""}</dd>
+          <dt>위치</dt><dd>${escapeHtml(it.location || "-")}</dd>
+          <dt>상태</dt><dd>${escapeHtml(STATUS_LABEL[it.status] || it.status || "-")}</dd>
+          <dt>입고일</dt><dd>${fmtDate(it.created_at) || "-"}</dd>
+        </dl>
+      </div>`;
+
+      if (needPhoto || needBrand) {
+        html += `<div class="tc-fill"><h2>${needPhoto && needBrand ? "사진·브랜드 입력" : needPhoto ? "사진 입력" : "브랜드 입력"}</h2>`;
+        if (needPhoto) {
+          html += `<label class="btn btn-secondary btn-block" id="shoot-btn">📷 사진 촬영
+            <input type="file" accept="image/*" capture="environment" id="photo-file" style="display:none">
+          </label>`;
+        }
+        if (needBrand) {
+          html += `<input type="text" id="brand-input" placeholder="브랜드명" autocomplete="off" autocorrect="off" spellcheck="false">
+            <div class="tc-row"><button type="button" class="btn btn-outline btn-sm" id="vintage-btn">브랜드 없음 (Vintage)</button></div>`;
+        }
+        html += `<button type="button" class="btn btn-primary btn-block btn-lg" id="save-btn" style="margin-top:12px" disabled>저장</button></div>`;
+      }
+
+      resultEl.innerHTML = html;
+      if (needPhoto) document.getElementById("photo-file").addEventListener("change", onShoot);
+      if (needBrand) {
+        const bi = document.getElementById("brand-input");
+        bi.addEventListener("input", updateSave);
+        document.getElementById("vintage-btn").addEventListener("click", () => { bi.value = "Vintage"; updateSave(); });
+      }
+      if (needPhoto || needBrand) document.getElementById("save-btn").addEventListener("click", save);
+      scanEl.focus();
+    }
+
+    function onShoot(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      resetPending();
+      pendingFile = file;
+      previewUrl = URL.createObjectURL(file);
+      const slot = document.getElementById("photo") || document.getElementById("photo-empty");
+      slot.outerHTML = `<img class="tc-photo" id="photo" src="${previewUrl}" alt="새 사진">`;
+      updateSave();
+    }
+
+    function updateSave() {
+      const btn = document.getElementById("save-btn");
+      if (!btn) return;
+      const photoOk = !!current.photo_url || !!pendingFile;
+      const bi = document.getElementById("brand-input");
+      const brandOk = !bi || bi.value.trim().length > 0;
+      btn.disabled = !(photoOk && brandOk);
+    }
+
+    async function save() {
+      const btn = document.getElementById("save-btn");
+      const it = current;
+      btn.disabled = true;
+      btn.textContent = "⏳ 저장 중…";
+      clearError();
+      try {
+        const patch = {};
+        if (!it.photo_url && pendingFile) {
+          const compressed = await compressImage(pendingFile);
+          patch.photo_url = await sbUploadPhoto(it.hanger_id || "tag-check", compressed);
+        }
+        const bi = document.getElementById("brand-input");
+        if (bi && bi.value.trim()) patch.brand = bi.value.trim();
+
+        const { error } = await sb.from("inventory_items").update(patch).eq("id", it.id);
+        if (error) throw error;
+        if (current !== it) return; // 저장 중 다른 바코드를 스캔했으면 화면은 건드리지 않는다
+        Object.assign(it, patch);
+        resetPending();
+        render();
+      } catch (e) {
+        showError("저장 실패: " + (e.message || e));
+        btn.textContent = "저장";
+        if (current === it) updateSave();
+      }
+    }
+  </script>
+</body>
+</html>
