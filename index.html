@@ -227,6 +227,26 @@
     letter-spacing: -0.1px;
   }
 
+  /* ── 어제 매출 카드 ── */
+  .sales-card {
+    display: none; margin: 0 24px 16px; padding: 20px 20px 16px;
+    background: var(--miu-surface-card); border-radius: var(--miu-r-lg);
+    color: var(--miu-ink); text-decoration: none;
+  }
+  .sales-card:active { background: var(--miu-surface-strong); }
+  .sales-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.8px; color: var(--miu-muted); }
+  .sales-total { font-family: var(--miu-serif); font-size: 32px; font-weight: 500; letter-spacing: -0.8px; margin-top: 6px; }
+  .sales-sub { font-size: 13px; color: var(--miu-body); margin-top: 4px; }
+  .sales-stores { margin-top: 14px; border-top: 1px solid var(--miu-hairline); }
+  .sales-row { display: flex; align-items: baseline; gap: 8px; padding: 8px 0 0; font-size: 13px; }
+  .sales-row .nm { flex: 1; color: var(--miu-body-strong, var(--miu-ink)); }
+  .sales-row .amt { font-weight: 600; }
+  .sales-row .sd { width: 54px; text-align: right; }
+  .sd { font-size: 12px; font-weight: 600; }
+  .sd.up { color: var(--miu-success); }
+  .sd.down { color: var(--miu-error); }
+  .sd.flat { color: var(--miu-muted); }
+
   /* ── 주간 레터 ── */
   .accent-letter { --tile-accent: var(--miu-accent-teal); }
   #letter-tile { display: none; position: relative; }
@@ -276,6 +296,14 @@
   <div class="title">관리툴</div>
   <div class="date-line" id="today-label"></div>
 </div>
+
+<!-- 어제 매출: 전 직원 공개(현금 포함, 비교는 7일 전 같은 요일) -->
+<a href="sold-report/" class="sales-card" id="sales-card">
+  <div class="sales-eyebrow" id="sales-eyebrow"></div>
+  <div class="sales-total" id="sales-total"></div>
+  <div class="sales-sub" id="sales-sub"></div>
+  <div class="sales-stores" id="sales-stores"></div>
+</a>
 
 <!-- 오늘의 캘린더 = 코랄 callout -->
 <a href="calendar/" class="callout">
@@ -564,6 +592,41 @@ const days = ['일','월','화','수','목','금','토'];
 const d = new Date();
 document.getElementById('today-label').textContent =
   `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 ${days[d.getDay()]}요일`;
+
+// 어제 매출 카드(RPC home_sales_summary: 현금 포함, 7일 전 같은 요일 대비). 실패하면 카드를 숨긴 채 둔다.
+(async function showYesterdaySales() {
+  try {
+    const { data, error } = await window.sb.rpc('home_sales_summary');
+    if (error || !data) return;
+    const won = (n) => n.toLocaleString('ko-KR') + '원';
+    const escH = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const delta = (cur, prev) => {
+      if (!(prev > 0)) return '<span class="sd flat">—</span>';
+      const p = Math.round(((cur - prev) / prev) * 100);
+      return `<span class="sd ${p > 0 ? 'up' : p < 0 ? 'down' : 'flat'}">${p > 0 ? '▲' : p < 0 ? '▼' : ''}${Math.abs(p)}%</span>`;
+    };
+    const card = document.getElementById('sales-card');
+    if (!data.length) {
+      document.getElementById('sales-eyebrow').textContent = '어제 매출';
+      document.getElementById('sales-total').textContent = '집계 전';
+      document.getElementById('sales-sub').textContent = '어제 판매 데이터가 아직 들어오지 않았어요.';
+      card.style.display = 'block';
+      return;
+    }
+    const [y, m, dd] = data[0].sale_date.split('-');
+    const dw = days[new Date(data[0].sale_date + 'T00:00:00Z').getUTCDay()];
+    const sum = (k) => data.reduce((s, r) => s + Number(r[k]), 0);
+    const sales = sum('sales'), prev = sum('prev_sales'), items = sum('items');
+    document.getElementById('sales-eyebrow').textContent = `어제 ${+m}/${+dd}(${dw}) 매출 · 현금 포함`;
+    document.getElementById('sales-total').textContent = won(sales);
+    document.getElementById('sales-sub').innerHTML = prev > 0
+      ? `지난주 ${dw}요일 대비 ${delta(sales, prev)} (${sales - prev >= 0 ? '+' : '-'}${won(Math.abs(sales - prev))}) · ${items}벌`
+      : `${items}벌`;
+    document.getElementById('sales-stores').innerHTML = data.map((r) =>
+      `<div class="sales-row"><span class="nm">${escH(r.store)}</span><span class="amt">${won(Number(r.sales))}</span>${delta(Number(r.sales), Number(r.prev_sales))}</div>`).join('');
+    card.style.display = 'block';
+  } catch (e) { console.error('[home] 어제 매출 카드 실패:', e); }
+})();
 
 if (window.MIU_USER) {
   document.getElementById('user-label').textContent = window.MIU_USER.email;
