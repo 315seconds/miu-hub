@@ -203,6 +203,19 @@
   .date-row:hover { background: var(--miu-surface-strong); }
   .date-range { font-weight: 700; color: var(--miu-ink); font-variant-numeric: tabular-nums; }
   .date-meta { color: var(--miu-muted); font-size: 11px; }
+  .date-list:not(.open) .fold-extra { display: none; }
+  .fold-toggle {
+    margin-top: 6px;
+    width: 100%;
+    padding: 6px 0;
+    border: 0;
+    border-radius: var(--miu-r-sm);
+    background: transparent;
+    color: var(--miu-muted);
+    font-size: 11px;
+    cursor: pointer;
+  }
+  .fold-toggle:hover { background: var(--miu-surface-strong); }
 
   /* ── 검색 ── */
   .search-wrap { padding: 0 20px; margin-bottom: 14px; }
@@ -349,6 +362,10 @@ const fmtDate = (d) => d ? d.replace(/-/g, '.') : '';
 
 let mainReports = [];
 let popupReports = [];
+// 월별로 계속 쌓이는 장기 운영 팝업. 일반 팝업과 성격이 달라 "본점 × 팝업 비교" 평균에서는 뺀다(월별 리포트가 수십 건이라 평균을 덮어버림).
+const LONG_TERM_STORES = ['좋은습관', '상수', '홍대입구'];
+// 같은 매장 리포트가 이만큼을 넘으면 최근 것만 보이고 나머지는 접어 둔다(카드 높이가 무한정 커지지 않게).
+const FOLD_AFTER = 3;
 
 // ── 데이터 로드 ────────────────────────────────────────────
 async function loadAll() {
@@ -457,15 +474,16 @@ function monthPanelHTML(r) {
 
 // ── 인사이트 ───────────────────────────────────────────────
 function buildInsight() {
-  if (mainReports.length === 0 || popupReports.length === 0) return;
+  const shortPopups = popupReports.filter(r => !LONG_TERM_STORES.includes(r.store));
+  if (mainReports.length === 0 || shortPopups.length === 0) return;
 
   const latestMain = [...mainReports].sort((a, b) => b.start_date.localeCompare(a.start_date))[0];
-  const pn = popupReports.length;
-  const avgPopupDaily = popupReports.reduce((s, r) => s + (r.daily_avg_sales || 0), 0) / pn;
-  const avgPopupFor = popupReports.reduce((s, r) => s + (r.foreign_share || 0), 0) / pn;
+  const pn = shortPopups.length;
+  const avgPopupDaily = shortPopups.reduce((s, r) => s + (r.daily_avg_sales || 0), 0) / pn;
+  const avgPopupFor = shortPopups.reduce((s, r) => s + (r.foreign_share || 0), 0) / pn;
 
   const hourCounts = {};
-  for (const r of popupReports) {
+  for (const r of shortPopups) {
     if (r.peak_hour != null) hourCounts[r.peak_hour] = (hourCounts[r.peak_hour] || 0) + 1;
   }
   const topHour = Object.entries(hourCounts).sort((a, b) => b[1] - a[1])[0];
@@ -591,9 +609,9 @@ function buildPopupSection() {
     const avgFor = runs.reduce((s, r) => s + (r.foreign_share || 0), 0) / n;
     const searchText = [store, ...runs.map(r => `${r.start_date} ${r.end_date}`)].join(' ').toLowerCase();
 
-    const dateRowsHTML = runs.map(r => {
+    const dateRowsHTML = runs.map((r, i) => {
       const kpi = `${fmtWon(r.daily_avg_sales)} · 해외 ${fmtPct(r.foreign_share)}`;
-      return `<a class="date-row" href="view.html?id=${r.id}">
+      return `<a class="date-row${i >= FOLD_AFTER ? ' fold-extra' : ''}" href="view.html?id=${r.id}">
         <span class="date-range">${fmtDate(r.start_date)} ~ ${fmtDate(r.end_date)}</span>
         <span class="date-meta">${kpi}</span>
       </a>`;
@@ -619,7 +637,13 @@ function buildPopupSection() {
         </div>
       </div>
       <div class="date-list">${dateRowsHTML}</div>
+      ${n > FOLD_AFTER ? `<button type="button" class="fold-toggle" data-n="${n - FOLD_AFTER}">이전 ${n - FOLD_AFTER}건 더보기</button>` : ''}
     `;
+    const fold = card.querySelector('.fold-toggle');
+    if (fold) fold.addEventListener('click', () => {
+      const open = card.querySelector('.date-list').classList.toggle('open');
+      fold.textContent = open ? '접기' : `이전 ${fold.dataset.n}건 더보기`;
+    });
     gridEl.appendChild(card);
   }
 
