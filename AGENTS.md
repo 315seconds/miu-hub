@@ -23,7 +23,7 @@
 | `inventory-check/` | 재고 조사 스캐너(오프라인 견딤) |
 | `sold-report/`, `turnover/` | 일별 판매 리포트 / 회전율(`turnover`는 홈 메뉴에 없음, 직접 URL) |
 | `report/` | 매출 리포트(키오스크 엑셀 업로드→파싱→분석→`sales_reports`). `migrate.html`, `patch-*.html`은 일회성 |
-| `letter/` | 주간 프라이싱 레터(`index`, `all`, `status`=황태훈 전용 열람 현황) |
+| `letter/` | 주간 프라이싱 레터(`index`, `all`, `status`=황태훈·이강철 전용 열람 현황) |
 | `sales-letter/` | 판매 레터(김민지 수신, 황태훈은 열람 현황에서 확인): 평일 아침 지난 영업일 판매된 대상 물건 목록(`sales_letters`) |
 | `logistics-request/` | 매장 매니저 최영훈(+황태훈·김민지) 전용 물류요청 보조: 기간·매장 선택 → 카테고리별 판매수량+가격대 분포 엑셀. 브라우저에서 `sold_items`×`inventory_items.category` 집계(DB 변경 없음) |
 | `category-analysis/` | 최영훈·황태훈·김민지 전용 카테고리 판매 분석(시트 "카테고리자동화"의 허브판). 기간·매장 → 판매벌수·판매액·평균가·행거당 판매액·효율지수/신호·재고 소진·가격대·직전 기간 대비, 매장 비교, **행거수 이력 입력**, 엑셀. 집계는 RPC `category_performance` |
@@ -46,7 +46,7 @@
 - `profiles.role` = `admin` / `employee`. `is_handler`는 담당자 드롭다운 노출. 역할·is_handler·email은 관리자만 변경(트리거 `protect_profile_privileged_columns`).
 - **화면의 역할 체크는 UI일 뿐.** 로그인 직원은 허브 테이블·함수 전부 사용 가능(역할별 제한 없음, 입고 승인도 물류팀 누구나). 코드 상수 PIN(`dashboard`, `calendar`)은 권한 근거가 아니다.
 - 비로그인(anon) 완전 차단. 예외는 `inventory_items`의 컬러 패턴 라벨 도구용 정책 2개뿐(`anon_color_tool_select/update`). 상세 `docs/DB_ACCESS_POLICY_20261025.md`.
-- **황태훈 1명 전용**: `is_letter_admin()`(profile id 고정, `scripts/weekly-letters-admin-20261023.sql`). 범위를 넓히려면 이 함수만 고친다. 홈 타일 `#letter-status-tile`은 `#admin-section` 안이라 role=admin 이면서 `is_letter_admin()`일 때만 보인다. `status.html` 자체엔 클라이언트 게이트가 없고 RPC가 막는다.
+- **황태훈·이강철 전용(레터 열람 현황)**: `is_letter_admin()`(profile id 고정, `scripts/weekly-letters-admin-20261023.sql`, 이강철 추가는 `scripts/letter-admin-add-kangcheol-20261104.sql`; 2026-11-04 운영 DB 적용). 범위를 넓히려면 이 함수만 고친다. 홈 타일 `#letter-status-tile`은 "분석 도구" 섹션 안에 있고(role=admin 섹션 밖; 이강철은 employee) `is_letter_admin()`일 때만 보인다. `status.html` 자체엔 클라이언트 게이트가 없고 RPC가 막는다.
 - **최영훈·황태훈·김민지 전용 화면**: `logistics-request/`. 홈 타일(`index.html`)과 페이지(`ALLOWED_NAMES`) 두 곳에서 `MIU_PROFILE.name` 이 `['최영훈','황태훈','김민지']`에 드는지 클라이언트 체크뿐(서버 차단 아님; 데이터는 로그인 직원 공통 권한). 이름 변경·동명이인·대상 추가 시 두 곳을 같이 고친다.
 - **category-analysis도 같은 세 사람 전용이며 서버가 강제**: `is_logistics_user()`(profile id 고정, `scripts/category-performance-20261027.sql`, 김민지 추가는 `scripts/logistics-add-kimminji-20261102.sql`; 2026-11-02 운영 DB 적용)가 RPC `category_performance`와 테이블 `store_hangers` RLS를 막는다. 홈 타일·페이지의 이름 체크(UI)는 별개이니 대상 변경 시 **함수 + 두 화면 + `logistics-request/`** 를 같이 고친다.
 - **사입 통계: 조회는 로그인 직원 전체, 쓰기는 김민지·황태훈만(서버가 강제)**: `is_purchase_user()`(profile id 고정, `scripts/purchase-stats-20261029.sql`)가 `purchase_*` 테이블의 쓰기 RLS와 `purchase_take_snapshot`을 막는다. 조회 RPC는 `purchase_can_read()`(로그인 직원). 직원들이 같이 골라 사 오는 거라 원가도 공유하기로 함(2026-10-29). 화면의 `EDITORS` 체크는 버튼을 숨길 뿐이다. 쓰기 대상 변경 시 **함수 + `purchase/`(`EDITORS`)** 를 같이 고친다.
@@ -110,6 +110,7 @@
 
 ## 7. 이력 (줄기만, 최신순)
 - 2026-11-04 홈 "어제 매출" 카드의 성수 본점 줄에 방문객 수·구매 전환율·국내/해외 결제 비중 추가(RPC `home_store_conversion()`, `scripts/home-store-conversion-20261104.sql`·`store-daily-receipts-split-20261104.sql`, 운영 DB 적용 완료; security definer라 `store_visitors`·`store_daily_receipts`(원래 매장 업무 5명만 읽음) 값이 로그인한 전 직원에게 보인다, anon 거부·테이블 직접 읽기는 5명 밖 0행 확인). 전환율 = 구매 건수 ÷ 방문객 총합, 국내/해외 = 카드·QR 순매출을 발급사명으로 나눈 값(현금 제외). 둘 다 최근 7일 합계를 함께 표시하고, 방문객 미입력·두 키오스크 중 하나라도 비는 날은 해당 줄을 숨긴다. 현재 "카드·QR 기준"(현금 구매는 시트 손님 표시가 쌓이면 추가해 "현금 포함"으로 바꿀 것; 현금 줄 29건 ≈ 전환율 1~2%p). 10/22~11/3 백필 26행: 어제(11/3) 해외 43%·7일 48%, 전환율 26.7%·7일 18.2%. 허브 리포트 해외/국내와 같은 규칙임을 7·8·9월로 검증(국내/해외 순매출이 허브 리포트와 정확히 일치).
+- 2026-11-04 레터 열람 현황(주간·판매 레터 열람 여부와 발송 내용 보기) 대상에 이강철 추가: `is_letter_admin()` 확장(운영 DB 적용, 이강철/타 직원 시뮬레이션으로 true/false·두 RPC 행 반환 확인)과 홈 타일을 관리 섹션(role=admin)에서 분석 도구 섹션으로 이동.
 - 2026-11-04 영수증 일일 수집 배포(`store_daily_receipts` 운영 DB 적용, VM 타이머 00:35 등록, 2026-10-22~11-03 26행 백필·구매 313건 확인).
 - 2026-11-04 현금 손님 집계 배포(`store_daily_cash`·`scripts/store-daily-cash-20261104.sql`, VM 타이머 00:50; 현금매출 시트에 H열 "손님" 체크박스·I열 "국적" 드롭다운 추가, 오늘부터 기록) + 홈 카드 `home_store_conversion()`이 추적 시작일 이후는 현금 구매·국적을 더해 "카드·QR·현금 기준"으로 표시(그 전 날짜는 카드·QR만; 최근 7일 합계에 둘이 섞이는 기간은 첫 1주일). 국적 미표시 현금은 국내/해외 어느 쪽에도 넣지 않는다.
 - 2026-11-04 성수 월간 리포트 매월 1일 자동 생성 배포(`jobs/monthly_report.py`, 타이머 `monthly-report.timer`, RPC `upsert_sales_report`). 10월분으로 UI 결과와 일치 확인.

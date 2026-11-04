@@ -438,6 +438,14 @@
       <span id="sales-letter-new" class="new-badge" hidden>NEW</span>
       <span class="tile-arrow">›</span>
     </a>
+    <a href="letter/status.html" class="tile tile-wide accent-letter" id="letter-status-tile">
+      <div class="tile-icon"><i class="ph-bold ph-envelope-open"></i></div>
+      <div class="tile-body">
+        <div class="tile-title">레터 열람 현황</div>
+        <div class="tile-desc">직원별 주간 레터 열람 여부</div>
+      </div>
+      <span class="tile-arrow">›</span>
+    </a>
   </div>
 </div>
 
@@ -479,14 +487,6 @@
       <div>
         <div class="tile-title">통합 관리</div>
         <div class="tile-desc">매장 · 직원 · 거래처</div>
-      </div>
-      <span class="tile-arrow">›</span>
-    </a>
-    <a href="letter/status.html" class="tile tile-wide accent-letter" id="letter-status-tile">
-      <div class="tile-icon"><i class="ph-bold ph-envelope-open"></i></div>
-      <div class="tile-body">
-        <div class="tile-title">레터 열람 현황</div>
-        <div class="tile-desc">직원별 주간 레터 열람 여부</div>
       </div>
       <span class="tile-arrow">›</span>
     </a>
@@ -710,7 +710,7 @@ if (window.MIU_USER) {
   if (data.some(l => !l.read_at)) document.getElementById('sales-letter-new').hidden = false;
 })();
 
-// 레터 열람 현황 타일: 서버 함수가 허용한 사용자(황태훈)에게만 노출
+// 레터 열람 현황 타일: 서버 함수가 허용한 사용자(황태훈·이강철)에게만 노출
 (async function showLetterStatusTile() {
   for (let i = 0; i < 30; i++) {
     if (window.MIU_PROFILE !== undefined) break;
