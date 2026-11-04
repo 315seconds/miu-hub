@@ -7,7 +7,7 @@
 > 줄기가 바뀌는 작업(새 기능, 권한·DB 구조, 배포·인증 방식, 외부 연동)을 끝내면 이 문서와 맨 아래 이력을 같은 작업에서 갱신한다. 자잘한 수정은 `git log`로 충분.
 
 ## 1. 개요와 배포
-- 마켓인유(빈티지 의류) 물류·판매용 정적 PWA. 빌드 없음. HTML/JS + Supabase(`miu_ops` 프로젝트: Auth, Postgres RLS/RPC, Storage, Realtime). 한국어. 사용자 약 11명(관리자 5).
+- 마켓인유(빈티지 의류) 물류·판매용 정적 PWA. 빌드 없음. HTML/JS + Supabase(`miu_ops` 프로젝트: Auth, Postgres RLS/RPC, Storage, Realtime). 한국어. 사용자 약 13명(관리자 7).
 - 배포: `main` push → GitHub Pages 자동 빌드(약 1분, `https://315seconds.github.io/miu-hub/`).
 - 공유 JS/CSS(`shared/*`, 각 `js/*`)를 바꿨으면 먼저 `python3 scripts/bump-cache-version.py`(모든 HTML의 로컬 js/css `?v=` 갱신, 현재 `202611040141`). HTML만 바꿨으면 불필요. 직원 폰은 새로고침/앱 재실행 필요.
 - 로컬: `python3 scripts/dev-server.py [포트]`(127.0.0.1 전용).
@@ -23,10 +23,10 @@
 | `inventory-check/` | 재고 조사 스캐너(오프라인 견딤) |
 | `sold-report/`, `turnover/` | 일별 판매 리포트 / 회전율(`turnover`는 홈 메뉴에 없음, 직접 URL) |
 | `report/` | 매출 리포트(키오스크 엑셀 업로드→파싱→분석→`sales_reports`). `migrate.html`, `patch-*.html`은 일회성 |
-| `letter/` | 주간 프라이싱 레터(`index`, `all`, `status`=황태훈·이강철 전용 열람 현황) |
+| `letter/` | 주간 프라이싱 레터(`index`, `all`, `status`=황태훈·이강철·김성경 전용 열람 현황) |
 | `sales-letter/` | 판매 레터(김민지 수신, 황태훈은 열람 현황에서 확인): 평일 아침 지난 영업일 판매된 대상 물건 목록(`sales_letters`) |
-| `logistics-request/` | 매장 매니저 최영훈(+황태훈·김민지) 전용 물류요청 보조: 기간·매장 선택 → 카테고리별 판매수량+가격대 분포 엑셀. 브라우저에서 `sold_items`×`inventory_items.category` 집계(DB 변경 없음) |
-| `category-analysis/` | 최영훈·황태훈·김민지 전용 카테고리 판매 분석(시트 "카테고리자동화"의 허브판). 기간·매장 → 판매벌수·판매액·평균가·행거당 판매액·효율지수/신호·재고 소진·가격대·직전 기간 대비, 매장 비교, **행거수 이력 입력**, 엑셀. 집계는 RPC `category_performance` |
+| `logistics-request/` | 매장 매니저 최영훈(+황태훈·김민지·이강철·김성경) 전용 물류요청 보조: 기간·매장 선택 → 카테고리별 판매수량+가격대 분포 엑셀. 브라우저에서 `sold_items`×`inventory_items.category` 집계(DB 변경 없음) |
+| `category-analysis/` | 최영훈·황태훈·김민지·이강철·김성경 전용 카테고리 판매 분석(시트 "카테고리자동화"의 허브판). 기간·매장 → 판매벌수·판매액·평균가·행거당 판매액·효율지수/신호·재고 소진·가격대·직전 기간 대비, 매장 비교, **행거수 이력 입력**, 엑셀. 집계는 RPC `category_performance` |
 | `manual/` | 매장 업무: `index.html`=오늘 체크리스트·특이사항 메모·업무 매뉴얼(검색), `admin.html`=관리자 전용 날짜별 현황(매장×최근 14일 표, 체크한 사람·시각, 메모 확인)·매뉴얼 글·체크 항목 편집. 홈 "매장 업무" 섹션 |
 | `purchase/` | 사입 통계(구글시트 "사입_통합 관리시트"의 허브판). **조회는 전 직원, 수정은 김민지·황태훈**. 탭: 요약(출처별 입고 원가·판매·회수율)·**출처**(한 출처의 추이와 차시별 회수율)·차시(회차 상세: 의류/잡화, 카테고리별 입고/판매/남은, 100% 초과일, **차시 등록과 사입 총액 입력**)·주간 보고 스냅샷·엑셀·점검(원가 미입력, 차시 미배정, 재고에 없는 바코드의 판매). 화면에는 출처 이름과 차시 번호만 보이고 SB·YH 같은 접두어는 안 쓴다. 집계는 RPC `purchase_*` |
 | `item-scanner/` | 브랜드·사진 스캐너 |
@@ -46,11 +46,11 @@
 - `profiles.role` = `admin` / `employee`. `is_handler`는 담당자 드롭다운 노출. 역할·is_handler·email은 관리자만 변경(트리거 `protect_profile_privileged_columns`).
 - **화면의 역할 체크는 UI일 뿐.** 로그인 직원은 허브 테이블·함수 전부 사용 가능(역할별 제한 없음, 입고 승인도 물류팀 누구나). 코드 상수 PIN(`dashboard`, `calendar`)은 권한 근거가 아니다.
 - 비로그인(anon) 완전 차단. 예외는 `inventory_items`의 컬러 패턴 라벨 도구용 정책 2개뿐(`anon_color_tool_select/update`). 상세 `docs/DB_ACCESS_POLICY_20261025.md`.
-- **황태훈·이강철 전용(레터 열람 현황)**: `is_letter_admin()`(profile id 고정, `scripts/weekly-letters-admin-20261023.sql`, 이강철 추가는 `scripts/letter-admin-add-kangcheol-20261104.sql`; 2026-11-04 운영 DB 적용). 범위를 넓히려면 이 함수만 고친다. 홈 타일 `#letter-status-tile`은 "분석 도구" 섹션 안에 있고(role=admin 섹션 밖; 이강철은 employee) `is_letter_admin()`일 때만 보인다. `status.html` 자체엔 클라이언트 게이트가 없고 RPC가 막는다.
-- **최영훈·황태훈·김민지·이강철 전용 화면**: `logistics-request/`. 홈 타일(`index.html`)과 페이지(`ALLOWED_NAMES`) 두 곳에서 `MIU_PROFILE.name` 이 `['최영훈','황태훈','김민지','이강철']`에 드는지 클라이언트 체크뿐(서버 차단 아님; 데이터는 로그인 직원 공통 권한). 이름 변경·동명이인·대상 추가 시 두 곳을 같이 고친다.
-- **category-analysis도 같은 네 사람 전용이며 서버가 강제**: `is_logistics_user()`(profile id 고정, `scripts/category-performance-20261027.sql`, 김민지 추가는 `scripts/logistics-add-kimminji-20261102.sql`, 이강철 추가는 `scripts/store-menus-add-kangcheol-20261104.sql`; 운영 DB 적용)가 RPC `category_performance`와 테이블 `store_hangers` RLS를 막는다. 홈 타일·페이지의 이름 체크(UI)는 별개이니 대상 변경 시 **함수 + 두 화면(`category-analysis/`·홈) + `logistics-request/`** 를 같이 고친다.
+- **황태훈·이강철·김성경 전용(레터 열람 현황)**: `is_letter_admin()`(profile id 고정, `scripts/weekly-letters-admin-20261023.sql`, 이강철 추가는 `scripts/letter-admin-add-kangcheol-20261104.sql`, 김성경 추가는 `scripts/add-kimseonggyeong-20261104.sql`; 2026-11-04 운영 DB 적용). 범위를 넓히려면 이 함수만 고친다. 홈 타일 `#letter-status-tile`은 "분석 도구" 섹션 안에 있고(role=admin 섹션 밖) `is_letter_admin()`일 때만 보인다. `status.html` 자체엔 클라이언트 게이트가 없고 RPC가 막는다.
+- **최영훈·황태훈·김민지·이강철·김성경 전용 화면**: `logistics-request/`. 홈 타일(`index.html`)과 페이지(`ALLOWED_NAMES`) 두 곳에서 `MIU_PROFILE.name` 이 `['최영훈','황태훈','김민지','이강철','김성경']`에 드는지 클라이언트 체크뿐(서버 차단 아님; 데이터는 로그인 직원 공통 권한). 이름 변경·동명이인·대상 추가 시 두 곳을 같이 고친다.
+- **category-analysis도 같은 다섯 사람 전용이며 서버가 강제**: `is_logistics_user()`(profile id 고정, `scripts/category-performance-20261027.sql`, 김민지 추가는 `scripts/logistics-add-kimminji-20261102.sql`, 이강철 추가는 `scripts/store-menus-add-kangcheol-20261104.sql`, 김성경 추가는 `scripts/add-kimseonggyeong-20261104.sql`; 운영 DB 적용)가 RPC `category_performance`와 테이블 `store_hangers` RLS를 막는다. 홈 타일·페이지의 이름 체크(UI)는 별개이니 대상 변경 시 **함수 + 두 화면(`category-analysis/`·홈) + `logistics-request/`** 를 같이 고친다.
 - **사입 통계: 조회는 로그인 직원 전체, 쓰기는 김민지·황태훈만(서버가 강제)**: `is_purchase_user()`(profile id 고정, `scripts/purchase-stats-20261029.sql`)가 `purchase_*` 테이블의 쓰기 RLS와 `purchase_take_snapshot`을 막는다. 조회 RPC는 `purchase_can_read()`(로그인 직원). 직원들이 같이 골라 사 오는 거라 원가도 공유하기로 함(2026-10-29). 화면의 `EDITORS` 체크는 버튼을 숨길 뿐이다. 쓰기 대상 변경 시 **함수 + `purchase/`(`EDITORS`)** 를 같이 고친다.
-- **매장 업무(`manual/`): 직원 3명 + 관리자 3명만(서버가 강제)**: `is_store_staff()`(전수지·천현수·정경환)·`is_store_manager()`(황태훈·최영훈·이강철; 이강철은 2026-11-04 추가, `scripts/store-menus-add-kangcheol-20261104.sql`)가 profile id 고정(`scripts/store-manual-20261029.sql`). 6명 밖의 로그인 직원은 이 5개 테이블을 읽지도 못한다. 직원은 읽기 + RPC(`checklist_set`, `store_note_add`, `store_note_delete`)로만 쓰고, 관리자는 `manual_articles`·`checklist_items` 편집(RLS)과 메모 확인(`store_note_confirm`)·기간 현황(`store_checklist_overview`). 체크·메모는 (날짜, 매장) 단위로 같은 매장 직원이 공유하고 **서버 KST 오늘만** 기록된다(지난 날 수정 불가). 항목은 삭제 없이 `is_active=false`로 숨긴다. 항목의 `weekdays`(1=월…7=일, null=매일; `store-manual-weekdays-20261029.sql`)에 없는 요일엔 체크리스트·분모에서 빠진다(성수 마네킹 디피·스팀은 월·수·금).
+- **매장 업무(`manual/`): 직원 3명 + 관리자 4명만(서버가 강제)**: `is_store_staff()`(전수지·천현수·정경환)·`is_store_manager()`(황태훈·최영훈·이강철·김성경; 이강철·김성경은 2026-11-04 추가, `scripts/store-menus-add-kangcheol-20261104.sql`·`scripts/add-kimseonggyeong-20261104.sql`)가 profile id 고정(`scripts/store-manual-20261029.sql`). 7명 밖의 로그인 직원은 이 5개 테이블을 읽지도 못한다. 직원은 읽기 + RPC(`checklist_set`, `store_note_add`, `store_note_delete`)로만 쓰고, 관리자는 `manual_articles`·`checklist_items` 편집(RLS)과 메모 확인(`store_note_confirm`)·기간 현황(`store_checklist_overview`). 체크·메모는 (날짜, 매장) 단위로 같은 매장 직원이 공유하고 **서버 KST 오늘만** 기록된다(지난 날 수정 불가). 항목은 삭제 없이 `is_active=false`로 숨긴다. 항목의 `weekdays`(1=월…7=일, null=매일; `store-manual-weekdays-20261029.sql`)에 없는 요일엔 체크리스트·분모에서 빠진다(성수 마네킹 디피·스팀은 월·수·금).
 - **매장 업무의 매장 목록 = `locations` 연동**: 성수 = 본점(근무자 항상 1명), 그 밖의 활성 위치 = 키오스크(무인 팝업) 근무자가 하루 한 번 도는 매장. 통합 관리에서 매장을 추가하면 자동으로 나타나고, 매장 현황판 "철수완료"(`is_active=false`)로 빠진다(과거 기록은 관리자 현황표에 "철수" 열로 남음). 매장이 아닌 위치만 `manual/common.js`의 `NON_STORE`(공동물류·온라인·폐기·재봉합부천·재봉합성수)로 걸러내므로 **새 비매장 위치를 만들면 거기에 추가**. 관리자 현황표에서 본점의 지난 날 빈 칸은 "미기록"(빨강), 키오스크 매장의 빈 칸은 근무자가 없는 날일 수 있어 중립 "—". 엑셀 원본에 있던 관리자번호·원격 접속 주소/입력값·리커버리 비밀번호는 공개 저장소라 시드에서 뺐고 해당 글(키오스크 분류)에 "매니저에게 문의"로 적어 둠 — 허브 편집 화면(`manual/admin.html`)에서 직접 채운다. 대상 인원 변경 시 **함수 `is_store_staff`/`is_store_manager`만** 고친다(화면은 `store_manual_role()` 결과로 분기).
 - **성수 본점 일별 방문자 수**(`manual/index.html` 체크리스트 아래 입력칸, `manual/admin.html` 현황표 "성수 방문자" 열·그날 상세에서 정정): 테이블 `store_visitors`(날짜·매장당 하루 총합 한 값, 마지막 저장자·시각). 읽기는 매장 업무 5명(`store_manual_can_use()`), 쓰기는 RPC만: `store_visitors_set`(5명, **서버 KST 오늘만**, 같은 날 재저장하면 덮어씀)·`store_visitors_set_day`(관리자만, 오늘 이전·오늘 날짜 입력/정정). 두 RPC 모두 `'성수'` 밖 매장은 거절(키오스크는 무인). 키오스크 매장으로 넓히려면 RPC의 매장 검사와 화면의 `HEAD_STORE` 조건을 같이 고친다. 슬랙에 있던 과거 기록은 일회성 SQL로 이관했고(기록자 "슬랙 이관") 그 데이터는 공개 저장소라 두지 않았다. 적용 `scripts/store-visitors-20261102.sql`.
 
@@ -110,6 +110,7 @@
 
 ## 7. 이력 (줄기만, 최신순)
 - 2026-11-04 홈 "어제 매출" 카드의 성수 본점 줄에 방문객 수·구매 전환율·국내/해외 결제 비중 추가(RPC `home_store_conversion()`, `scripts/home-store-conversion-20261104.sql`·`store-daily-receipts-split-20261104.sql`, 운영 DB 적용 완료; security definer라 `store_visitors`·`store_daily_receipts`(원래 매장 업무 5명만 읽음) 값이 로그인한 전 직원에게 보인다, anon 거부·테이블 직접 읽기는 5명 밖 0행 확인). 전환율 = 구매 건수 ÷ 방문객 총합, 국내/해외 = 카드·QR 순매출을 발급사명으로 나눈 값(현금 제외). 둘 다 최근 7일 합계를 함께 표시하고, 방문객 미입력·두 키오스크 중 하나라도 비는 날은 해당 줄을 숨긴다. 현재 "카드·QR 기준"(현금 구매는 시트 손님 표시가 쌓이면 추가해 "현금 포함"으로 바꿀 것; 현금 줄 29건 ≈ 전환율 1~2%p). 10/22~11/3 백필 26행: 어제(11/3) 해외 43%·7일 48%, 전환율 26.7%·7일 18.2%. 허브 리포트 해외/국내와 같은 규칙임을 7·8·9월로 검증(국내/해외 순매출이 허브 리포트와 정확히 일치).
+- 2026-11-04 신규 직원 김성경 추가(Auth 등록 → 이름·role=admin 설정, `scripts/add-kimseonggyeong-20261104.sql`). 이강철과 같은 범위(레터 열람 현황·06 매장 매니저·매장 업무 관리자)로 `is_letter_admin()`·`is_logistics_user()`·`is_store_manager()`와 화면 이름 목록에 추가. 이강철도 role=admin으로 변경(운영 DB 직접 UPDATE). 운영 DB 적용 후 김성경 id 시뮬레이션으로 admin·레터 admin·logistics·manager 모두 true, 박현준은 false·null 확인.
 - 2026-11-04 매장 매니저(06)·매장 업무(관리자 등급) 대상에 이강철 추가: `is_logistics_user()`·`is_store_manager()` 확장(운영 DB 적용, 이강철 id 시뮬레이션으로 `store_manual_role()`=manager·`is_logistics_user()`=true, 박현준은 null·false 확인)과 홈·`logistics-request/`·`category-analysis/`의 이름 목록에 이강철 추가.
 - 2026-11-04 레터 열람 현황(주간·판매 레터 열람 여부와 발송 내용 보기) 대상에 이강철 추가: `is_letter_admin()` 확장(운영 DB 적용, 이강철/타 직원 시뮬레이션으로 true/false·두 RPC 행 반환 확인)과 홈 타일을 관리 섹션(role=admin)에서 분석 도구 섹션으로 이동.
 - 2026-11-04 영수증 일일 수집 배포(`store_daily_receipts` 운영 DB 적용, VM 타이머 00:35 등록, 2026-10-22~11-03 26행 백필·구매 313건 확인).

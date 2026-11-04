@@ -493,7 +493,7 @@
   </div>
 </div>
 
-<!-- 섹션 6: 매장 매니저 (최영훈 · 황태훈 · 김민지 · 이강철 전용) -->
+<!-- 섹션 6: 매장 매니저 (최영훈 · 황태훈 · 김민지 · 이강철 · 김성경 전용) -->
 <div class="section" id="logistics-section">
   <div class="section-head">
     <span class="num">06</span>
@@ -721,13 +721,13 @@ if (window.MIU_USER) {
   if (data === true) document.getElementById('letter-status-tile').style.display = 'flex';
 })();
 
-// 물류요청 판매 집계·카테고리 판매 분석: 최영훈 · 황태훈 · 김민지 · 이강철에게만 노출(화면 게이트)
+// 물류요청 판매 집계·카테고리 판매 분석: 최영훈 · 황태훈 · 김민지 · 이강철 · 김성경에게만 노출(화면 게이트)
 (async function showLogisticsTile() {
   for (let i = 0; i < 30; i++) {
     if (window.MIU_PROFILE !== undefined) break;
     await new Promise(r => setTimeout(r, 100));
   }
-  if (['최영훈', '황태훈', '김민지', '이강철'].includes(window.MIU_PROFILE?.name)) {
+  if (['최영훈', '황태훈', '김민지', '이강철', '김성경'].includes(window.MIU_PROFILE?.name)) {
     document.getElementById('logistics-section').style.display = 'block';
   }
 })();
