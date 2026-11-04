@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="마켓인유">
 
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611032346">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611040141">
 <!-- Phosphor Icons (Bold 스타일 — 살짝 두꺼운 라인) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
@@ -242,6 +242,7 @@
   .sales-row .nm { flex: 1; color: var(--miu-body-strong, var(--miu-ink)); }
   .sales-row .amt { font-weight: 600; }
   .sales-row .sd { width: 54px; text-align: right; }
+  .sales-vis { font-size: 12px; color: var(--miu-muted); padding-top: 2px; }
   .sd { font-size: 12px; font-weight: 600; }
   .sd.up { color: var(--miu-success); }
   .sd.down { color: var(--miu-error); }
@@ -582,10 +583,10 @@
   </div>
 </div>
 
-<script src="/miu-hub/shared/config.js?v=202611032346"></script>
+<script src="/miu-hub/shared/config.js?v=202611040141"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611032346"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611032346"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611040141"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611040141"></script>
 
 <script>
 const days = ['일','월','화','수','목','금','토'];
@@ -622,8 +623,18 @@ document.getElementById('today-label').textContent =
     document.getElementById('sales-sub').innerHTML = prev > 0
       ? `지난주 ${dw}요일 대비 ${delta(sales, prev)} (${sales - prev >= 0 ? '+' : '-'}${won(Math.abs(sales - prev))}) · ${items}벌`
       : `${items}벌`;
+    // 성수 본점 줄 아래: 방문객 · 구매 전환율(RPC home_store_conversion). 실패하거나 어제 방문객이 없으면 줄을 만들지 않는다.
+    let cv = null;
+    try { const r = await window.sb.rpc('home_store_conversion'); if (!r.error && r.data && r.data[0]) cv = r.data[0]; } catch (e) { /* 줄만 생략 */ }
+    const pct = (a, b) => (b > 0 ? (a / b * 100).toFixed(1) + '%' : '—');
+    const convLine = (r) => {
+      if (r.store !== '성수' || !cv || cv.visitors == null) return '';
+      const day = cv.purchases != null ? `구매 ${cv.purchases}건 · 전환율 ${pct(cv.purchases, cv.visitors)}` : '구매 건수 집계 전';
+      const week = cv.week_visitors > 0 ? ` (7일 ${pct(cv.week_purchases, cv.week_visitors)})` : '';
+      return `<div class="sales-vis">방문객 ${cv.visitors}명 · ${day}${week} · 카드·QR 기준</div>`;
+    };
     document.getElementById('sales-stores').innerHTML = data.map((r) =>
-      `<div class="sales-row"><span class="nm">${escH(r.store)}</span><span class="amt">${won(Number(r.sales))}</span>${delta(Number(r.sales), Number(r.prev_sales))}</div>`).join('');
+      `<div class="sales-row"><span class="nm">${escH(r.store)}</span><span class="amt">${won(Number(r.sales))}</span>${delta(Number(r.sales), Number(r.prev_sales))}</div>${convLine(r)}`).join('');
     card.style.display = 'block';
   } catch (e) { console.error('[home] 어제 매출 카드 실패:', e); }
 })();

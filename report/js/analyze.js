@@ -1,7 +1,7 @@
 // analyze.js — app.py 로직 이관
 // 해외판정 · 온라인판정 · 매출배분 · 시간대집계 · TOP3
 
-const DEFAULT_FOREIGN_KEYWORDS = ['해외', '오렌지스퀘어', '알리페이', '위챗페이', '중국', '아이오로라'];
+const DEFAULT_FOREIGN_KEYWORDS = ['해외', '오렌지스퀘어', '알리페이', '위챗페이', '중국', '아이오로라', '한패스'];   // 한패스·한패스체크카드: 외국인 대상 선불카드(2026-11-04 추가)
 const EXCLUDED_CATEGORIES = new Set(['C', '위탁']);
 
 // ─── 해외 판정 (normalize_tx) ─────────────────────────────────
