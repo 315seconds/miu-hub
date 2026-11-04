@@ -633,14 +633,14 @@ document.getElementById('today-label').textContent =
       if (cv.visitors != null) {
         const day = cv.purchases != null ? `구매 ${cv.purchases}건 · 전환율 ${pct(cv.purchases, cv.visitors)}` : '구매 건수 집계 전';
         const week = cv.week_visitors > 0 ? ` (7일 ${pct(cv.week_purchases, cv.week_visitors)})` : '';
-        html += `<div class="sales-vis">방문객 ${cv.visitors}명 · ${day}${week} · 카드·QR 기준</div>`;
+        html += `<div class="sales-vis">방문객 ${cv.visitors}명 · ${day}${week} · ${cv.cash_included ? '카드·QR·현금' : '카드·QR'} 기준</div>`;
       }
-      // 국내/해외: 카드·QR 순매출을 카드 발급사명으로 나눈 값(현금 제외). 어제 값이 없으면 줄을 만들지 않는다.
+      // 국내/해외: 카드·QR 순매출은 카드 발급사명으로, 현금(시트 손님 표시가 있는 날부터)은 국적 표시로 나눈 값. 어제 값이 없으면 줄을 만들지 않는다.
       if (cv.foreign_net != null && cv.domestic_net != null && Number(cv.foreign_net) + Number(cv.domestic_net) > 0) {
         const share = (f, dm) => Math.round((Number(f) / (Number(f) + Number(dm))) * 100);
         const fs = share(cv.foreign_net, cv.domestic_net);
         const wk = Number(cv.week_foreign_net) + Number(cv.week_domestic_net) > 0 ? ` (7일 해외 ${share(cv.week_foreign_net, cv.week_domestic_net)}%)` : '';
-        html += `<div class="sales-vis">해외 결제 ${fs}% · 국내 ${100 - fs}%${wk} · 카드·QR 매출 기준</div>`;
+        html += `<div class="sales-vis">해외 결제 ${fs}% · 국내 ${100 - fs}%${wk} · ${cv.cash_included ? '카드·QR·현금' : '카드·QR'} 매출 기준</div>`;
       }
       return html;
     };
