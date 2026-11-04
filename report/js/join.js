@@ -137,8 +137,8 @@ function joinReceiptCard(receipts, cards, storeLabel) {
     const key = `${r.날짜}|${r.전표번호}`;
     const card = cardIdx.get(key);
 
-    // QR결제(알리/위챗) 별도 처리 — 카드파일에 없음
-    if (QRPAY_METHODS.has(r.결제수단) && r.결제금액 != null && r.결제금액 > 0) {
+    // QR결제(알리/위챗) 별도 처리 — 카드파일에 없음. 취소(음수)도 담아 카드 취소처럼 매출에서 상쇄한다(2026-09 성수 2의 −74,000원 취소가 빠져 매출이 많았음)
+    if (QRPAY_METHODS.has(r.결제수단) && r.결제금액 != null && r.결제금액 !== 0) {
       // 거래일시는 정오로 설정 (정확한 시각 정보 없음)
       const dt = new Date(`${r.날짜}T12:00:00`);
       qrpayRecs.push({
