@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>재고조사 스캔 — 마켓인유</title>
+<meta name="theme-color" content="#faf9f5">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611050636">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611050636">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<style>
+html, body { height: 100%; }
+body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; display: flex; flex-direction: column; height: 100dvh; overflow: hidden; }
+.view { flex: 1; min-height: 0; display: none; flex-direction: column; width: 100%; max-width: 520px; margin: 0 auto; padding: 12px 16px 16px; gap: 10px; }
+.view.on { display: flex; }
+.scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.center-msg { margin: auto; text-align: center; color: var(--miu-muted); font-size: 14px; line-height: 1.7; padding: 32px 16px; }
+.center-msg strong { color: var(--miu-ink); display: block; font-size: 16px; margin-bottom: 4px; }
+
+/* 위치 고르기 */
+.banner { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 14px 16px; font-size: 14px; line-height: 1.6; }
+.banner b { font-weight: 700; }
+.loc-list { display: flex; flex-direction: column; gap: 8px; }
+.loc { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left; background: var(--miu-canvas); border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-lg); padding: 14px 16px; cursor: pointer; font-family: inherit; color: inherit; }
+.loc:active { background: var(--miu-surface-soft); }
+.loc .n { font-size: 16px; font-weight: 700; }
+.loc .s { font-size: 12.5px; color: var(--miu-muted); margin-top: 2px; }
+.loc.done { background: var(--miu-surface-soft); }
+.loc.skipped { opacity: .55; }
+
+/* 스캔 화면 */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.top .t { font-size: 17px; font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top .sub { font-size: 12px; color: var(--miu-muted); }
+.pill { font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: var(--miu-r-pill); white-space: nowrap; background: var(--miu-surface-card); color: var(--miu-body); }
+.pill.ok { background: color-mix(in srgb, var(--miu-success) 18%, transparent); color: #2e6b3a; }
+.pill.wait { background: color-mix(in srgb, var(--miu-warning) 22%, transparent); color: #6b5210; }
+.pill.err { background: color-mix(in srgb, var(--miu-error) 16%, transparent); color: #7a2a2a; }
+.counter { display: flex; align-items: stretch; gap: 10px; }
+.counter > div { flex: 1; background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 12px 14px; }
+.counter .k { font-size: 11px; font-weight: 600; letter-spacing: .6px; color: var(--miu-muted); }
+.counter .v { font-family: var(--miu-mono); font-size: 34px; font-weight: 700; line-height: 1.1; letter-spacing: -1px; }
+.counter .v small { font-size: 13px; font-weight: 500; color: var(--miu-muted); letter-spacing: 0; margin-left: 2px; }
+.counter .v.sm { font-size: 22px; }
+.bar { height: 6px; background: var(--miu-surface-card); border-radius: 3px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--miu-primary); width: 0; transition: width .3s; }
+.inputbox input { width: 100%; padding: 14px 16px; font-size: 17px; font-family: var(--miu-mono); font-weight: 700; text-align: center; letter-spacing: 1px; border: 2px solid var(--miu-hairline); border-radius: var(--miu-r-lg); background: var(--miu-canvas); color: var(--miu-ink); caret-color: var(--miu-primary); }
+.inputbox input:focus { outline: none; border-color: var(--miu-primary); }
+.inputbox input.f-ok { border-color: var(--miu-success); }
+.inputbox input.f-warn { border-color: var(--miu-warning); }
+.inputbox input.f-err { border-color: var(--miu-error); }
+.last { min-height: 52px; border-radius: var(--miu-r-lg); padding: 10px 14px; background: var(--miu-surface-soft); display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13.5px; }
+.last .bc { font-family: var(--miu-mono); font-weight: 700; font-size: 15px; word-break: break-all; }
+.last .msg { color: var(--miu-muted); font-size: 12.5px; margin-top: 1px; }
+.last.ok { background: color-mix(in srgb, var(--miu-success) 14%, var(--miu-canvas)); }
+.last.warn { background: color-mix(in srgb, var(--miu-warning) 20%, var(--miu-canvas)); }
+.last.err { background: color-mix(in srgb, var(--miu-error) 14%, var(--miu-canvas)); }
+.last .act { flex: none; }
+.btn { border: 1px solid var(--miu-hairline); background: var(--miu-canvas); color: var(--miu-ink); font-family: inherit; font-size: 14px; font-weight: 700; border-radius: var(--miu-r-lg); padding: 12px 14px; cursor: pointer; }
+.btn:active { background: var(--miu-surface-card); }
+.btn.primary { background: var(--miu-primary); color: #fff; border-color: transparent; }
+.btn.primary:active { background: var(--miu-primary-active); }
+.btn.danger { color: #7a2a2a; }
+.btn:disabled { opacity: .45; }
+.btn.sm { padding: 8px 12px; font-size: 12.5px; border-radius: var(--miu-r-md); }
+.row { display: flex; gap: 8px; }
+.row > .btn { flex: 1; }
+.list { flex: 1; min-height: 80px; background: var(--miu-surface-soft); border-radius: var(--miu-r-lg); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.li { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-bottom: 1px solid var(--miu-hairline-soft); font-size: 13px; }
+.li:last-child { border-bottom: none; }
+.li .no { width: 28px; text-align: right; color: var(--miu-muted); font-family: var(--miu-mono); font-size: 11px; flex: none; }
+.li .b { font-family: var(--miu-mono); font-weight: 700; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.li .x { flex: none; border: 0; background: transparent; color: var(--miu-muted); font-size: 16px; padding: 4px 6px; cursor: pointer; }
+.empty { text-align: center; color: var(--miu-muted); font-size: 13px; padding: 28px 12px; }
+.footer { display: flex; gap: 8px; }
+.footer .btn { flex: 1; padding: 11px 6px; font-size: 13px; }
+.linkbtn { background: none; border: none; color: var(--miu-muted); font-size: 12px; text-decoration: underline; cursor: pointer; font-family: inherit; padding: 2px; }
+
+/* 겹침 알림 + 모달 */
+.flash { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; opacity: 0; transition: opacity .12s; z-index: 50; padding: 24px; text-align: center; font-size: 18px; font-weight: 800; white-space: pre-line; }
+.flash.show { opacity: 1; }
+.flash.warn { background: color-mix(in srgb, var(--miu-warning) 30%, transparent); color: #5a4408; }
+.flash.err { background: color-mix(in srgb, var(--miu-error) 26%, transparent); color: #6a1f1f; }
+.flash.good { background: color-mix(in srgb, var(--miu-success) 28%, transparent); color: #1f4d2b; }
+.modal-bg { position: fixed; inset: 0; background: rgba(20,20,19,.55); display: none; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+.modal-bg.show { display: flex; }
+.modal { background: var(--miu-canvas); border-radius: var(--miu-r-xl); padding: 20px; width: 100%; max-width: 400px; max-height: 86dvh; display: flex; flex-direction: column; gap: 12px; }
+.modal h3 { font-size: 16px; font-weight: 700; }
+.modal .body { font-size: 14px; line-height: 1.65; overflow-y: auto; white-space: pre-line; word-break: keep-all; }
+.modal .acts { display: flex; gap: 8px; }
+.modal .acts .btn { flex: 1; }
+.modal.wide { max-width: 520px; height: 86dvh; }
+.modal.wide .body { white-space: normal; flex: 1; }
+.search { width: 100%; padding: 10px 12px; border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); font-size: 14px; font-family: inherit; }
+.ur { padding: 8px 2px; border-bottom: 1px solid var(--miu-hairline-soft); font-size: 13px; }
+.ur .c { font-weight: 600; }
+.ur .m { color: var(--miu-muted); font-size: 12px; margin-top: 1px; }
+.ur .b { font-family: var(--miu-mono); font-size: 12px; }
+</style>
+<script src="/miu-hub/shared/config.js?v=202611050636"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611050636"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611050636"></script>
+</head>
+<body>
+
+<header class="miu-header">
+  <a href="index.html" class="miu-header-back" aria-label="재고조사 홈"><i class="ph-bold ph-caret-left"></i></a>
+  <div class="miu-header-title">
+    <div class="miu-header-eyebrow">STOCKTAKE</div>
+    <h1 class="miu-header-h1">재고조사 스캔</h1>
+  </div>
+</header>
+
+<!-- 로딩 / 안내 -->
+<div id="v-msg" class="view on"><div class="center-msg" id="msg">불러오는 중…</div></div>
+
+<!-- 위치 고르기 -->
+<div id="v-pick" class="view scroll">
+  <div class="banner" id="pickBanner"></div>
+  <div class="loc-list" id="locList"></div>
+  <div class="empty" id="whoLine" style="padding:8px"></div>
+</div>
+
+<!-- 스캔 -->
+<div id="v-scan" class="view">
+  <div class="top">
+    <div style="min-width:0"><div class="t" id="scLoc"></div><div class="sub" id="scWho"></div></div>
+    <span class="pill" id="syncPill">저장됨</span>
+  </div>
+  <div class="counter">
+    <div><div class="k" id="hgLabel">1번 행거</div><div class="v"><span id="hgCount">0</span><small>벌</small></div></div>
+    <div><div class="k">내 스캔 / 팀 전체</div><div class="v sm"><span id="myCount">0</span> / <span id="teamCount">–</span></div><div class="k" style="margin-top:2px" id="expLabel">장부 0</div></div>
+  </div>
+  <div class="bar"><i id="bar"></i></div>
+  <div class="inputbox"><input type="text" id="bcInput" placeholder="스캔 대기 중" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="none" lang="en"></div>
+  <div class="last" id="last"><div class="msg">바코드를 스캔하세요</div></div>
+  <div class="row">
+    <button class="btn" id="btnUndo">마지막 취소</button>
+    <button class="btn primary" id="btnHanger">행거 완료 →</button>
+  </div>
+  <div class="list" id="hgList"></div>
+  <div class="footer">
+    <button class="btn" id="btnPick">위치 바꾸기</button>
+    <button class="btn" id="btnRemain">남은 물건</button>
+    <button class="btn" id="btnDone">위치 마감</button>
+  </div>
+  <div style="text-align:center"><button class="linkbtn" id="btnManual">직접 입력(스캐너 없이)</button></div>
+</div>
+
+<div class="flash" id="flash"></div>
+<div class="modal-bg" id="modalBg"><div class="modal" id="modal"><h3 id="mTitle"></h3><div class="body" id="mBody"></div><div class="acts" id="mActs"></div></div></div>
+
+<script src="js/common.js?v=202611050636"></script>
+<script>
+(() => {
+  const { esc, fmt } = ST;
+  const $ = (id) => document.getElementById(id);
+
+  // ───────── 저장소(IndexedDB): 스캔 큐 + 장부 캐시. 새로고침·앱 종료·오프라인에도 스캔이 남는다.
+  let memOnly = false;
+  const mem = { kv: new Map(), scans: new Map() };
+  let dbp = null;
+  function openDb() {
+    if (!dbp) dbp = new Promise((res, rej) => {
+      if (!window.indexedDB) return rej(new Error('no idb'));
+      const r = indexedDB.open('miu-stocktake', 1);
+      r.onupgradeneeded = () => { const d = r.result; d.createObjectStore('kv'); d.createObjectStore('scans', { keyPath: 'id' }).createIndex('sid', 'sid'); };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => rej(r.error);
+    });
+    return dbp;
+  }
+  async function tx(store, mode, fn) {
+    const d = await openDb();
+    return new Promise((res, rej) => {
+      const t = d.transaction(store, mode);
+      const req = fn(t.objectStore(store));
+      t.oncomplete = () => res(req ? req.result : undefined);
+      t.onerror = () => rej(t.error);
+      t.onabort = () => rej(t.error);
+    });
+  }
+  const DB = {
+    async get(k) { if (memOnly) return mem.kv.get(k); return tx('kv', 'readonly', (s) => s.get(k)); },
+    async set(k, v) { if (memOnly) { mem.kv.set(k, v); return; } return tx('kv', 'readwrite', (s) => s.put(v, k)); },
+    async putScan(r) { if (memOnly) { mem.scans.set(r.id, { ...r }); return; } return tx('scans', 'readwrite', (s) => s.put({ ...r })); },
+    async delScan(id) { if (memOnly) { mem.scans.delete(id); return; } return tx('scans', 'readwrite', (s) => s.delete(id)); },
+    async allScans() { if (memOnly) return [...mem.scans.values()]; return tx('scans', 'readonly', (s) => s.getAll()); },
+  };
+
+  // ───────── 상태
+  let me = { id: null, name: '', isAdmin: false };
+  let session = null;               // {id, session_date, note}
+  let ledger = null;                // {locations:[..], map: Map(barcode → {li, cat})}
+  let locStates = [];               // stocktake_locations 현황 [{location, state, expected_count, ...}]
+  let scans = [];                   // 이 기기의 이번 세션 스캔 [{id,sid,loc,bc,hg,at,st:'q'|'ok'|'x',cls,note}]
+  const byBc = new Map();           // 바코드 → 취소 안 된 내 스캔
+  let curLoc = null, hanger = 1;
+  let teamInfo = null;              // 현재 위치 팀 진행 {scanned, ok, expected, state}
+  let halted = false;               // 세션 종료 등으로 전송 중단
+
+  // ───────── 소리
+  let audioCtx = null;
+  function tone(freq, dur, type, vol) {
+    try {
+      audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+      o.connect(g); g.connect(audioCtx.destination);
+      o.type = type; o.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      g.gain.setValueAtTime(vol, audioCtx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+      o.start(); o.stop(audioCtx.currentTime + dur);
+    } catch (e) { /* 소리 실패는 무시 */ }
+  }
+  const beepOk = () => tone(880, 0.08, 'sine', 0.08);
+  const beepWarn = () => { tone(660, 0.12, 'triangle', 0.12); setTimeout(() => tone(440, 0.16, 'triangle', 0.12), 130); };
+  const beepErr = () => tone(220, 0.3, 'square', 0.15);
+
+  // ───────── 모달 / 안내
+  function modal(title, body, buttons) {
+    return new Promise((resolve) => {
+      $('mTitle').textContent = title;
+      $('mBody').className = 'body'; $('mBody').textContent = body;
+      const acts = $('mActs'); acts.replaceChildren();
+      buttons.forEach((b) => {
+        const el = document.createElement('button');
+        el.className = 'btn' + (b.cls ? ' ' + b.cls : '');
+        el.textContent = b.label;
+        el.onclick = () => { $('modalBg').classList.remove('show'); resolve(b.val); setTimeout(focusInput, 50); };
+        acts.appendChild(el);
+      });
+      $('modal').classList.remove('wide');
+      $('modalBg').classList.add('show');
+    });
+  }
+  const confirmBox = (title, body, okLabel = '확인', danger = false) =>
+    modal(title, body, [{ label: '취소', val: false }, { label: okLabel, val: true, cls: danger ? 'primary danger' : 'primary' }]);
+  const alertBox = (title, body) => modal(title, body, [{ label: '확인', val: true, cls: 'primary' }]);
+
+  let flashTimer = null;
+  function flash(msg, kind) {
+    const el = $('flash');
+    el.textContent = msg; el.className = 'flash show ' + kind;
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => el.classList.remove('show'), 1500);
+  }
+
+  // ───────── 화면 전환
+  function show(view) {
+    ['v-msg', 'v-pick', 'v-scan'].forEach((v) => $(v).classList.toggle('on', v === view));
+  }
+  function showMsg(title, body, extraHtml) {
+    $('msg').innerHTML = `<strong>${esc(title)}</strong>${esc(body)}${extraHtml || ''}`;
+    show('v-msg');
+  }
+  const focusInput = () => { if ($('v-scan').classList.contains('on') && !$('modalBg').classList.contains('show')) $('bcInput').focus(); };
+
+  // ───────── 바코드 입력 (HID 스캐너: 한글 입력 상태·안드로이드 IME 대응)
+  function normalizeBarcode(inp) {
+    const J = { 'ㄱ': 'r', 'ㄲ': 'R', 'ㄴ': 's', 'ㄷ': 'e', 'ㄸ': 'E', 'ㄹ': 'f', 'ㅁ': 'a', 'ㅂ': 'q', 'ㅃ': 'Q', 'ㅅ': 't', 'ㅆ': 'T', 'ㅇ': '', 'ㅈ': 'w', 'ㅉ': 'W', 'ㅊ': 'c', 'ㅋ': 'z', 'ㅌ': 'x', 'ㅍ': 'v', 'ㅎ': 'g', 'ㅏ': 'k', 'ㅐ': 'o', 'ㅑ': 'i', 'ㅒ': 'O', 'ㅓ': 'j', 'ㅔ': 'p', 'ㅕ': 'u', 'ㅖ': 'P', 'ㅗ': 'h', 'ㅘ': 'hk', 'ㅙ': 'ho', 'ㅚ': 'hl', 'ㅛ': 'y', 'ㅜ': 'n', 'ㅝ': 'nj', 'ㅞ': 'np', 'ㅟ': 'nl', 'ㅠ': 'b', 'ㅡ': 'm', 'ㅢ': 'ml', 'ㅣ': 'l', 'ㄳ': 'rt', 'ㄵ': 'sw', 'ㄶ': 'sg', 'ㄺ': 'fr', 'ㄻ': 'fa', 'ㄼ': 'fq', 'ㄽ': 'ft', 'ㄾ': 'fx', 'ㄿ': 'fv', 'ㅀ': 'fg', 'ㅄ': 'qt' };
+    const I = ['ㄱ', 'ㄲ', 'ㄴ', 'ㄷ', 'ㄸ', 'ㄹ', 'ㅁ', 'ㅂ', 'ㅃ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅉ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
+    const V = ['ㅏ', 'ㅐ', 'ㅑ', 'ㅒ', 'ㅓ', 'ㅔ', 'ㅕ', 'ㅖ', 'ㅗ', 'ㅘ', 'ㅙ', 'ㅚ', 'ㅛ', 'ㅜ', 'ㅝ', 'ㅞ', 'ㅟ', 'ㅠ', 'ㅡ', 'ㅢ', 'ㅣ'];
+    const F = ['', 'ㄱ', 'ㄲ', 'ㄳ', 'ㄴ', 'ㄵ', 'ㄶ', 'ㄷ', 'ㄹ', 'ㄺ', 'ㄻ', 'ㄼ', 'ㄽ', 'ㄾ', 'ㄿ', 'ㅀ', 'ㅁ', 'ㅂ', 'ㅄ', 'ㅅ', 'ㅆ', 'ㅇ', 'ㅈ', 'ㅊ', 'ㅋ', 'ㅌ', 'ㅍ', 'ㅎ'];
+    let r = '';
+    for (const ch of inp) {
+      const c = ch.charCodeAt(0);
+      if (c >= 0xAC00 && c <= 0xD7A3) {
+        const o = c - 0xAC00;
+        r += J[I[Math.floor(o / (21 * 28))]] ?? '';
+        r += J[V[Math.floor((o % (21 * 28)) / 28)]] ?? '';
+        const fi = o % 28; if (fi > 0) r += J[F[fi]] ?? '';
+      } else if (c >= 0x3130 && c <= 0x318F) { r += J[ch] ?? ch; }
+      else { r += ch; }
+    }
+    return r.toUpperCase().trim();
+  }
+  function charFromKeyEvent(e) {
+    if (e.ctrlKey || e.metaKey || e.altKey) return null;
+    const L = {}; 'abcdefghijklmnopqrstuvwxyz'.split('').forEach((c) => { L['Key' + c.toUpperCase()] = c; });
+    if (L[e.code]) return e.shiftKey ? L[e.code].toUpperCase() : L[e.code];
+    if (/^Digit[0-9]$/.test(e.code) && !e.shiftKey) return e.code.slice(5);
+    const S = { Minus: e.shiftKey ? '_' : '-', Period: '.', Slash: '/' };
+    if (S[e.code] !== undefined) return S[e.code];
+    return null;
+  }
+  const input = $('bcInput');
+  let scanBuffer = '', androidMode = false, inputTimer = null;
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); clearTimeout(inputTimer); const raw = androidMode ? input.value.trim() : scanBuffer.trim(); scanBuffer = ''; input.value = ''; if (raw) onCode(raw); return; }
+    if (!e.code || e.code === 'Unidentified') { androidMode = true; clearTimeout(inputTimer); inputTimer = setTimeout(() => { const r = input.value.trim(); input.value = ''; if (r) onCode(r); }, 500); return; }
+    androidMode = false;
+    if (e.key === 'Backspace') { e.preventDefault(); scanBuffer = scanBuffer.slice(0, -1); input.value = scanBuffer; return; }
+    const ch = charFromKeyEvent(e);
+    if (ch !== null) { e.preventDefault(); scanBuffer += ch; input.value = scanBuffer; clearTimeout(inputTimer); inputTimer = setTimeout(() => { const v = scanBuffer.trim(); scanBuffer = ''; input.value = ''; if (v) onCode(v); }, 500); }
+  });
+  input.addEventListener('input', () => { if (!androidMode) input.value = scanBuffer; });
+  input.addEventListener('compositionend', () => { if (androidMode) { clearTimeout(inputTimer); inputTimer = setTimeout(() => { const r = input.value.trim(); input.value = ''; if (r) onCode(r); }, 500); } });
+  input.addEventListener('paste', (e) => { e.preventDefault(); const p = (e.clipboardData || window.clipboardData).getData('text').trim(); if (p) onCode(p); });
+  $('btnManual').onclick = () => { input.setAttribute('inputmode', 'text'); input.placeholder = '바코드 입력 후 Enter'; input.blur(); input.focus(); };
+  document.addEventListener('click', (e) => { if (!e.target.closest('button, .modal, input')) focusInput(); });
+
+  // ───────── 스캔 처리
+  const addScanRec = (r) => { scans.push(r); if (r.st !== 'x') { const a = byBc.get(r.bc) || []; a.push(r); byBc.set(r.bc, a); } };
+  const liveScans = (loc) => scans.filter((r) => r.st !== 'x' && (!loc || r.loc === loc));
+  const newId = () => (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); }));
+
+  let lastRec = null;
+  function onCode(raw) {
+    if (!curLoc || !session) return;
+    const bc = normalizeBarcode(raw);
+    if (!bc || bc.length > 60) return;
+    const prev = (byBc.get(bc) || [])[0];
+    if (prev) {
+      beepErr(); flash('이미 스캔함\n' + bc, 'err');
+      setLast('err', bc, `이미 스캔했어요 (${prev.loc} ${prev.hg}번 행거)`, { label: '실제로 2벌', fn: () => addScan(bc, true) });
+      input.className = ''; input.classList.add('f-err');
+      return;
+    }
+    addScan(bc, false);
+  }
+
+  function addScan(bc, forceDup) {
+    const item = ledger.map.get(bc);
+    const here = ledger.locations.indexOf(curLoc);
+    let cls, note;
+    if (item && ledger.locations[item.li] === '미확인 물건') { cls = 'found'; note = '미확인 물건 발견!'; }
+    else if (item && item.li === here) { cls = 'ok'; note = item.cat || ''; }
+    else if (item) { cls = 'other'; note = `장부 위치: ${ledger.locations[item.li]}`; }
+    else { cls = 'unk'; note = '장부에 없는 바코드'; }
+    const rec = { id: newId(), sid: session.id, loc: curLoc, bc, hg: hanger, at: new Date().toISOString(), st: 'q', cls, note };
+    addScanRec(rec);
+    DB.putScan(rec).catch(() => {});
+    lastRec = rec;
+    if (cls === 'found') { tone(1046, 0.1, 'sine', 0.1); setTimeout(() => tone(1318, 0.14, 'sine', 0.1), 110); flash('미확인 물건 발견\n' + bc, 'good'); setLast('ok', bc, note + ' — 기록돼요'); input.className = 'f-ok'; }
+    else if (cls === 'ok') { beepOk(); setLast('ok', bc, note || '일치'); input.className = 'f-ok'; }
+    else if (cls === 'other') { beepWarn(); flash(note + '\n' + bc, 'warn'); setLast('warn', bc, note + ' — 그래도 기록돼요'); input.className = 'f-warn'; }
+    else { beepErr(); flash('장부에 없음\n' + bc, 'err'); setLast('err', bc, note + ' — 그래도 기록돼요'); input.className = 'f-err'; pendingLookup.add(bc); scheduleLookup(); }
+    renderScan();
+    scheduleFlush(1200);
+  }
+
+  function setLast(kind, bc, msg, action) {
+    const el = $('last');
+    el.className = 'last ' + kind;
+    el.innerHTML = `<div style="min-width:0"><div class="bc">${esc(bc)}</div><div class="msg">${esc(msg)}</div></div>${action ? '<button class="btn sm act" id="lastAct"></button>' : ''}`;
+    if (action) { const b = $('lastAct'); b.textContent = action.label; b.onclick = () => { action.fn(); setLast('ok', bc, '2벌로 기록했어요'); }; }
+  }
+
+  // 장부에 없는 바코드의 사유(판매·폐기·범위 밖 재고)를 온라인일 때 한 번에 조회
+  const pendingLookup = new Set();
+  let lookupTimer = null;
+  const scheduleLookup = () => { clearTimeout(lookupTimer); lookupTimer = setTimeout(runLookup, 1500); };
+  async function runLookup() {
+    if (!pendingLookup.size || !navigator.onLine) return;
+    const list = [...pendingLookup].slice(0, 200);
+    try {
+      const res = await ST.rpc('stocktake_lookup', { p_barcodes: list });
+      list.forEach((bc) => pendingLookup.delete(bc));
+      for (const bc of list) {
+        const info = res[bc];
+        const text = !info ? '장부에 없는 바코드'
+          : info.status === 'sold' ? '판매 처리된 물건이에요'
+          : info.status === 'disposed' ? '폐기 처리된 물건이에요'
+          : `장부 위치: ${info.location} (이번 조사 범위 밖)`;
+        (byBc.get(bc) || []).forEach((r) => { if (r.cls === 'unk') { r.note = text; DB.putScan(r).catch(() => {}); } });
+        if (lastRec && lastRec.bc === bc) setLast('err', bc, text + ' — 그래도 기록돼요');
+      }
+      renderScan();
+    } catch (e) { scheduleLookup(); }
+  }
+
+  // ───────── 서버 전송: 스캔마다 UUID로 멱등 저장, 실패하면 큐에 남아 자동 재시도
+  let flushing = false, flushTimer = null, lastSyncErr = null;
+  const scheduleFlush = (ms) => { clearTimeout(flushTimer); flushTimer = setTimeout(flush, ms); };
+  const queued = () => scans.filter((r) => r.st === 'q');
+  async function flush() {
+    if (flushing || halted || !session) return;
+    flushing = true;
+    try {
+      for (;;) {
+        const q = queued();
+        if (!q.length) break;
+        const loc = q[0].loc;
+        const batch = q.filter((r) => r.loc === loc).slice(0, 200);
+        try {
+          await ST.rpc('stocktake_scan_batch', { p_session: session.id, p_location: loc, p_scans: batch.map((r) => ({ id: r.id, barcode: r.bc, hanger: r.hg, at: r.at })) });
+          for (const r of batch) { r.st = 'ok'; DB.putScan(r).catch(() => {}); }
+          lastSyncErr = null;
+        } catch (e) {
+          if (e.hint === 'LOCATION_DONE') { flushing = false; renderSync(); await onLocationDone(loc); return; }
+          if (e.hint === 'SESSION_CLOSED') { onSessionEnded(); return; }
+          lastSyncErr = e;
+          scheduleFlush(e.network ? 5000 : 15000);
+          break;
+        }
+      }
+    } finally { flushing = false; renderSync(); }
+  }
+  async function onLocationDone(loc) {
+    const ok = await confirmBox('이미 마감된 위치예요', `"${loc}"는 마감 처리돼서 새 스캔을 보낼 수 없어요.\n다시 열고 계속 스캔할까요?\n(다시 열지 않으면 대기 중인 ${queued().filter((r) => r.loc === loc).length}건은 이 기기에 남아요)`, '다시 열기');
+    if (!ok) { lastSyncErr = new Error('위치가 마감돼 있어요'); renderSync(); return; }
+    try { await ST.rpc('stocktake_location_set', { p_session: session.id, p_location: loc, p_state: 'open' }); lastSyncErr = null; scheduleFlush(100); }
+    catch (e) { await alertBox('다시 열지 못했어요', e.message); }
+  }
+  function onSessionEnded() {
+    halted = true;
+    showMsg('재고조사가 끝났어요', `서버에 못 보낸 스캔 ${queued().length}건은 더 이상 보낼 수 없어요. 관리자에게 알려 주세요.`, '<div style="margin-top:14px"><a class="btn" style="display:inline-block;text-decoration:none" href="index.html">재고조사 홈</a></div>');
+  }
+  function renderSync() {
+    const el = $('syncPill'); const q = queued().length;
+    if (!el) return;
+    if (!navigator.onLine) { el.className = 'pill err'; el.textContent = q ? `오프라인 · 대기 ${fmt(q)}` : '오프라인'; }
+    else if (lastSyncErr && q) { el.className = 'pill err'; el.textContent = `전송 실패 · 대기 ${fmt(q)}`; el.title = lastSyncErr.message; }
+    else if (q) { el.className = 'pill wait'; el.textContent = `전송 중 · ${fmt(q)}`; }
+    else { el.className = 'pill ok'; el.textContent = '모두 저장됨'; }
+  }
+  window.addEventListener('online', () => { renderSync(); scheduleFlush(300); scheduleLookup(); });
+  window.addEventListener('offline', renderSync);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { scheduleFlush(300); pollTeam(); } });
+  window.addEventListener('beforeunload', (e) => { if (queued().length) { e.preventDefault(); e.returnValue = ''; } });
+  setInterval(() => { if (queued().length && !flushing) flush(); }, 10000);
+
+  // ───────── 팀 진행(같은 위치를 여러 명이 나눠 스캔) 
+  async function pollTeam() {
+    if (!session || !curLoc || !navigator.onLine || document.hidden) return;
+    try {
+      const rows = await ST.rpc('stocktake_progress', { p_session: session.id });
+      const r = rows.find((x) => x.location === curLoc);
+      if (r) {
+        const wasOpen = !teamInfo || teamInfo.state === 'open';
+        teamInfo = { scanned: r.scanned, ok: r.ok, expected: r.expected_count, state: r.state, doneBy: r.done_by };
+        if (wasOpen && r.state !== 'open') flash(`"${curLoc}"가 ${r.done_by || ''}님에 의해\n마감됐어요`, 'warn');
+        renderScan();
+      }
+    } catch (e) { /* 다음 주기에 다시 */ }
+  }
+  setInterval(pollTeam, 20000);
+
+  // ───────── 화면 그리기
+  function renderScan() {
+    const mine = liveScans(curLoc);
+    const expected = locStates.find((l) => l.location === curLoc)?.expected_count || 0;
+    $('hgLabel').textContent = `${hanger}번 행거`;
+    const inHanger = mine.filter((r) => r.hg === hanger);
+    $('hgCount').textContent = fmt(inHanger.length);
+    $('myCount').textContent = fmt(mine.length);
+    const myUniq = new Set(mine.map((r) => r.bc)).size;
+    $('teamCount').textContent = teamInfo ? fmt(Math.max(teamInfo.scanned, myUniq)) : '–';
+    const myOk = new Set(mine.filter((r) => r.cls === 'ok').map((r) => r.bc)).size;
+    const okNow = teamInfo ? Math.max(teamInfo.ok, myOk) : myOk;
+    $('expLabel').textContent = `장부 ${fmt(expected)}벌 · 일치 ${fmt(okNow)}`;
+    $('bar').style.width = expected ? Math.min(100, (okNow / expected) * 100) + '%' : '0';
+    const list = $('hgList');
+    if (!inHanger.length) { list.innerHTML = '<div class="empty">이 행거의 스캔 기록이 여기 나와요</div>'; }
+    else {
+      list.innerHTML = inHanger.slice().reverse().map((r, i) => {
+        const chip = r.cls === 'ok' ? '' : r.cls === 'found' ? '<span class="miu-chip success">미확인 발견</span>' : r.cls === 'other' ? '<span class="miu-chip warn">다른 위치</span>' : '<span class="miu-chip danger">장부 없음</span>';
+        const q = r.st === 'q' ? '<span class="miu-chip muted">대기</span>' : '';
+        return `<div class="li"><span class="no">${inHanger.length - i}</span><span class="b">${esc(r.bc)}</span>${chip}${q}<button class="x" data-del="${esc(r.id)}" aria-label="취소">✕</button></div>`;
+      }).join('');
+    }
+    renderSync();
+  }
+  $('hgList').addEventListener('click', (e) => { const b = e.target.closest('[data-del]'); if (b) cancelScan(b.dataset.del); });
+
+  async function cancelScan(id) {
+    const r = scans.find((x) => x.id === id);
+    if (!r || r.st === 'x') return;
+    if (!await confirmBox('스캔 취소', `${r.bc}\n이 스캔을 취소할까요?`, '취소하기', true)) return;
+    if (r.st === 'ok') {
+      try { await ST.rpc('stocktake_scan_void', { p_session: session.id, p_ids: [r.id] }); }
+      catch (e) { await alertBox('취소하지 못했어요', e.message + '\n(이미 서버에 저장된 스캔은 인터넷에 연결돼 있고 위치가 열려 있을 때만 취소할 수 있어요)'); return; }
+    }
+    r.st = 'x';
+    const arr = (byBc.get(r.bc) || []).filter((x) => x.id !== r.id); if (arr.length) byBc.set(r.bc, arr); else byBc.delete(r.bc);
+    DB.delScan(r.id).catch(() => {});
+    renderScan();
+  }
+  $('btnUndo').onclick = () => { const mine = liveScans(curLoc); if (!mine.length) return focusInput(); cancelScan(mine[mine.length - 1].id); };
+
+  $('btnHanger').onclick = async () => {
+    const inH = liveScans(curLoc).filter((r) => r.hg === hanger).length;
+    if (!inH) return alertBox('행거 비어 있음', '이 행거에 스캔한 물건이 없어요.');
+    hanger += 1;
+    DB.set(`hanger:${session.id}:${curLoc}`, hanger).catch(() => {});
+    flash(`${hanger - 1}번 행거 완료\n다음: ${hanger}번 행거`, 'warn');
+    renderScan(); scheduleFlush(300); focusInput();
+  };
+
+  // ───────── 남은 물건 / 위치 마감
+  async function showRemaining() {
+    if (!navigator.onLine) return alertBox('인터넷 연결 필요', '남은 물건 목록은 서버의 팀 전체 스캔 기준이라 인터넷에 연결돼야 볼 수 있어요.');
+    await flush();
+    let rows;
+    try { rows = await ST.rpc('stocktake_unscanned', { p_session: session.id, p_location: curLoc }); }
+    catch (e) { return alertBox('불러오지 못했어요', e.message); }
+    const localBc = new Set(queued().map((r) => r.bc));
+    rows = rows.filter((r) => !localBc.has(r[0]));
+    $('mTitle').textContent = `${curLoc} 남은 물건 ${fmt(rows.length)}벌`;
+    const body = $('mBody'); body.className = 'body';
+    body.innerHTML = '<input class="search" id="uSearch" placeholder="바코드·카테고리·브랜드 검색"><div id="uList" style="margin-top:8px"></div>';
+    const draw = () => {
+      const q = $('uSearch').value.trim().toUpperCase();
+      const f = q ? rows.filter((r) => r.slice(0, 5).join(' ').toUpperCase().includes(q)) : rows;
+      $('uList').innerHTML = f.slice(0, 200).map((r) => `<div class="ur"><div class="c">${esc(r[1] || '카테고리 없음')}${r[3] ? ' · ' + esc(r[3]) : ''}${r[2] != null ? ' · ' + fmt(r[2]) + '원' : ''}</div><div class="m">${esc(r[4] || '')}</div><div class="b">${esc(r[0])}</div></div>`).join('')
+        + (f.length > 200 ? `<div class="empty">${fmt(f.length - 200)}건 더 있어요. 검색으로 좁혀 보세요</div>` : '') + (!f.length ? '<div class="empty">없어요</div>' : '');
+    };
+    draw();
+    $('uSearch').oninput = draw;
+    const acts = $('mActs'); acts.replaceChildren();
+    const close = document.createElement('button'); close.className = 'btn primary'; close.textContent = '닫기';
+    close.onclick = () => { $('modal').classList.remove('wide'); $('modalBg').classList.remove('show'); focusInput(); };
+    acts.appendChild(close);
+    $('modal').classList.add('wide');
+    $('modalBg').classList.add('show');
+  }
+  $('btnRemain').onclick = showRemaining;
+
+  $('btnDone').onclick = async () => {
+    if (!navigator.onLine) return alertBox('인터넷 연결 필요', '위치 마감은 서버에 모든 스캔이 저장된 뒤에만 할 수 있어요.\n인터넷에 연결한 뒤 다시 눌러 주세요.');
+    await flush();
+    if (queued().length) return alertBox('아직 보내지 못한 스캔이 있어요', `${fmt(queued().length)}건이 서버로 전송되지 않았어요.\n잠시 뒤 다시 시도해 주세요.`);
+    let info;
+    try {
+      const rows = await ST.rpc('stocktake_progress', { p_session: session.id });
+      info = rows.find((x) => x.location === curLoc);
+    } catch (e) { return alertBox('불러오지 못했어요', e.message); }
+    if (!info || !info.scanned) return alertBox('마감할 수 없어요', '이 위치에 스캔한 물건이 없어요.\n이 위치에 물건이 정말 없다면 관리자에게 "건너뜀 처리"를 요청해 주세요.');
+    const remain = Math.max(info.expected_count - info.ok, 0);
+    const ok = await confirmBox(`${curLoc} 마감`,
+      `장부 ${fmt(info.expected_count)}벌 중 ${fmt(info.ok)}벌이 일치해요.\n` +
+      (info.other ? `장부와 다른 위치의 물건 ${fmt(info.other)}벌도 스캔됐어요.\n` : '') +
+      `\n마감하면 아직 스캔 안 된 ${fmt(remain)}벌은 '미스캔'으로 기록돼요.\n다른 담당자가 아직 스캔 중이면 마감하지 마세요.`, '마감하기', true);
+    if (!ok) return;
+    try { await ST.rpc('stocktake_location_set', { p_session: session.id, p_location: curLoc, p_state: 'done' }); }
+    catch (e) { return alertBox('마감하지 못했어요', e.message); }
+    await alertBox('마감했어요', `${curLoc} 조사를 마감했어요.`);
+    await goPick();
+  };
+  $('btnPick').onclick = async () => {
+    if (queued().length && !await confirmBox('보내지 않은 스캔', `서버에 못 보낸 스캔 ${fmt(queued().length)}건이 있어요.\n이 기기에 남아 있다가 연결되면 자동으로 전송돼요. 위치를 바꿀까요?`, '바꾸기')) return;
+    await goPick();
+  };
+
+  // ───────── 위치 고르기
+  async function refreshLocStates() {
+    const key = `locs:${session.id}`;
+    const { data, error } = await window.sb.from('stocktake_locations').select('location,state,virtual,expected_count,done_by,skip_reason').eq('session_id', session.id).order('location');
+    if (error) {
+      // 오프라인이면 마지막으로 받아 둔 목록(없으면 장부 스냅샷의 위치)으로 이어간다
+      const cached = await DB.get(key).catch(() => null);
+      if (cached) { locStates = cached; return; }
+      if (ledger) {
+        const cnt = new Array(ledger.locations.length).fill(0);
+        ledger.map.forEach((v) => { cnt[v.li] += 1; });
+        locStates = ledger.locations.map((l, i) => ({ location: l, state: 'open', virtual: ledger.virtual.has(l), expected_count: cnt[i] }));
+        return;
+      }
+      throw new Error(error.message);
+    }
+    locStates = data || [];
+    DB.set(key, locStates).catch(() => {});
+  }
+  async function goPick() {
+    curLoc = null; teamInfo = null;
+    try { await refreshLocStates(); } catch (e) { return showMsg('불러오지 못했어요', e.message); }
+    const d = ST.md(session.session_date);
+    $('pickBanner').innerHTML = `<b>${esc(d)} 재고조사</b>${session.note ? ' · ' + esc(session.note) : ''}<br>조사할 위치를 고르세요. 같은 위치를 여러 명이 나눠 스캔해도 돼요.`;
+    $('locList').innerHTML = locStates.filter((l) => !l.virtual).map((l) => {
+      const mineN = liveScans(l.location).length;
+      const st = l.state === 'done' ? `마감 (${esc(l.done_by || '')})` : l.state === 'skipped' ? `건너뜀${l.skip_reason ? ' · ' + esc(l.skip_reason) : ''}` : '조사 중';
+      return `<button class="loc ${esc(l.state)}" data-loc="${esc(l.location)}"><div><div class="n">${esc(l.location)}</div><div class="s">장부 ${fmt(l.expected_count)}벌 · 내 스캔 ${fmt(mineN)}벌 · ${st}</div></div><i class="ph-bold ph-caret-right"></i></button>`;
+    }).join('');
+    $('whoLine').textContent = `${me.name}님으로 기록돼요`;
+    show('v-pick');
+  }
+  $('locList').addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-loc]'); if (!b) return;
+    const loc = b.dataset.loc, st = locStates.find((l) => l.location === loc);
+    if (st?.state === 'skipped') return alertBox('건너뜀 위치', '관리자가 건너뜀 처리한 위치예요. 스캔하려면 관리자가 다시 열어야 해요.');
+    if (st?.state === 'done') {
+      if (!await confirmBox('마감된 위치예요', `"${loc}"는 ${st.done_by || '누군가'}님이 마감했어요.\n다시 열고 스캔할까요? (미스캔 판정은 다시 마감할 때 확정돼요)`, '다시 열기')) return;
+      try { await ST.rpc('stocktake_location_set', { p_session: session.id, p_location: loc, p_state: 'open' }); }
+      catch (err) { return alertBox('다시 열지 못했어요', err.message); }
+    }
+    startScan(loc);
+  });
+
+  async function startScan(loc) {
+    curLoc = loc; teamInfo = null;
+    hanger = (await DB.get(`hanger:${session.id}:${loc}`).catch(() => null)) || 1;
+    // 이 위치의 가장 큰 행거 번호 이후에서 이어가기
+    const maxHg = Math.max(0, ...liveScans(loc).map((r) => r.hg || 0));
+    if (maxHg > hanger) hanger = maxHg;
+    $('scLoc').textContent = loc;
+    $('scWho').textContent = `${me.name} · ${ST.md(session.session_date)} 조사`;
+    $('last').className = 'last'; $('last').innerHTML = '<div class="msg">바코드를 스캔하세요</div>';
+    input.className = '';
+    show('v-scan');
+    renderScan(); pollTeam(); scheduleFlush(200);
+    setTimeout(focusInput, 50);
+  }
+
+  // ───────── 시작
+  async function loadLedger(sid) {
+    const key = `ledger:${sid}`;
+    let raw = await DB.get(key).catch(() => null);
+    if (!raw) {
+      if (!navigator.onLine) throw new Error('offline-no-cache');
+      $('msg').innerHTML = '<strong>장부를 내려받는 중…</strong>처음 한 번만 받아요. 잠시만 기다려 주세요.';
+      raw = await ST.rpc('stocktake_ledger', { p_session: sid });
+      await DB.set(key, raw).catch(() => {});
+    }
+    const map = new Map();
+    for (const [bc, li, cat] of raw.items) map.set(bc, { li: li - 1, cat });   // array_position은 1부터
+    return { locations: raw.locations, virtual: new Set(raw.virtual || []), map };
+  }
+
+  async function init() {
+    me = await ST.whoami();
+    if (!me.name) return showMsg('계정에 이름이 없어요', '관리자에게 통합 관리에서 이름을 넣어 달라고 요청해 주세요.');
+    try { await openDb(); } catch (e) { memOnly = true; }
+    try { session = await ST.activeSession(); }
+    catch (e) {
+      // 오프라인 시작: 기기에 저장된 스캔이 있으면 그 세션으로 이어간다
+      const saved = (await DB.allScans().catch(() => [])).filter((r) => r.st === 'q');
+      if (!saved.length) return showMsg('서버에 연결하지 못했어요', '인터넷에 연결한 뒤 다시 열어 주세요.');
+      session = { id: saved[0].sid, session_date: saved[0].at.slice(0, 10), note: '' };
+    }
+    if (!session) {
+      // 지난 세션의 남은 스캔은 보낼 곳이 없다 — 정리
+      const old = await DB.allScans().catch(() => []);
+      const pending = old.filter((r) => r.st === 'q').length;
+      await Promise.all(old.map((r) => DB.delScan(r.id).catch(() => {})));
+      return showMsg('진행 중인 재고조사가 없어요', pending ? `지난 조사에서 전송하지 못한 스캔 ${pending}건이 기기에 있었지만 이미 끝난 조사라 지웠어요.` : '관리자가 재고조사를 시작하면 여기서 스캔할 수 있어요.',
+        '<div style="margin-top:14px"><a class="btn" style="display:inline-block;text-decoration:none" href="index.html">재고조사 홈</a></div>');
+    }
+    try { ledger = await loadLedger(session.id); }
+    catch (e) {
+      return showMsg(e.message === 'offline-no-cache' ? '인터넷 연결이 필요해요' : '장부를 불러오지 못했어요',
+        e.message === 'offline-no-cache' ? '이 조사의 장부를 처음 받을 때는 인터넷이 필요해요. 한 번 받아 두면 오프라인에서도 스캔할 수 있어요.' : e.message);
+    }
+    // 이 기기의 스캔 복원(다른 세션 것은 정리)
+    const all = await DB.allScans().catch(() => []);
+    for (const r of all) {
+      if (r.sid !== session.id) { DB.delScan(r.id).catch(() => {}); continue; }
+      if (r.st === 'x') { DB.delScan(r.id).catch(() => {}); continue; }
+      addScanRec(r);
+    }
+    await goPick();
+    if (queued().length) scheduleFlush(500);
+    if (memOnly) await alertBox('임시 저장 불가', '이 브라우저는 기기 저장을 지원하지 않아요. 인터넷이 끊기거나 새로고침하면 아직 전송하지 못한 스캔이 사라질 수 있어요.');
+  }
+  init().catch((e) => showMsg('오류', e.message));
+})();
+</script>
+</body>
+</html>

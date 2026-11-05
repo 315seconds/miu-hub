@@ -47,46 +47,47 @@ document.querySelectorAll('.admin-tab').forEach(btn => {
 // ────────────────────────────────────────────────────────────
 // 매장 관리
 // ────────────────────────────────────────────────────────────
+const KIND_LABEL = { store: '매장', warehouse: '창고·물류', final: '최종 처리', temp: '임시(옛 값)' };
 async function loadLocations() {
   const { data, error } = await sb.from('locations').select('*').order('is_active', { ascending: false }).order('name');
   if (error) { toast('매장 로드 실패: ' + error.message, 'error'); return; }
   const list = $('loc-list');
   if (!data.length) { list.innerHTML = '<div class="section-hint">등록된 매장이 없어요.</div>'; return; }
-  list.innerHTML = data.map(l => `
+  list.innerHTML = data.map(l => {
+    const kindCtl = (l.kind === 'store' || l.kind === 'warehouse')
+      ? `<select data-loc-kind="${esc(l.id)}" aria-label="종류"><option value="store"${l.kind === 'store' ? ' selected' : ''}>매장</option><option value="warehouse"${l.kind === 'warehouse' ? ' selected' : ''}>창고·물류</option></select>`
+      : `<span class="role-badge">${esc(KIND_LABEL[l.kind] || l.kind)}</span>`;
+    const protectedLoc = l.kind === 'final';
+    return `
     <div class="list-item ${l.is_active ? '' : 'inactive'}">
       <div class="name">${esc(l.name)}${l.is_active ? '' : '<div class="name-sub">비활성</div>'}</div>
       <div class="actions">
-        <button data-loc-toggle="${l.id}" data-active="${l.is_active}">${l.is_active ? '비활성' : '활성'}</button>
-        <button class="danger" data-loc-delete="${l.id}" data-name="${esc(l.name)}">삭제</button>
+        ${kindCtl}
+        ${protectedLoc ? '' : `<button data-loc-toggle="${esc(l.id)}" data-active="${l.is_active}">${l.is_active ? '비활성' : '활성'}</button>
+        <button class="danger" data-loc-delete="${esc(l.id)}" data-name="${esc(l.name)}">삭제</button>`}
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
   list.querySelectorAll('[data-loc-toggle]').forEach(b => b.onclick = () => toggleLocation(b.dataset.locToggle, b.dataset.active === 'true'));
   list.querySelectorAll('[data-loc-delete]').forEach(b => b.onclick = () => deleteLocation(b.dataset.locDelete, b.dataset.name));
+  list.querySelectorAll('[data-loc-kind]').forEach(s => s.onchange = () => setLocationKind(s.dataset.locKind, s.value));
 }
-async function addLocation(name) {
-  const { error } = await sb.from('locations').insert({ name });
-  if (error) { toast('추가 실패: ' + error.message, 'error'); return; }
-  toast(`'${name}' 매장 추가됨`);
+async function setLocationKind(id, kind) {
+  const { error } = await sb.from('locations').update({ kind }).eq('id', id);
+  if (error) toast('종류 변경 실패: ' + error.message, 'error'); else toast('종류를 바꿨어요');
   loadLocations();
 }
-async function toggleLocation(id, currActive) {
-  const { error } = await sb.from('locations').update({ is_active: !currActive }).eq('id', id);
-  if (error) { toast(error.message, 'error'); return; }
-  loadLocations();
-}
-async function deleteLocation(id, name) {
-  if (!confirm(`'${name}' 매장을 정말 삭제하시겠어요? 과거 이동 기록은 유지됩니다.`)) return;
-  const { error } = await sb.from('locations').delete().eq('id', id);
-  if (error) { toast('삭제 실패: ' + error.message, 'error'); return; }
-  toast('삭제됨');
+async function addLocation(name, kind) {
+  const { error } = await sb.from('locations').insert({ name, kind });
+  if (error) { toast('추가 실패: ' + (/duplicate|unique/i.test(error.message) ? '이미 있는 이름이에요' : error.message), 'error'); return; }
+  toast(`'${name}' 위치 추가됨`);
   loadLocations();
 }
 $('loc-form').addEventListener('submit', e => {
   e.preventDefault();
   const name = $('loc-name').value.trim();
   if (!name) return;
-  addLocation(name);
+  addLocation(name, $('loc-kind').value);
   $('loc-name').value = '';
 });
 

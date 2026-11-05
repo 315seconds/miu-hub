@@ -1,7 +1,6 @@
 // ─── Constants ────────────────────────────────────────────────────────────────
-const WAREHOUSE = ['공동물류', '온라인', '재봉합성수', '재봉합부천'];
-const EXCLUDED  = ['폐기', '위탁종료'];
-const isExcludedLocation = name => EXCLUDED.includes(name) || name.includes('재고조사');
+// 위치 종류(store/warehouse/final/temp)는 DB locations.kind 가 원본이다. 창고 이름은 fetchLocations 가 채운다.
+let WAREHOUSE = [];
 const SOLD_PFX  = '공동판매';
 const ADMIN_PIN = '1357';
 
@@ -35,8 +34,6 @@ async function route() {
       await renderHome();
     } else if (hash === '#closed') {
       await renderClosed();
-    } else if (hash === '#stocktake') {
-      await renderStocktake();
     } else if (hash.startsWith('#loc/')) {
       await renderLocation(decodeURIComponent(hash.slice(5)));
     }
@@ -68,10 +65,6 @@ function renderSidebar() {
       <div class="sidebar-section-label">철수</div>
       ${navItem('#closed', iconClosed(), '철수 후 남은 재고')}
     </div>` : ''}
-    <div class="sidebar-section">
-      <div class="sidebar-section-label">재고조사</div>
-      ${navItem('#stocktake', iconStocktake(), '재고조사 관리')}
-    </div>
   `;
 
   // 모바일 탭 바 렌더링
@@ -82,7 +75,6 @@ function renderSidebar() {
       ...stores.map(l => `<a class="mob-tab" href="#loc/${enc(l.name)}">${l.name}</a>`),
       ...wh.map(l => `<a class="mob-tab" href="#loc/${enc(l.name)}">${l.name} 창고</a>`),
       ...(closedLocations.length ? [`<a class="mob-tab" href="#closed">철수 재고</a>`] : []),
-      `<a class="mob-tab" href="#stocktake">재고조사</a>`,
     ].join('');
   }
 }
@@ -108,10 +100,11 @@ async function renderHome() {
   const names  = allLocations.map(l => l.name);
   const stores = allLocations.filter(l => !WAREHOUSE.includes(l.name)).map(l => l.name);
 
-  const [counts, oldCounts, sales] = await Promise.all([
+  const [counts, oldCounts, sales, stBanner] = await Promise.all([
     fetchCounts(names),
     fetchOldCounts(names, 365),
     fetchMonthlySales(null),
+    fetchStocktakeBanner(),
   ]);
 
   const totalStock   = counts.reduce((s, c) => s + c.count, 0);
@@ -120,6 +113,7 @@ async function renderHome() {
   const totalSold    = Object.values(sales).reduce((s, v) => s + v.count, 0);
 
   document.getElementById('content').innerHTML = `
+    ${stBanner}
     <div class="dash-section">
       <div class="miu-section-head" style="padding:0">
         <span class="miu-section-num">01</span>
@@ -741,13 +735,16 @@ function openClosedInLookup() {
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 async function fetchLocations() {
-  const { data } = await sb.from('locations').select('id,name,is_active').eq('is_active', true).order('created_at');
-  return (data || []).filter(l => !isExcludedLocation(l.name));
+  const { data, error } = await sb.from('locations').select('id,name,is_active,kind').eq('is_active', true).in('kind', ['store', 'warehouse']).order('created_at');
+  if (error) throw new Error('위치 목록을 불러오지 못했어요: ' + error.message);
+  WAREHOUSE = (data || []).filter(l => l.kind === 'warehouse').map(l => l.name);
+  return data || [];
 }
 
 async function fetchClosedLocations() {
-  const { data } = await sb.from('locations').select('id,name').eq('is_active', false).order('created_at');
-  return (data || []).filter(l => !isExcludedLocation(l.name));
+  const { data, error } = await sb.from('locations').select('id,name').eq('is_active', false).eq('kind', 'store').order('created_at');
+  if (error) throw new Error('철수 위치 목록을 불러오지 못했어요: ' + error.message);
+  return data || [];
 }
 
 async function fetchCounts(names) {
@@ -1024,323 +1021,15 @@ function iconHome()    { return `<svg viewBox="0 0 24 24" fill="none" stroke="cu
 function iconDot()     { return `<span class="nav-dot"></span>`; }
 function iconRefresh() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>`; }
 function iconClosed()     { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>`; }
-function iconStocktake() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><line x1="12" y1="11" x2="16" y2="11"/><line x1="12" y1="16" x2="16" y2="16"/><circle cx="8" cy="11" r="0.5" fill="currentColor"/><circle cx="8" cy="16" r="0.5" fill="currentColor"/></svg>`; }
 
-// ─── 재고조사 관리 ────────────────────────────────────────────────────────────
-async function renderStocktake() {
-  document.getElementById('content').innerHTML = `
-    <div class="page-header">
-      <div><div class="page-title">재고조사 관리</div><div class="page-sub">세션 관리 · 제출 현황 · 보고서 생성</div></div>
-      <button class="btn-refresh" onclick="route()">${iconRefresh()} 새로고침</button>
-    </div>
-    <div id="st-content"><div class="empty">불러오는 중...</div></div>
-  `;
-
-  const [{ data: activeSessions }, { data: pastSessions }] = await Promise.all([
-    sb.from('stocktake_sessions').select('id,session_date').eq('status','in_progress').order('created_at', {ascending:false}),
-    sb.from('stocktake_sessions').select('id,session_date,report_url').eq('status','completed').order('session_date',{ascending:false}).limit(24),
-  ]);
-
-  const active = activeSessions?.[0] || null;
-  let activeHtml = '';
-
-  if (!active) {
-    activeHtml = `
-      <div class="section-card" style="text-align:center;padding:32px 20px">
-        <div style="color:var(--muted);margin-bottom:16px;font-size:14px">진행 중인 재고조사가 없습니다</div>
-        <button class="btn-stocktake-start" onclick="createStocktakeSession()">+ 재고조사 시작</button>
-      </div>`;
-  } else {
-    const scans = await fetchSessionScansStatus(active.id);
-    const locStats = {};
-    scans.forEach(s => {
-      if (!locStats[s.scanned_location]) locStats[s.scanned_location] = { count: 0, scanners: new Set(), firstAt: s.scanned_at, lastAt: s.scanned_at };
-      locStats[s.scanned_location].count++;
-      locStats[s.scanned_location].scanners.add(s.scanner_name);
-      if (s.scanned_at < locStats[s.scanned_location].firstAt) locStats[s.scanned_location].firstAt = s.scanned_at;
-      if (s.scanned_at > locStats[s.scanned_location].lastAt) locStats[s.scanned_location].lastAt = s.scanned_at;
-    });
-
-    const activeLocNames = [...allLocations.map(l=>l.name)].filter(n=>!EXCLUDED.includes(n));
-    const submittedNames = Object.keys(locStats);
-    const pendingNames = activeLocNames.filter(n=>!locStats[n]);
-
-    const d = new Date(active.session_date + 'T00:00:00');
-    const dateStr = `${d.getMonth()+1}월 ${d.getDate()}일`;
-
-    const submittedRows = submittedNames.map(loc => `
-      <tr>
-        <td>${loc}</td>
-        <td><span class="st-badge st-badge-ok">✅ 제출완료</span></td>
-        <td>${fmt(locStats[loc].count)}건</td>
-        <td>${[...locStats[loc].scanners].join(', ')}</td>
-        <td style="display:flex;align-items:center;gap:8px">
-          ${(() => { const f=new Date(locStats[loc].firstAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}); const l=new Date(locStats[loc].lastAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}); return f===l?f:`${f} ~ ${l}`; })()}
-          <button class="btn-csv-dl" onclick="downloadLocationScans('${active.id}','${loc}')">↓ CSV</button>
-        </td>
-      </tr>`).join('');
-
-    const pendingRows = pendingNames.map(n => `
-      <tr class="st-row-pending">
-        <td>${n}</td>
-        <td><span class="st-badge st-badge-pending">⏳ 미제출</span></td>
-        <td>—</td><td>—</td>
-        <td><button class="btn-csv-dl" onclick="submitByFile('${n}','${active.id}')">📄 파일로 제출</button></td>
-      </tr>`).join('');
-
-    activeHtml = `
-      <div class="section-card">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
-          <div>
-            <div style="font-size:15px;font-weight:700;color:var(--ink-strong)">🟡 ${dateStr} 재고조사 진행 중</div>
-            <div class="st-progress" style="margin-top:4px">제출 완료: <strong>${submittedNames.length}</strong> / 전체 ${activeLocNames.length}개</div>
-          </div>
-          <button class="btn-complete" id="btn-complete" onclick="completeStocktake('${active.id}','${dateStr}','${active.session_date}',this)">재고조사 완료 + 보고서 생성</button>
-        </div>
-        <table class="st-table">
-          <thead><tr><th>매장/창고</th><th>상태</th><th>스캔수</th><th>담당자</th><th>제출시각</th></tr></thead>
-          <tbody>${submittedRows}${pendingRows}</tbody>
-        </table>
-      </div>`;
-  }
-
-  const pastRows = (pastSessions||[]).map(s => {
-    const d = new Date(s.session_date + 'T00:00:00');
-    const label = `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일`;
-    return `<tr>
-      <td>${label}</td>
-      <td><span class="st-badge st-badge-ok">✅ 완료</span></td>
-      <td>${s.report_url ? `<a href="${s.report_url}" target="_blank" class="btn-refresh" style="display:inline-flex;text-decoration:none;font-size:11px;padding:5px 10px">↓ 보고서</a>` : '—'}</td>
-    </tr>`;
-  }).join('');
-
-  const pastHtml = pastSessions?.length ? `
-    <div class="section-card">
-      <h3 style="margin-bottom:12px">지난 재고조사 기록</h3>
-      <table class="st-table">
-        <thead><tr><th>날짜</th><th>상태</th><th>보고서</th></tr></thead>
-        <tbody>${pastRows}</tbody>
-      </table>
-    </div>` : '';
-
-  document.getElementById('st-content').innerHTML = activeHtml + pastHtml;
-}
-
-async function createStocktakeSession() {
-  const today = new Date().toLocaleDateString('ko-KR');
-  if (!confirm(`${today} 재고조사를 시작할까요?`)) return;
-  const _d = new Date();
-  const dateStr = `${_d.getFullYear()}-${String(_d.getMonth()+1).padStart(2,'0')}-${String(_d.getDate()).padStart(2,'0')}`;
-  const { error } = await sb.from('stocktake_sessions').insert({ session_date: dateStr, status: 'in_progress' });
-  if (error) { alert('오류: ' + error.message); return; }
-  await route();
-}
-
-async function downloadLocationScans(sessionId, locationName) {
-  const { data, error } = await sb.from('stocktake_scans')
-    .select('barcode,scanner_name,scanned_at')
-    .eq('session_id', sessionId).eq('scanned_location', locationName);
-  if (error || !data?.length) { alert('데이터 없음'); return; }
-  const csv = '﻿바코드,담당자,스캔시각\n' + data.map(r =>
-    `"${r.barcode}","${r.scanner_name}","${new Date(r.scanned_at).toLocaleString('ko-KR')}"`
-  ).join('\n');
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-  a.download = `${locationName}_스캔목록.csv`;
-  a.click();
-}
-
-async function submitByFile(locationName, sessionId) {
-  const scannerName = prompt(`${locationName} 담당자 이름:`);
-  if (!scannerName?.trim()) return;
-
-  const fileInput = document.createElement('input');
-  fileInput.type = 'file';
-  fileInput.accept = '.xlsx,.xls,.csv';
-  fileInput.onchange = async e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      const buffer = await file.arrayBuffer();
-      const wb = window.XLSX.read(buffer, { type: 'array' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = window.XLSX.utils.sheet_to_json(ws, { header: 1 });
-      const barcodes = rows.map(r => String(r[0] ?? '').trim().toUpperCase()).filter(b => b);
-      if (!barcodes.length) { alert('파일에서 바코드를 찾을 수 없습니다.'); return; }
-      if (!confirm(`${locationName} · ${scannerName.trim()}\n총 ${barcodes.length}건을 제출할까요?`)) return;
-
-      const toInsert = barcodes.map(barcode => ({ session_id: sessionId, barcode, scanned_location: locationName, scanner_name: scannerName.trim() }));
-      for (let i = 0; i < toInsert.length; i += 500) {
-        const { error } = await sb.from('stocktake_scans').insert(toInsert.slice(i, i + 500));
-        if (error) throw error;
-      }
-      alert(`✅ ${barcodes.length}건 제출 완료!`);
-      await route();
-    } catch(e) { alert('오류: ' + e.message); }
-  };
-  fileInput.click();
-}
-
-async function completeStocktake(sessionId, dateStr, sessionDate, btn) {
-  if (!confirm(`${dateStr} 재고조사를 완료 처리하고 보고서를 생성할까요?\n잠시 시간이 걸릴 수 있습니다.`)) return;
-  btn.disabled = true;
-  btn.textContent = '보고서 생성 중...';
+// ─── 재고조사 진행 배너 (관리·스캔은 stocktake/ 로 분리됨) ─────────────────────
+async function fetchStocktakeBanner() {
   try {
-    const [scans, dbItems] = await Promise.all([
-      fetchAllSessionScans(sessionId),
-      fetchAllInStockItems(),
-    ]);
-    const report = buildStocktakeReport(scans, dbItems);
-    const xlsxBuffer = buildStocktakeExcel(report, dateStr);
-    const blob = new Blob([xlsxBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `재고조사_${dateStr}.xlsx`; a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
-    const reportUrl = await uploadStocktakeReport(sessionId, xlsxBuffer, sessionDate);
-    const { error } = await sb.from('stocktake_sessions').update({ status: 'completed', report_url: reportUrl }).eq('id', sessionId);
-    if (error) throw error;
-    await route();
-  } catch(e) {
-    btn.disabled = false;
-    btn.textContent = '재고조사 완료 + 보고서 생성';
-    alert('오류: ' + e.message);
-  }
-}
-
-function buildStocktakeReport(scans, dbItems) {
-  scans = scans.map(s => ({ ...s, barcode: (s.barcode || '').trim().toUpperCase() }));
-  dbItems = dbItems.map(i => ({ ...i, barcode: (i.barcode || '').trim().toUpperCase() }));
-
-  const scanMap = {};
-  scans.forEach(s => { if (!scanMap[s.barcode]) scanMap[s.barcode] = s; });
-  const dbMap = {};
-  dbItems.forEach(i => { dbMap[i.barcode] = i; });
-  const scannedLocs = new Set(scans.map(s => s.scanned_location));
-  const closedLocNames = new Set(closedLocations.map(l => l.name));
-
-  const 정상=[], 위치불일치=[], 장부부재=[], 신규미스캔=[], 누적미스캔=[], 철수잔여=[];
-
-  Object.values(scanMap).forEach(scan => {
-    const db = dbMap[scan.barcode];
-    if (!db) { 장부부재.push(scan); }
-    else if (db.location === scan.scanned_location) { 정상.push({...scan, category:db.category, price:db.price}); }
-    else { 위치불일치.push({...scan, db_location:db.location, category:db.category, price:db.price}); }
-  });
-
-  dbItems.forEach(item => {
-    if (scanMap[item.barcode]) return;
-    if (scannedLocs.has(item.location)) {
-      if (item.location.includes('재고조사')) { 누적미스캔.push(item); }
-      else { 신규미스캔.push(item); }
-    } else if (closedLocNames.has(item.location)) {
-      철수잔여.push(item);
-    }
-  });
-
-  const byBarcode = {};
-  scans.forEach(s => { if (!byBarcode[s.barcode]) byBarcode[s.barcode] = []; byBarcode[s.barcode].push(s); });
-  const 중복스캔 = Object.entries(byBarcode)
-    .filter(([, list]) => list.length >= 2)
-    .map(([barcode, list]) => ({
-      barcode,
-      count: list.length,
-      locations: [...new Set(list.map(s => s.scanned_location))].join(', '),
-      scanners: [...new Set(list.map(s => s.scanner_name))].join(', '),
-    }));
-
-  return { 정상, 위치불일치, 장부부재, 신규미스캔, 누적미스캔, 철수잔여, 중복스캔 };
-}
-
-function buildStocktakeExcel(report, dateStr) {
-  const XLSX = window.XLSX;
-  const wb = XLSX.utils.book_new();
-  const total = report.정상.length + report.위치불일치.length + report.장부부재.length;
-
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([
-    ['마켓인유 재고조사 보고서', dateStr], [],
-    ['구분', '건수'],
-    ['✅ 정상', report.정상.length],
-    ['⚠️ 위치불일치', report.위치불일치.length],
-    ['❓ 장부부재', report.장부부재.length],
-    ['🔴 신규미스캔', report.신규미스캔.length],
-    ['📦 누적미스캔', report.누적미스캔.length],
-    ['🏚️ 철수잔여', report.철수잔여.length],
-    ['🔁 중복스캔', report.중복스캔.length],
-    [], ['총 스캔', total],
-  ]), '요약');
-
-  const s정상 = [['바코드','카테고리','위치','가격','담당자']];
-  report.정상.forEach(r => s정상.push([r.barcode, r.category||'', r.scanned_location, r.price||0, r.scanner_name]));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s정상), '정상');
-
-  const s위치 = [['바코드','카테고리','스캔위치','DB위치','가격','권장조치']];
-  report.위치불일치.forEach(r => s위치.push([r.barcode, r.category||'', r.scanned_location, r.db_location, r.price||0, '위치 수정 필요']));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s위치), '위치불일치');
-
-  const s장부 = [['바코드','스캔위치','담당자','권장조치']];
-  report.장부부재.forEach(r => s장부.push([r.barcode, r.scanned_location, r.scanner_name, '바코드 확인 필요']));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s장부), '장부부재');
-
-  const s신규 = [['바코드','카테고리','DB위치','가격','권장조치']];
-  report.신규미스캔.forEach(r => s신규.push([r.barcode, r.category||'', r.location, r.price||0, '현장 확인 필요']));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s신규), '신규미스캔');
-
-  const s누적 = [['바코드','카테고리','DB위치','가격','권장조치']];
-  report.누적미스캔.forEach(r => s누적.push([r.barcode, r.category||'', r.location, r.price||0, '분실 가능성 높음']));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s누적), '누적미스캔');
-
-  const s철수 = [['바코드','카테고리','DB위치','가격','권장조치']];
-  report.철수잔여.forEach(r => s철수.push([r.barcode, r.category||'', r.location, r.price||0, '철수 지점 잔여 재고 - 회수/처분 확인 필요']));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s철수), '철수잔여');
-
-  const s중복 = [['바코드','스캔횟수','위치','담당자','권장조치']];
-  report.중복스캔.forEach(r => s중복.push([r.barcode, r.count, r.locations, r.scanners, '실수 중복 스캔인지 확인 (같은 바코드로 여러 개 관리되는 품목은 정상)']));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(s중복), '중복스캔');
-
-  return XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
-}
-
-async function uploadStocktakeReport(sessionId, buffer, dateStr) {
-  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const filename = `stocktake-report_${dateStr}.xlsx`;
-  const { error } = await sb.storage.from('stocktake-reports').upload(filename, blob, { upsert: true });
-  if (error) throw error;
-  const { data } = sb.storage.from('stocktake-reports').getPublicUrl(filename);
-  return data.publicUrl;
-}
-
-async function fetchSessionScansStatus(sessionId) {
-  const all = [];
-  for (let from = 0; ; from += 1000) {
-    const { data, error } = await sb.from('stocktake_scans').select('scanned_location,scanner_name,scanned_at').eq('session_id', sessionId).range(from, from+999);
-    if (error || !data?.length) break;
-    all.push(...data);
-    if (data.length < 1000) break;
-  }
-  return all;
-}
-
-async function fetchAllSessionScans(sessionId) {
-  const all = [];
-  for (let from = 0; ; from += 1000) {
-    const { data, error } = await sb.from('stocktake_scans').select('barcode,scanned_location,scanner_name').eq('session_id', sessionId).range(from, from+999);
-    if (error || !data?.length) break;
-    all.push(...data);
-    if (data.length < 1000) break;
-  }
-  return all;
-}
-
-async function fetchAllInStockItems() {
-  const all = [];
-  for (let from = 0; ; from += 1000) {
-    const { data, error } = await sb.from('inventory_items').select('barcode,category,price,location').eq('status','in_stock').range(from, from+999);
-    if (error || !data?.length) break;
-    all.push(...data);
-    if (data.length < 1000) break;
-  }
-  return all;
+    const { data } = await sb.from('stocktake_sessions').select('session_date').eq('status', 'in_progress').maybeSingle();
+    if (!data) return '';
+    const [, m, d] = String(data.session_date).split('-');
+    return `<a href="/miu-hub/stocktake/" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;padding:12px 16px;border-radius:var(--r-md);background:#fdf3d8;color:#5a4408;font-size:14px;font-weight:600;text-decoration:none"><span>${+m}월 ${+d}일 재고조사 진행 중</span><span>이동 →</span></a>`;
+  } catch (e) { return ''; }
 }
 
 // ─── Start ────────────────────────────────────────────────────────────────────

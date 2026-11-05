@@ -5,14 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>통합 관리 · 마켓인유</title>
 
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611040141">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611040141">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611050636">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611050636">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
-<script src="/miu-hub/shared/config.js?v=202611040141"></script>
+<script src="/miu-hub/shared/config.js?v=202611050636"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611040141"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611040141"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611050636"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611050636"></script>
 
 <style>
 .admin-body { padding: 20px 16px 60px; max-width: 720px; margin: 0 auto; }
@@ -124,9 +124,10 @@
 
   <!-- 매장 -->
   <section class="admin-section active" data-section="locations">
-    <div class="section-hint">매장을 추가·삭제·비활성화하세요. 비활성화된 매장은 신규입고/이동에서 선택할 수 없어요.</div>
+    <div class="section-hint">위치를 추가·삭제·비활성화하세요. 비활성화된 매장은 신규입고/이동에서 선택할 수 없어요. 종류를 맞게 골라야 현황판·분석·재고조사 화면에 제대로 나와요. 폐기·위탁종료 같은 최종 처리 위치는 여기서 바꿀 수 없어요.</div>
     <form class="add-form" id="loc-form">
-      <input type="text" id="loc-name" placeholder="매장명" required maxlength="40">
+      <input type="text" id="loc-name" placeholder="위치명" required maxlength="40">
+      <select id="loc-kind" aria-label="종류"><option value="store">매장</option><option value="warehouse">창고·물류</option></select>
       <button type="submit">추가</button>
     </form>
     <div id="loc-list"></div>
@@ -154,6 +155,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="js/admin.js?v=202611040141"></script>
+<script src="js/admin.js?v=202611050636"></script>
 </body>
 </html>

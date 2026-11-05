@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>재고조사 관리 — 마켓인유</title>
+<meta name="theme-color" content="#faf9f5">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611050636">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611050636">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<style>
+body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 8px 20px 64px; }
+button { font-family: inherit; }
+.sec-title { font-family: var(--miu-serif); font-size: 20px; font-weight: 500; letter-spacing: -0.5px; margin: 32px 0 10px; display: flex; align-items: baseline; gap: 10px; }
+.sec-title small { font-family: var(--miu-sans); font-size: 13px; font-weight: 400; color: var(--miu-muted); }
+.muted { color: var(--miu-muted); }
+.small { font-size: 12.5px; line-height: 1.6; }
+.empty { text-align: center; padding: 72px 24px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
+.card { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 16px 18px; }
+.err { background: color-mix(in srgb, var(--miu-error) 12%, transparent); color: #7a2a2a; border-radius: var(--miu-r-md); padding: 10px 14px; font-size: 13.5px; margin: 12px 0; line-height: 1.5; }
+.banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: color-mix(in srgb, var(--miu-warning) 20%, transparent); color: #6b5210; border-radius: var(--miu-r-lg); padding: 12px 16px; margin: 12px 0; font-size: 14px; font-weight: 600; text-decoration: none; }
+.btn { height: 44px; padding: 0 18px; border-radius: var(--miu-r-md); border: 1px solid transparent; font-size: 15px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.btn.primary { background: var(--miu-primary); color: var(--miu-on-primary); }
+.btn.secondary { background: var(--miu-canvas); color: var(--miu-ink); border-color: var(--miu-hairline); }
+.btn.ghost { background: transparent; color: var(--miu-body); }
+.btn.danger { background: var(--miu-error); color: #fff; }
+.btn:disabled { background: var(--miu-primary-disabled); color: var(--miu-muted-soft); cursor: not-allowed; border-color: transparent; }
+.btn.block { width: 100%; }
+.miu-btn-sm:disabled { opacity: .5; cursor: not-allowed; }
+.inp { width: 100%; height: 44px; padding: 0 14px; background: var(--miu-canvas); border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); font-family: var(--miu-sans); font-size: 15px; color: var(--miu-ink); }
+.inp:focus { outline: none; border-color: var(--miu-primary); box-shadow: 0 0 0 3px rgba(204,120,92,0.15); }
+/* 시작 화면 */
+.locs { background: var(--miu-canvas); border-radius: var(--miu-r-md); border: 1px solid var(--miu-hairline); margin: 10px 0 14px; max-height: 420px; overflow-y: auto; }
+.loc-row { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-bottom: 1px solid var(--miu-hairline-soft); cursor: pointer; font-size: 15px; }
+.loc-row:last-child { border-bottom: none; }
+.loc-row input { width: 18px; height: 18px; accent-color: var(--miu-primary); flex: none; }
+.loc-row .nm { flex: 1; font-weight: 600; }
+.loc-row .ct { font-size: 13px; color: var(--miu-muted); text-align: right; }
+.loc-row.off .nm { color: var(--miu-muted); font-weight: 500; }
+.toolbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.toolbar .grow { flex: 1; }
+.past-list { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); overflow: hidden; }
+.past { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--miu-hairline-soft); color: var(--miu-ink); text-decoration: none; }
+.past:last-child { border-bottom: none; }
+a.past:active { background: var(--miu-surface-strong); }
+.past .n { font-size: 15px; font-weight: 600; }
+.past .n small { display: block; font-weight: 400; color: var(--miu-muted); font-size: 12px; margin-top: 2px; }
+.past.cancelled { opacity: .5; }
+/* 진행 화면 */
+.sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
+.sum .box { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 14px 16px; }
+.sum .k { font-size: 12px; color: var(--miu-muted); }
+.sum .v { font-family: var(--miu-serif); font-size: 22px; font-weight: 500; margin-top: 2px; }
+.sum .v small { font-family: var(--miu-sans); font-size: 13px; color: var(--miu-muted); font-weight: 400; }
+.sum .box.wide { grid-column: 1 / -1; }
+.bar { height: 8px; border-radius: var(--miu-r-pill); background: var(--miu-hairline); overflow: hidden; margin: 8px 0; }
+.bar > i { display: block; height: 100%; background: var(--miu-primary); border-radius: var(--miu-r-pill); }
+.grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 720px) { .grid { grid-template-columns: 1fr 1fr; } }
+.lc { display: flex; flex-direction: column; gap: 6px; }
+.lc.skipped { opacity: .75; }
+.lc .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lc .nm { font-size: 17px; font-weight: 700; }
+.lc .stats { font-size: 13px; color: var(--miu-body); line-height: 1.7; }
+.lc .stats b { font-weight: 700; color: var(--miu-ink); }
+.lc .who { font-size: 12.5px; color: var(--miu-muted); line-height: 1.6; }
+.lc .stale { color: #6b5210; font-weight: 600; }
+.lc .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+.kinds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.kinds .miu-chip { font-size: 13px; padding: 5px 12px; }
+.foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+/* 모달 */
+.miu-modal.wide { max-width: 760px; }
+.m-line { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: 14px; }
+.m-line + .m-line { border-top: 1px solid var(--miu-hairline-soft); }
+.m-note { font-size: 13px; color: var(--miu-muted); line-height: 1.6; margin: 10px 0; }
+.u-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.u-tools .inp { flex: 1; min-width: 140px; height: 38px; }
+.u-tools select.inp { flex: none; width: auto; min-width: 120px; }
+.u-row { display: grid; grid-template-columns: 120px 1fr auto; gap: 4px 12px; padding: 9px 0; border-bottom: 1px solid var(--miu-hairline-soft); font-size: 13.5px; align-items: baseline; }
+.u-row .bc { font-family: var(--miu-mono); font-size: 13px; }
+.u-row .pr { text-align: right; white-space: nowrap; }
+.u-row .cat { grid-column: 1 / -1; font-size: 12px; color: var(--miu-muted); }
+@media (min-width: 640px) { .u-row { grid-template-columns: 120px 90px 1fr auto; } .u-row .cat { grid-column: auto; } }
+.chk { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; padding: 4px 0; line-height: 1.5; }
+.chk i { margin-top: 3px; }
+.chk.bad { color: #7a2a2a; font-weight: 600; }
+.chk.ok { color: #2e6b3a; }
+</style>
+<script src="/miu-hub/shared/config.js?v=202611050636"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611050636"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611050636"></script>
+</head>
+<body>
+
+<header class="miu-header">
+  <a href="index.html" class="miu-header-back" aria-label="재고조사 시작 화면으로">
+    <i class="ph-bold ph-caret-left"></i>
+  </a>
+  <div class="miu-header-title">
+    <div class="miu-header-eyebrow">STOCKTAKE</div>
+    <h1 class="miu-header-h1">재고조사 관리</h1>
+  </div>
+  <div class="miu-header-actions">
+    <button class="miu-icon-btn" id="btn-refresh" type="button" aria-label="새로고침"><i class="ph-bold ph-arrows-clockwise"></i></button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="errBar"></div>
+  <div id="root"><div class="miu-loading"><span class="miu-spinner"></span>불러오는 중…</div></div>
+</div>
+<div id="modalHost"></div>
+<div id="toastHost"></div>
+
+<script src="js/common.js?v=202611050636"></script>
+<script>
+(function () {
+'use strict';
+const { esc, fmt, KIND, rpc, md, kstTime, kstDateTime, csvCell } = ST;
+const $ = (id) => document.getElementById(id);
+const root = $('root');
+
+// 화면 상태
+const S = { mode: null, sess: null, progress: [], summary: null, loading: false, onData: null, startVars: null };
+
+/* ---------- 공용 도우미 ---------- */
+function toast(msg) {
+  const el = document.createElement('div');
+  el.className = 'miu-toast';
+  el.textContent = msg;
+  $('toastHost').appendChild(el);
+  setTimeout(() => el.remove(), 3200);
+}
+function setErr(msg) { $('errBar').innerHTML = msg ? `<div class="err">${esc(msg)}</div>` : ''; }
+const ago = (iso) => {
+  const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (m < 1) return '방금';
+  if (m < 60) return m + '분 전';
+  return Math.floor(m / 60) + '시간 전';
+};
+const minsSince = (iso) => Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+const stateChip = (s) => s === 'done' ? '<span class="miu-chip success">마감</span>'
+  : s === 'skipped' ? '<span class="miu-chip muted">건너뜀</span>' : '<span class="miu-chip primary">조사 중</span>';
+
+// 모달: buttons=[{key,label,cls}] → {el, body, close, btn(key)}. 한 번에 하나만 연다.
+let curModal = null;
+function closeModal() {
+  if (!curModal) return;
+  const m = curModal; curModal = null; S.onData = null;
+  m.el.remove();
+  if (m.onClose) m.onClose();
+}
+function openModal({ title, body, buttons, wide }) {
+  closeModal();
+  const ov = document.createElement('div');
+  ov.className = 'miu-overlay';
+  ov.innerHTML = `<div class="miu-modal${wide ? ' wide' : ''}" role="dialog" aria-modal="true">
+    <div class="miu-modal-head"><div class="miu-modal-title">${esc(title)}</div>
+      <button class="miu-icon-btn" type="button" data-mclose aria-label="닫기"><i class="ph-bold ph-x"></i></button></div>
+    <div class="miu-modal-body" data-mbody>${body}</div>
+    <div class="miu-modal-actions">${(buttons || []).map((b) => `<button class="btn ${esc(b.cls || 'secondary')}" type="button" data-mkey="${esc(b.key)}">${esc(b.label)}</button>`).join('')}</div>
+  </div>`;
+  ov.addEventListener('mousedown', (e) => { if (e.target === ov) ov._down = true; else ov._down = false; });
+  ov.addEventListener('click', (e) => { if (e.target === ov && ov._down) closeModal(); });
+  ov.querySelector('[data-mclose]').addEventListener('click', closeModal);
+  $('modalHost').appendChild(ov);
+  const m = {
+    el: ov,
+    body: ov.querySelector('[data-mbody]'),
+    close: closeModal,
+    btn: (k) => ov.querySelector(`[data-mkey="${k}"]`),
+    err: (msg) => {
+      let e = ov.querySelector('[data-merr]');
+      if (!e) { e = document.createElement('div'); e.className = 'err'; e.setAttribute('data-merr', ''); m.body.appendChild(e); }
+      e.textContent = msg || ''; e.hidden = !msg;
+    },
+  };
+  curModal = m;
+  return m;
+}
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
+
+// 서버 오류 처리: 모달 안이면 모달에, 아니면 토스트로. 세션이 이미 닫혔으면 화면 전환.
+function handleErr(e, m) {
+  const msg = e && e.message ? e.message : '요청에 실패했어요.';
+  if (m) m.err(msg); else toast(msg);
+  if (e && e.hint === 'SESSION_CLOSED') { closeModal(); toast(msg); S.mode = null; load(); }
+}
+async function runBusy(btns, fn) {
+  btns.forEach((b) => { if (b) b.disabled = true; });
+  try { return await fn(); } finally { btns.forEach((b) => { if (b) b.disabled = false; }); }
+}
+
+/* ---------- 데이터 로드 ---------- */
+async function load() {
+  if (S.loading) return;
+  S.loading = true;
+  try {
+    const sess = await ST.activeSession();
+    if (sess) {
+      const [progress, summary] = await Promise.all([
+        rpc('stocktake_progress', { p_session: sess.id }),
+        rpc('stocktake_summary', { p_session: sess.id }),
+      ]);
+      S.sess = sess; S.progress = progress || []; S.summary = summary;
+      S.mode = 'active';
+      setErr('');
+      renderActive();
+      if (S.onData) S.onData();
+    } else {
+      if (S.mode === 'active') { closeModal(); toast('진행 중인 재고조사가 없어요. 닫히거나 취소됐어요.'); }
+      S.sess = null;
+      if (S.mode !== 'start') { await loadStart(); }
+      setErr('');
+    }
+  } catch (e) {
+    setErr(e.message || '불러오지 못했어요.');
+    if (!S.mode) root.innerHTML = `<div class="empty">불러오지 못했어요.<br><button class="btn secondary" type="button" data-act="retry" style="margin-top:14px">다시 시도</button></div>`;
+  } finally { S.loading = false; }
+}
+
+async function pagedAll(build) {
+  const out = [];
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await build().range(from, from + 999);
+    if (error) throw new Error(error.message);
+    out.push(...data);
+    if (data.length < 1000) break;
+  }
+  return out;
+}
+
+async function loadStart() {
+  const sb = window.sb;
+  const [locs, pastRes] = await Promise.all([
+    pagedAll(() => sb.from('locations').select('name,is_active,kind').in('kind', ['store', 'warehouse']).order('is_active', { ascending: false }).order('name', { ascending: true })),
+    sb.from('stocktake_sessions').select('id,session_date,status,note,started_by,started_at,closed_at')
+      .in('status', ['closed', 'cancelled']).order('session_date', { ascending: false }).order('started_at', { ascending: false }).limit(12),
+  ]);
+  if (pastRes.error) throw new Error(pastRes.error.message);
+  const past = pastRes.data || [];
+  const [counts, openCounts, missingRes] = await Promise.all([
+    Promise.all(locs.map(async (l) => {
+      const { count, error } = await sb.from('inventory_items').select('*', { count: 'exact', head: true }).eq('location', l.name).eq('status', 'in_stock');
+      if (error) throw new Error(error.message);
+      return count || 0;
+    })),
+    Promise.all(past.map(async (s) => {
+      if (s.status !== 'closed') return 0;
+      const { count, error } = await sb.from('stocktake_results').select('session_id', { count: 'exact', head: true }).eq('session_id', s.id).eq('resolution', 'open');
+      if (error) throw new Error(error.message);
+      return count || 0;
+    })),
+    sb.from('inventory_items').select('*', { count: 'exact', head: true }).eq('status', 'in_stock').not('missing_since', 'is', null),
+  ]);
+  if (missingRes.error) throw new Error(missingRes.error.message);
+  const rows = locs.map((l, i) => {
+    const count = counts[i];
+    const active = !!l.is_active;
+    return { name: l.name, active, count, on: count > 0 };
+  });
+  S.startVars = { rows, missing: missingRes.count || 0, past: past.map((s, i) => ({ ...s, open: openCounts[i] })) };
+  S.mode = 'start';
+  renderStart();
+}
+
+/* ---------- 시작 화면 ---------- */
+function renderStart() {
+  const { rows, past, missing } = S.startVars;
+  const pending = past.filter((s) => s.open > 0);
+  const pendingTotal = pending.reduce((a, s) => a + s.open, 0);
+  const banner = pendingTotal > 0
+    ? `<a class="banner" href="results.html?session=${esc(pending[0].id)}"><span>지난 조사 미처리 ${esc(fmt(pendingTotal))}건 → 확인</span><i class="ph-bold ph-caret-right"></i></a>` : '';
+  const locHtml = rows.length ? rows.map((r, i) => `
+    <label class="loc-row${r.active ? '' : ' off'}">
+      <input type="checkbox" data-loc-i="${i}"${r.on ? ' checked' : ''}>
+      <span class="nm">${esc(r.name)}</span>
+      <span class="ct">${!r.active ? (r.count > 0 ? `철수 매장 · 스캔 없이 확인 (재고 ${esc(fmt(r.count))}건)` : '비활성 · 재고 없음') : `재고 ${esc(fmt(r.count))}개`}</span>
+    </label>`).join('') : '<div class="empty" style="padding:24px">위치가 없어요.</div>';
+  const hasInactive = rows.some((r) => !r.active && r.count > 0);
+  const pastHtml = past.length ? `<div class="past-list">${past.map((s) => {
+    const sub = `${esc(s.started_by || '')}${s.status === 'closed' && s.closed_at ? ' · 마감 ' + esc(ST.kstDateTime(s.closed_at)) : ''}${s.note ? ' · ' + esc(s.note) : ''}`;
+    const chip = s.status === 'cancelled' ? '<span class="miu-chip muted">취소됨</span>'
+      : s.open > 0 ? `<span class="miu-chip warn">미처리 ${esc(fmt(s.open))}건</span>` : '<span class="miu-chip success">처리 완료</span>';
+    const inner = `<div class="n">${esc(md(s.session_date))}<small>${sub}</small></div>${chip}`;
+    return s.status === 'closed'
+      ? `<a class="past" href="results.html?session=${esc(s.id)}">${inner}</a>`
+      : `<div class="past cancelled">${inner}</div>`;
+  }).join('')}</div>` : '<div class="card muted small">아직 지난 재고조사가 없어요.</div>';
+
+  root.innerHTML = `
+    ${banner}
+    <div class="sec-title">새 재고조사 시작</div>
+    <div class="card">
+      <div class="small muted">조사할 위치를 고르세요. 시작하면 선택한 위치의 지금 장부가 기준으로 고정돼요.</div>
+      ${missing > 0 ? `<div class="small" style="margin-top:8px"><i class="ph-bold ph-info"></i> 미확인 물건 ${esc(fmt(missing))}건은 자동으로 포함돼요 (어디서든 발견되면 알려줘요)</div>` : ''}
+      ${hasInactive ? '<div class="small muted" style="margin-top:4px">철수한 매장이라 스캔할 수 없어요. 다른 곳에서 발견되면 위치 정정, 안 나오면 미확인으로 표시돼요.</div>' : ''}
+      <div class="toolbar" style="margin-top:10px">
+        <button class="miu-btn-sm miu-btn-secondary" type="button" data-act="sel-active">기본 선택</button>
+        <button class="miu-btn-sm miu-btn-secondary" type="button" data-act="sel-none">모두 해제</button>
+        <span class="grow"></span><span class="small muted" id="selInfo"></span>
+      </div>
+      <div class="locs" id="locList">${locHtml}</div>
+      <div class="miu-field"><label class="miu-field-label miu-field-optional" for="startNote">메모</label>
+        <input class="inp" id="startNote" type="text" maxlength="200" placeholder="예: 11월 정기 재고조사"></div>
+      <button class="btn primary block" type="button" id="btnStart" data-act="start"><i class="ph-bold ph-clipboard-text"></i>재고조사 시작</button>
+    </div>
+    <div class="sec-title">지난 재고조사 <small>최근 12건</small></div>
+    ${pastHtml}`;
+  updateSel();
+}
+function selectedRows() {
+  return [...root.querySelectorAll('input[data-loc-i]')].filter((c) => c.checked).map((c) => S.startVars.rows[+c.dataset.locI]);
+}
+function updateSel() {
+  const sel = selectedRows();
+  const info = $('selInfo'), btn = $('btnStart');
+  if (!info || !btn) return;
+  info.textContent = `${sel.length}곳 선택 · 재고 ${fmt(sel.reduce((a, r) => a + r.count, 0))}개`;
+  btn.disabled = sel.length === 0;
+}
+function startConfirm() {
+  const sel = selectedRows();
+  if (!sel.length) return;
+  const note = ($('startNote').value || '').trim();
+  const stock = sel.reduce((a, r) => a + r.count, 0);
+  const m = openModal({
+    title: '재고조사를 시작할까요?',
+    body: `<div class="m-line"><span>선택한 위치</span><b>${esc(fmt(sel.length))}곳</b></div>
+      <div class="m-line"><span>장부 재고</span><b>${esc(fmt(stock))}개</b></div>
+      <div class="m-note">지금 장부를 기준으로 고정돼요. 조사 중 이동·판매는 '조사 중 변동'으로 따로 분류돼요.</div>`,
+    buttons: [{ key: 'cancel', label: '취소', cls: 'ghost' }, { key: 'ok', label: '시작', cls: 'primary' }],
+  });
+  m.btn('cancel').addEventListener('click', closeModal);
+  const ok = m.btn('ok');
+  ok.addEventListener('click', () => runBusy([ok], async () => {
+    m.err('');
+    try {
+      await rpc('stocktake_start', { p_locations: sel.map((r) => r.name), p_note: note || null });
+      closeModal(); S.mode = null; toast('재고조사를 시작했어요.');
+      S.loading = false; await load();
+    } catch (e) {
+      m.err(e.message);
+      if (e.hint === 'ACTIVE_EXISTS') { S.mode = null; setTimeout(() => { closeModal(); load(); }, 1500); }
+    }
+  }));
+}
+
+/* ---------- 진행 화면 ---------- */
+function renderActive() {
+  const { sess, progress, summary } = S;
+  const real = progress.filter((p) => !p.virtual);
+  const total = real.length;
+  const finished = real.filter((p) => p.state !== 'open').length;
+  const pct = total ? Math.round((finished / total) * 100) : 0;
+  const expected = summary ? summary.expected : progress.reduce((a, p) => a + (p.expected_count || 0), 0);
+  const scanned = summary ? summary.scanned : progress.reduce((a, p) => a + (p.scanned || 0), 0);
+  const cards = [...progress].sort((a, b) => (a.virtual ? 1 : 0) - (b.virtual ? 1 : 0)).map((p) => {
+    const exp = p.expected_count || 0;
+    const sp = exp ? Math.min(100, Math.round(((p.scanned || 0) / exp) * 100)) : 0;
+    const sc = Object.entries(p.scanners || {}).sort((a, b) => b[1] - a[1]);
+    const who = sc.length ? sc.map(([n, c]) => `${esc(n)} ${esc(fmt(c))}건`).join(' · ') : '아직 스캔한 사람이 없어요';
+    let last = '';
+    if (p.last_at) {
+      const stale = p.state === 'open' && minsSince(p.last_at) >= 30;
+      last = `마지막 스캔 ${esc(kstTime(p.last_at))} <span class="${stale ? 'stale' : ''}">(${esc(ago(p.last_at))})</span>`;
+    } else last = '스캔 기록 없음';
+    let fin = '';
+    if (p.state === 'done') fin = `<div class="who">마감 ${esc(p.done_by || '')} · ${p.done_at ? esc(kstDateTime(p.done_at)) : ''}</div>`;
+    if (p.state === 'skipped') fin = `<div class="who">건너뜀 ${esc(p.done_by || '')}${p.done_at ? ' · ' + esc(kstDateTime(p.done_at)) : ''}<br>사유: ${esc(p.skip_reason || '')}</div>`;
+    const L = esc(p.location);
+    const unBtn = `<button class="miu-btn-sm miu-btn-secondary" type="button" data-act="unscanned" data-loc="${L}">남은 물건 보기</button>`;
+    let acts;
+    if (p.virtual) acts = unBtn;
+    else if (p.state === 'open') acts = `${unBtn}
+         <button class="miu-btn-sm miu-btn-secondary" type="button" data-act="scan-list" data-loc="${L}">목록으로 제출</button>
+         <button class="miu-btn-sm miu-btn-ghost" type="button" data-act="skip" data-loc="${L}">건너뜀 처리</button>`;
+    else if (p.state === 'done') acts = `${unBtn}
+           <button class="miu-btn-sm miu-btn-ghost" type="button" data-act="reopen" data-loc="${L}">마감 해제</button>`;
+    else acts = `<button class="miu-btn-sm miu-btn-secondary" type="button" data-act="reopen" data-loc="${L}">다시 열기</button>`;
+    const chip = p.virtual ? '<span class="miu-chip muted">스캔 없이 마감</span>' : stateChip(p.state);
+    const listed = (p.listed || 0) > 0 ? ` · 목록 제출 <b>${esc(fmt(p.listed))}</b>건` : '';
+    const stats = p.virtual
+      ? `장부 <b>${esc(fmt(exp))}</b> · 발견 <b>${esc(fmt(p.found))}</b>`
+      : `장부 <b>${esc(fmt(exp))}</b> · 스캔 <b>${esc(fmt(p.scanned))}</b> · 일치 <b>${esc(fmt(p.ok))}</b> · 다른 위치 장부 <b>${esc(fmt(p.other))}</b> · 중복 <b>${esc(fmt(p.dups))}</b>${listed}`;
+    const barVal = p.virtual ? (exp ? Math.min(100, Math.round(((p.found || 0) / exp) * 100)) : 0) : sp;
+    const body = p.virtual
+      ? `<div class="who">조사를 닫을 때 자동 마감돼요. 안 나온 물건은 미확인으로 표시돼요.</div>`
+      : `<div class="who">${who}</div>
+      <div class="who">${last}</div>
+      ${fin}`;
+    return `<div class="card lc ${esc(p.virtual ? 'virtual' : p.state)}">
+      <div class="top"><span class="nm">${L}</span>${chip}</div>
+      <div class="stats">${stats}</div>
+      <div class="bar" role="progressbar" aria-valuenow="${barVal}" aria-valuemin="0" aria-valuemax="100"><i style="width:${barVal}%"></i></div>
+      ${body}
+      <div class="acts">${acts}</div>
+    </div>`;
+  }).join('');
+  root.innerHTML = `
+    <div class="sec-title">진행 중인 재고조사 <span class="miu-chip primary">진행 중</span></div>
+    <div class="sum">
+      <div class="box"><div class="k">조사일</div><div class="v">${esc(md(sess.session_date))}</div></div>
+      <div class="box"><div class="k">시작한 사람</div><div class="v" style="font-size:18px">${esc(sess.started_by || '')}</div></div>
+      <div class="box"><div class="k">위치 진행</div><div class="v">${esc(fmt(finished))}<small> / ${esc(fmt(total))}곳 (마감·건너뜀)</small></div></div>
+      <div class="box"><div class="k">스캔한 물건</div><div class="v">${esc(fmt(scanned))}<small> / 장부 ${esc(fmt(expected))}</small></div></div>
+      <div class="box wide"><div class="k">전체 진행률 ${pct}%</div><div class="bar"><i style="width:${pct}%"></i></div>
+        ${sess.note ? `<div class="small muted">메모: ${esc(sess.note)}</div>` : ''}</div>
+    </div>
+    <div class="sec-title">위치별 현황 <small>${esc(fmt(total))}곳</small></div>
+    <div class="grid">${cards || '<div class="empty">위치가 없어요.</div>'}</div>
+    <div class="sec-title">결과 미리보기 <small>마감한 위치 기준 미리보기</small></div>
+    <div class="card">
+      ${kindChips(summary)}
+      <div class="small muted" style="margin-top:10px">마감한 위치만 미스캔으로 계산돼요. 아직 조사 중인 위치의 안 찍힌 물건은 여기에 포함되지 않아요.</div>
+    </div>
+    <div class="foot">
+      <button class="btn danger" type="button" data-act="close-session"><i class="ph-bold ph-lock-key"></i>재고조사 닫기</button>
+      <button class="miu-btn-sm miu-btn-ghost" type="button" data-act="cancel-session">재고조사 취소</button>
+    </div>`;
+}
+function kindChips(summary) {
+  const kinds = Object.entries((summary && summary.kinds) || {}).filter(([, n]) => n > 0)
+    .sort((a, b) => ((KIND[a[0]] || {}).order || 99) - ((KIND[b[0]] || {}).order || 99));
+  if (!kinds.length) return '<div class="small muted">지금까지 나온 결과가 없어요.</div>';
+  return `<div class="kinds">${kinds.map(([k, n]) => { const d = KIND[k] || { label: k, tone: 'muted' }; return `<span class="miu-chip ${esc(d.tone)}">${esc(d.label)} ${esc(fmt(n))}</span>`; }).join('')}</div>`;
+}
+
+/* ---------- 남은 물건 모달 ---------- */
+async function showUnscanned(loc) {
+  const m = openModal({ title: `${loc} · 남은 물건`, wide: true, body: '<div class="miu-loading"><span class="miu-spinner"></span>불러오는 중…</div>', buttons: [{ key: 'csv', label: 'CSV 내려받기', cls: 'secondary' }, { key: 'x', label: '닫기', cls: 'primary' }] });
+  m.btn('x').addEventListener('click', closeModal);
+  m.btn('csv').disabled = true;
+  let rows;
+  try { rows = await rpc('stocktake_unscanned', { p_session: S.sess.id, p_location: loc }); }
+  catch (e) { if (curModal === m) { m.body.innerHTML = ''; handleErr(e, m); } return; }
+  if (curModal !== m) return;
+  rows = rows || [];
+  const cats = [...new Set(rows.map((r) => r[1] || '(없음)'))].sort();
+  m.body.innerHTML = `
+    <div class="m-note" style="margin-top:0">팀 전체 스캔 기준으로 아직 안 찍힌 장부 물건이에요. 총 <b>${esc(fmt(rows.length))}</b>건</div>
+    <div class="u-tools">
+      <input class="inp" type="search" id="uq" placeholder="바코드·브랜드·상품명 검색" autocomplete="off">
+      <select class="inp" id="ucat"><option value="">전체 카테고리</option>${cats.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join('')}</select>
+    </div>
+    <div id="ulist"></div>`;
+  let limit = 200, filtered = rows;
+  const list = m.body.querySelector('#ulist');
+  const draw = () => {
+    if (!filtered.length) { list.innerHTML = '<div class="empty" style="padding:32px">남은 물건이 없어요.</div>'; return; }
+    list.innerHTML = `<div class="small muted" style="margin-bottom:4px">${esc(fmt(filtered.length))}건</div>` +
+      filtered.slice(0, limit).map((r) => `<div class="u-row"><span class="bc">${esc(r[0])}</span><span class="cat">${esc(r[1] || '')}</span><span>${esc([r[3], r[4]].filter(Boolean).join(' '))}</span><span class="pr">${r[2] == null ? '' : esc(fmt(r[2])) + '원'}</span></div>`).join('') +
+      (filtered.length > limit ? `<div style="text-align:center;padding:12px"><button class="miu-btn-sm miu-btn-secondary" type="button" data-more>더 보기 (${esc(fmt(filtered.length - limit))}건 남음)</button></div>` : '');
+  };
+  const refilter = () => {
+    const q = m.body.querySelector('#uq').value.trim().toLowerCase();
+    const c = m.body.querySelector('#ucat').value;
+    filtered = rows.filter((r) => (!c || (r[1] || '(없음)') === c) && (!q || [r[0], r[3], r[4]].join(' ').toLowerCase().includes(q)));
+    limit = 200; draw();
+  };
+  m.body.querySelector('#uq').addEventListener('input', refilter);
+  m.body.querySelector('#ucat').addEventListener('change', refilter);
+  list.addEventListener('click', (e) => { if (e.target.closest('[data-more]')) { limit += 200; draw(); } });
+  draw();
+  const csv = m.btn('csv');
+  csv.disabled = !rows.length;
+  csv.addEventListener('click', () => {
+    const lines = [['바코드', '카테고리', '가격', '브랜드', '상품명'].map(csvCell).join(',')]
+      .concat(filtered.map((r) => r.slice(0, 5).map(csvCell).join(',')));
+    const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `재고조사_남은물건_${loc}_${S.sess.session_date}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+}
+
+/* ---------- 위치 상태 변경 ---------- */
+async function setLocation(loc, state, reason) {
+  await rpc('stocktake_location_set', { p_session: S.sess.id, p_location: loc, p_state: state, p_reason: reason || null });
+  S.loading = false; await load();
+}
+function skipModal(loc) {
+  const m = openModal({
+    title: `${loc} 건너뜀 처리`,
+    body: `<div class="m-note" style="margin-top:0">이 위치는 이번 조사에서 제외돼요. 사유를 꼭 적어 주세요. 나중에 '다시 열기'로 되돌릴 수 있어요.</div>
+      <div class="miu-field"><label class="miu-field-label" for="skipReason">사유</label><input class="inp" id="skipReason" type="text" maxlength="200" autocomplete="off"></div>`,
+    buttons: [{ key: 'cancel', label: '취소', cls: 'ghost' }, { key: 'ok', label: '건너뜀 처리', cls: 'primary' }],
+  });
+  m.btn('cancel').addEventListener('click', closeModal);
+  const ok = m.btn('ok'), inp = m.body.querySelector('#skipReason');
+  inp.focus();
+  ok.addEventListener('click', () => {
+    const reason = inp.value.trim();
+    if (!reason) { m.err('사유를 입력해 주세요.'); return; }
+    runBusy([ok], async () => {
+      try { await setLocation(loc, 'skipped', reason); closeModal(); toast(`${loc}: 건너뜀 처리했어요.`); }
+      catch (e) { handleErr(e, m); }
+    });
+  });
+}
+
+/* ---------- 목록으로 제출 ---------- */
+const parseCodes = (text) => [...new Set(String(text || '').split(/[\s,;]+/).map((s) => s.trim().toUpperCase()).filter(Boolean))];
+function scanListModal(loc) {
+  const m = openModal({
+    title: `${loc} · 목록으로 제출`, wide: true,
+    body: `<div class="m-note" style="margin-top:0">실물을 스캔한 게 아니라 목록 기준으로 '있음' 처리돼요. 결과에 목록 제출로 따로 표시돼요. 봉투째 보관해서 스캔이 어려운 위치(예: 재봉합)에만 쓰세요.</div>
+      <div class="miu-field"><label class="miu-field-label" for="slText">바코드 목록 <span class="muted" style="font-weight:400">줄바꿈·공백·쉼표·탭·세미콜론으로 구분</span></label>
+        <textarea class="miu-textarea" id="slText" style="min-height:160px;font-family:var(--miu-mono)" spellcheck="false" autocomplete="off"></textarea></div>
+      <div class="miu-field"><label class="miu-field-label miu-field-optional" for="slFile">파일 (.csv, .txt)</label><input type="file" id="slFile" accept=".csv,.txt,text/csv,text/plain"></div>
+      <div class="small" id="slInfo"><b>0</b>개 인식</div>
+      <div class="small muted" id="slProg"></div>`,
+    buttons: [{ key: 'cancel', label: '취소', cls: 'ghost' }, { key: 'ok', label: '제출', cls: 'primary' }],
+  });
+  const ok = m.btn('ok'), ta = m.body.querySelector('#slText'), file = m.body.querySelector('#slFile');
+  const info = m.body.querySelector('#slInfo'), prog = m.body.querySelector('#slProg');
+  let running = false;
+  const upd = () => { const n = parseCodes(ta.value).length; info.innerHTML = `<b>${esc(fmt(n))}</b>개 인식`; ok.disabled = running || n === 0; };
+  ta.addEventListener('input', upd);
+  file.addEventListener('change', () => {
+    const f = file.files && file.files[0];
+    if (!f) return;
+    const rd = new FileReader();
+    rd.onload = () => { ta.value = (ta.value ? ta.value + '\n' : '') + String(rd.result || ''); upd(); };
+    rd.onerror = () => m.err('파일을 읽지 못했어요.');
+    rd.readAsText(f);
+    file.value = '';
+  });
+  m.btn('cancel').addEventListener('click', closeModal);
+  upd();
+  ta.focus();
+  ok.addEventListener('click', async () => {
+    const codes = parseCodes(ta.value);
+    if (!codes.length || running) return;
+    running = true; ok.disabled = true; ta.disabled = true; file.disabled = true; m.err('');
+    let sent = 0, already = 0;
+    try {
+      for (let i = 0; i < codes.length; i += 2000) {
+        const r = await rpc('stocktake_scan_list', { p_session: S.sess.id, p_location: loc, p_barcodes: codes.slice(i, i + 2000) });
+        sent += (r && r.sent) || 0; already += (r && r.already) || 0;
+        prog.textContent = `${fmt(Math.min(i + 2000, codes.length))} / ${fmt(codes.length)}개 처리`;
+      }
+      closeModal();
+      toast(`${fmt(codes.length)}개 제출 (이미 있던 ${fmt(already)}개)`);
+      S.loading = false; await load();
+    } catch (e) {
+      running = false; ta.disabled = false; file.disabled = false;
+      m.err((sent || already ? `${fmt(sent + already)}개까지 처리된 뒤 멈췄어요. 같은 목록을 다시 제출해도 안전해요. ` : '') + e.message);
+      upd();
+      if (e.hint === 'SESSION_CLOSED') { S.mode = null; setTimeout(() => { closeModal(); load(); }, 1500); }
+      else if (e.hint === 'LOCATION_DONE' || e.hint === 'BAD_LOCATION') { S.loading = false; load(); }
+    }
+  });
+}
+
+/* ---------- 닫기 / 취소 ---------- */
+function closeSessionModal() {
+  const m = openModal({ title: '재고조사 닫기', body: '', buttons: [{ key: 'cancel', label: '돌아가기', cls: 'ghost' }, { key: 'ok', label: '재고조사 닫기', cls: 'danger' }] });
+  const ok = m.btn('ok');
+  const draw = () => {
+    const real = S.progress.filter((p) => !p.virtual);
+    const open = real.filter((p) => p.state === 'open');
+    const done = real.filter((p) => p.state === 'done').length;
+    const skipped = real.filter((p) => p.state === 'skipped').length;
+    const scanned = S.summary ? S.summary.scanned : 0;
+    let reason = '';
+    if (open.length) reason = `아직 열린 위치가 ${open.length}곳 있어요. 마감하거나 건너뜀 처리해야 닫을 수 있어요.`;
+    else if (done === 0) reason = '마감한 위치가 없어요.';
+    else if (scanned === 0) reason = '스캔 기록이 없어요.';
+    const err = m.body.querySelector('[data-merr]');
+    m.body.innerHTML = `
+      ${reason ? `<div class="chk bad"><i class="ph-bold ph-warning"></i><div>${esc(reason)}${open.length ? '<br><span style="font-weight:400">' + open.map((p) => esc(p.location)).join(', ') + '</span>' : ''}</div></div>`
+        : '<div class="chk ok"><i class="ph-bold ph-check-circle"></i><div>모든 위치가 마감되거나 건너뜀 처리됐어요.' + (S.progress.some((p) => p.virtual) ? ' 스캔 없이 확인하는 항목은 닫을 때 자동 마감돼요.' : '') + '</div></div>'}
+      <div class="m-line"><span>마감한 위치</span><b>${esc(fmt(done))}곳</b></div>
+      <div class="m-line"><span>건너뜀 위치</span><b>${esc(fmt(skipped))}곳</b></div>
+      <div class="m-line"><span>스캔한 물건</span><b>${esc(fmt(scanned))}개</b></div>
+      <div style="margin-top:10px"><div class="small muted">결과 미리보기</div>${kindChips(S.summary)}</div>
+      ${S.sess.session_date === new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })
+        ? '<div class="m-note" style="background:color-mix(in srgb, var(--miu-warning) 16%, transparent);color:#6b5210;border-radius:var(--miu-r-md);padding:10px 12px"><b>오늘 시작한 조사예요.</b> 오늘 판매는 내일 새벽에, 이동은 오늘 밤 22시에 장부에 반영돼요. 지금 닫으면 오늘 팔리거나 옮겨진 물건이 "미스캔"·"위치 다름"으로 나올 수 있어요. 내일 아침에 닫으면 그런 물건은 "조사 중 변동"으로 자동 분류돼서 미스캔이 더 정확해져요. (스캔은 이미 끝났다면 내일 닫아도 돼요.)</div>' : ''}
+      <div class="m-note">닫으면 되돌릴 수 없고 결과가 확정돼요.</div>`;
+    if (err) m.body.appendChild(err);
+    ok.disabled = !!reason;
+  };
+  draw();
+  S.onData = draw;
+  m.btn('cancel').addEventListener('click', closeModal);
+  ok.addEventListener('click', () => runBusy([ok], async () => {
+    m.err('');
+    try {
+      const id = S.sess.id;
+      await rpc('stocktake_close', { p_session: id });
+      location.href = 'results.html?session=' + encodeURIComponent(id);
+    } catch (e) { handleErr(e, m); if (e.hint === 'OPEN_LOCATIONS') { S.loading = false; load(); } }
+  }));
+}
+function cancelSessionModal() {
+  const m = openModal({
+    title: '재고조사 취소',
+    body: `<div class="m-note" style="margin-top:0">잘못 시작했을 때만 사용하세요. 취소하면 이 조사의 스캔 기록은 결과로 남지 않아요. 사유를 꼭 적어 주세요.</div>
+      <div class="miu-field"><label class="miu-field-label" for="cancelReason">사유</label><input class="inp" id="cancelReason" type="text" maxlength="200" autocomplete="off"></div>`,
+    buttons: [{ key: 'cancel', label: '돌아가기', cls: 'ghost' }, { key: 'ok', label: '조사 취소', cls: 'danger' }],
+  });
+  m.btn('cancel').addEventListener('click', closeModal);
+  const ok = m.btn('ok'), inp = m.body.querySelector('#cancelReason');
+  inp.focus();
+  ok.addEventListener('click', () => {
+    const reason = inp.value.trim();
+    if (!reason) { m.err('사유를 입력해 주세요.'); return; }
+    runBusy([ok], async () => {
+      try {
+        await rpc('stocktake_cancel', { p_session: S.sess.id, p_reason: reason });
+        closeModal(); S.mode = null; toast('재고조사를 취소했어요.');
+        S.loading = false; await load();
+      } catch (e) { handleErr(e, m); }
+    });
+  });
+}
+
+/* ---------- 이벤트 위임 ---------- */
+root.addEventListener('change', (e) => { if (e.target.matches('input[data-loc-i]')) updateSel(); });
+root.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  const act = b.dataset.act, loc = b.dataset.loc;
+  if (act === 'retry') { S.loading = false; load(); }
+  else if (act === 'sel-active') {
+    root.querySelectorAll('input[data-loc-i]').forEach((c) => { c.checked = S.startVars.rows[+c.dataset.locI].on; });
+    updateSel();
+  } else if (act === 'sel-none') { root.querySelectorAll('input[data-loc-i]').forEach((c) => { c.checked = false; }); updateSel(); }
+  else if (act === 'scan-list') scanListModal(loc);
+  else if (act === 'start') startConfirm();
+  else if (act === 'unscanned') showUnscanned(loc);
+  else if (act === 'skip') skipModal(loc);
+  else if (act === 'reopen') {
+    runBusy([b], async () => {
+      try { await setLocation(loc, 'open', null); toast(`${loc}: 다시 열었어요.`); }
+      catch (err) { handleErr(err, null); }
+    });
+  } else if (act === 'close-session') closeSessionModal();
+  else if (act === 'cancel-session') cancelSessionModal();
+});
+$('btn-refresh').addEventListener('click', () => {
+  if (S.mode === 'start') S.mode = null; // 시작 화면도 다시 불러온다
+  load();
+});
+
+/* ---------- 시작 ---------- */
+(async function init() {
+  let me;
+  try { me = await ST.whoami(); } catch (e) { me = { isAdmin: false }; }
+  if (!me.isAdmin) {
+    root.innerHTML = '<div class="empty">관리자만 볼 수 있어요.</div>';
+    $('btn-refresh').hidden = true;
+    return;
+  }
+  await load();
+  setInterval(() => {
+    if (document.hidden) return;
+    if (S.mode === 'start') { // 입력 중인 폼은 건드리지 않고, 다른 곳에서 시작된 조사만 감지한다
+      ST.activeSession().then((x) => { if (x && S.mode === 'start') load(); }).catch(() => {});
+      return;
+    }
+    load();
+  }, 15000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) { if (S.mode === 'start') ST.activeSession().then((x) => { if (x && S.mode === 'start') load(); }).catch(() => {}); else load(); } });
+})();
+})();
+</script>
+</body>
+</html>

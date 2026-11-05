@@ -6,8 +6,8 @@
 <title>카테고리 판매 분석 — 마켓인유</title>
 <meta name="theme-color" content="#faf9f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611040141">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611040141">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611050636">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611050636">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
 body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
@@ -110,10 +110,10 @@ details.help[open] > summary::after { content: '−'; }
 .hbody th, .hbody td { padding: 7px 6px; border-bottom: 1px solid var(--miu-hairline-soft); text-align: left; vertical-align: top; }
 .hbody th { color: var(--miu-muted); font-weight: 600; }
 </style>
-<script src="/miu-hub/shared/config.js?v=202611040141"></script>
+<script src="/miu-hub/shared/config.js?v=202611050636"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611040141"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611040141"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611050636"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611050636"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 </head>
 <body>
@@ -133,8 +133,6 @@ details.help[open] > summary::after { content: '−'; }
 <script>
 // 최영훈 · 황태훈 · 김민지 · 이강철 · 김성경 전용. 화면 게이트이며, 서버(RPC·store_hangers RLS)도 같은 사람들의 id만 허용한다.
 const ALLOWED_NAMES = ['최영훈', '황태훈', '김민지', '이강철', '김성경'];
-const WAREHOUSE = ['공동물류', '온라인', '재봉합성수', '재봉합부천'];
-const EXCLUDED = ['폐기', '위탁종료'];
 const ALL = '전체';
 const BAND_LABELS = ['~1만', '1~2만', '2~3만', '3~4만', '4~5만', '5~7만', '7~10만', '10만~'];
 // 행거에 거는 물건이 아닌 카테고리(앞의 '온' 제거 후 비교). 행거수가 입력돼 있으면 행거 카테고리로 본다.
@@ -810,9 +808,9 @@ function mount() {
 }
 
 async function fetchStoreNames() {
-  const { data, error } = await window.sb.from('locations').select('name').eq('is_active', true).order('created_at');
+  const { data, error } = await window.sb.from('locations').select('name').eq('is_active', true).eq('kind', 'store').order('created_at');
   if (error) throw error;
-  return data.map((l) => l.name).filter((n) => !WAREHOUSE.includes(n) && !EXCLUDED.includes(n) && !n.includes('재고조사'));
+  return data.map((l) => l.name);
 }
 
 (async function init() {

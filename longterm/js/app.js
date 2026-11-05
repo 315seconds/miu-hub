@@ -114,7 +114,7 @@ async function initSetup() {
   // 담당자는 고르지 않고 로그인한 계정 이름으로 고정한다. (서버도 같은 이름으로 기록한다)
   miuSetFixedName(opSel, await miuLoginName());
 
-  const { data: locs, error } = await sb.from('locations').select('name').eq('is_active', true).neq('name', '폐기').order('name');
+  const { data: locs, error } = await sb.from('locations').select('name').eq('is_active', true).in('kind', ['store', 'warehouse']).order('name');
   if (error || !locs?.length) {
     sel.innerHTML = '<option value="">매장 정보 로드 실패</option>'; return;
   }

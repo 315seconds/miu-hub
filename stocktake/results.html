@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>재고조사 결과 — 마켓인유</title>
+<meta name="theme-color" content="#faf9f5">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611050636">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611050636">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<style>
+body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 8px 16px 120px; }
+.empty { text-align: center; padding: 64px 24px; color: var(--miu-muted); font-size: 14px; line-height: 1.7; }
+.empty a { color: var(--miu-primary-active); font-weight: 600; }
+.err { background: color-mix(in srgb, var(--miu-error) 12%, transparent); color: #7a2a2a; border-radius: var(--miu-r-md); padding: 12px 14px; font-size: 13.5px; line-height: 1.5; margin: 12px 0; }
+.sel-session { display: flex; align-items: center; gap: 8px; margin: 12px 0; }
+.sel-session select { flex: 1; min-width: 0; }
+select, input[type=search], textarea { font: inherit; font-size: 14px; color: var(--miu-ink); background: var(--miu-canvas); border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); padding: 8px 10px; }
+textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-box; }
+.card { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 16px; margin-bottom: 12px; }
+.card h2 { margin: 0 0 10px; font-family: var(--miu-serif); font-size: 17px; font-weight: 500; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+.stat .k { font-size: 12px; color: var(--miu-muted); }
+.stat .v { font-size: 20px; font-weight: 700; margin-top: 2px; }
+.stat .v small { font-size: 12px; font-weight: 500; color: var(--miu-muted); margin-left: 4px; }
+.meta { font-size: 13px; color: var(--miu-muted); margin-bottom: 12px; line-height: 1.6; }
+.mini { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+.mini th, .mini td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--miu-hairline-soft); }
+.mini th:first-child, .mini td:first-child { text-align: left; }
+.mini th { color: var(--miu-muted); font-weight: 600; font-size: 12px; }
+.tabs { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 10px; -webkit-overflow-scrolling: touch; }
+.tab { flex: 0 0 auto; border: 1px solid var(--miu-hairline); background: var(--miu-canvas); color: var(--miu-body); border-radius: var(--miu-r-pill); padding: 8px 14px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.tab .n { margin-left: 6px; font-weight: 500; color: var(--miu-muted); }
+.tab .n b { color: var(--miu-error); font-weight: 700; }
+.tab.zero:not(.on) { opacity: .5; }
+.tab.on { background: var(--miu-ink); color: var(--miu-on-dark); border-color: var(--miu-ink); }
+.tab.on .n { color: var(--miu-on-dark-soft); }
+.tab.on .n b { color: var(--miu-accent-amber); }
+.desc { font-size: 13px; color: var(--miu-body); line-height: 1.6; margin: 4px 0 8px; }
+.note-box { font-size: 13px; line-height: 1.6; background: color-mix(in srgb, var(--miu-warning) 14%, transparent); color: #6b5210; border-radius: var(--miu-r-md); padding: 10px 12px; margin: 8px 0; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; align-items: center; }
+.filters input[type=search] { flex: 1 1 180px; min-width: 0; }
+.selbar { position: sticky; top: 0; z-index: 20; background: var(--miu-canvas); border-bottom: 1px solid var(--miu-hairline); padding: 8px 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; }
+.selbar .sp { flex: 1; }
+.selbar label { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; }
+.acts { display: flex; flex-wrap: wrap; gap: 6px; }
+.list { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); overflow: hidden; margin-top: 8px; }
+.r { display: flex; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--miu-hairline-soft); }
+.r:last-child { border-bottom: none; }
+.r.sel { background: var(--miu-surface-strong); }
+.r .ck { flex: 0 0 auto; padding-top: 2px; }
+.r .ck input { width: 18px; height: 18px; }
+.r .rb { flex: 1; min-width: 0; cursor: pointer; font-size: 13px; line-height: 1.55; }
+.l1 { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.bc { font-family: var(--miu-mono); font-size: 13px; font-weight: 700; word-break: break-all; }
+.prod { color: var(--miu-body); margin-top: 2px; }
+.loc { margin-top: 2px; font-weight: 600; }
+.loc i { color: var(--miu-muted); }
+.sub { color: var(--miu-muted); font-size: 12.5px; margin-top: 2px; }
+.pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 14px 0; font-size: 13px; color: var(--miu-muted); }
+.hist { width: 100%; border-collapse: collapse; font-size: 13px; }
+.hist th, .hist td { padding: 6px 6px; text-align: left; border-bottom: 1px solid var(--miu-hairline-soft); vertical-align: top; }
+.hist th { font-size: 12px; color: var(--miu-muted); }
+.hist tr.void td { text-decoration: line-through; color: var(--miu-muted-soft); }
+.mfield { margin-top: 12px; font-size: 13px; }
+.mfield label { display: block; margin-bottom: 4px; font-weight: 600; }
+.warnmsg { font-size: 13px; line-height: 1.6; margin-top: 10px; padding: 10px 12px; border-radius: var(--miu-r-md); background: color-mix(in srgb, var(--miu-error) 12%, transparent); color: #7a2a2a; }
+.infomsg { font-size: 13px; line-height: 1.6; margin-top: 10px; color: var(--miu-body); }
+.mbtn { height: 40px; padding: 0 16px; border-radius: var(--miu-r-md); border: none; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.mbtn.primary { background: var(--miu-primary); color: white; }
+.mbtn.danger { background: var(--miu-error); color: white; }
+.mbtn.ghost { background: transparent; color: var(--miu-body); }
+.mbtn:disabled { opacity: .5; cursor: default; }
+.miu-modal { max-width: 560px; }
+.miu-btn-sm { cursor: pointer; border: none; border-radius: var(--miu-r-md); display: inline-flex; align-items: center; gap: 4px; font-family: inherit; }
+.miu-btn-sm:disabled { opacity: .5; cursor: default; }
+</style>
+<script src="/miu-hub/shared/config.js?v=202611050636"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611050636"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611050636"></script>
+</head>
+<body>
+
+<header class="miu-header">
+  <a href="index.html" class="miu-header-back" aria-label="재고조사 시작 화면으로">
+    <i class="ph-bold ph-caret-left"></i>
+  </a>
+  <div class="miu-header-title">
+    <div class="miu-header-eyebrow">STOCKTAKE</div>
+    <h1 class="miu-header-h1">재고조사 결과</h1>
+  </div>
+</header>
+
+<div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
+
+<script src="js/common.js?v=202611050636"></script>
+<script>
+(function () {
+  const { esc, fmt, KIND, RES } = ST;
+  const root = document.getElementById('root');
+  const PAGE = 100;
+  const CHUNK = 1000;
+  const ACTIONABLE = ['open', 'found', 'lost', 'ignored'];
+  const COLS = 'barcode,kind,ledger_location,scanned_location,category,price,brand,product_name,scan_count,scanners,hangers,detail,prior_missing,resolution,resolved_by,resolved_at,note';
+  const KINDS = Object.keys(KIND).sort((a, b) => KIND[a].order - KIND[b].order);
+  const RES_TONE = { open: 'warn', found: 'success', ignored: 'muted', moved: 'primary', disposed: 'primary' };
+
+  const ACTIONS = {
+    location_diff: [
+      { label: '위치 정정 예약', icon: 'ph-arrows-left-right', primary: true, apply: true,
+        title: '위치 정정 예약', info: '스캔된 위치로 장부를 정정하는 이동을 예약해요. 오늘 22:00 자동 승인 뒤 장부(DB·엑셀)에 반영돼요.' },
+      { label: '문제 없음', icon: 'ph-check', res: 'ignored', title: '문제 없음 처리', note: true },
+    ],
+    missing: [
+      { label: '찾음 (미확인 해제)', icon: 'ph-magnifying-glass', res: 'found', title: '찾음 처리', note: true,
+        info: '현장에서 확인했어요. 미확인 표시만 풀리고 위치는 그대로예요.' },
+      { label: '분실 확정 (폐기)', icon: 'ph-trash', apply: true, to: '폐기', danger: true, note: true, title: '분실 확정 → 폐기',
+        warn: '장부에서 폐기 처리돼요. 오늘 22:00 자동 승인 뒤 반영되고, 이월 때 엑셀에서도 빠져요. 되돌리려면 별도 작업이 필요해요.' },
+    ],
+    missing_found: [
+      { label: '발견 처리', icon: 'ph-check-circle', primary: true, apply: true, title: '발견 처리',
+        info: '스캔된 위치가 장부 위치와 같으면 미확인 표시만 풀어요. 다르면 스캔된 위치로 정정 이동을 예약하고, 오늘 22:00 자동 승인 뒤 장부(DB·엑셀)에 반영되면서 미확인 표시가 풀려요.' },
+    ],
+  };
+  KINDS.forEach((k) => { if (!ACTIONS[k]) ACTIONS[k] = [{ label: '확인 완료', icon: 'ph-check', res: 'ignored', primary: true, title: '확인 완료 처리', note: true }]; });
+  const KIND_NOTICE = {
+    sold_scanned: '판매 정정·입고 누락은 아직 허브에서 처리하지 못해요. 별도로 고친 뒤 확인 완료를 눌러 주세요.',
+    unknown: '판매 정정·입고 누락은 아직 허브에서 처리하지 못해요. 별도로 고친 뒤 확인 완료를 눌러 주세요.',
+  };
+
+  const S = {
+    me: { isAdmin: false },
+    sessions: [], sid: null, session: null,
+    summary: null, locs: [], openCnt: {}, totalCnt: {},
+    kind: null, f: { res: 'open', loc: '', q: '' },
+    page: 0, total: 0, rows: [], sel: new Set(),
+    listErr: '', listBusy: false, token: 0, loadToken: 0,
+  };
+
+  // ---------- 유틸 ----------
+  const pct = (a, b) => (b > 0 ? (a / b * 100).toFixed(1) + '%' : '-');
+  const num = (n) => fmt(n);
+  const orQuote = (v) => '"' + String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+  const cleanSearch = (s) => String(s || '').replace(/[,()*%"\\]/g, ' ').replace(/\s+/g, ' ').trim();
+  const errMsg = (e) => (e && e.message) || '알 수 없는 오류가 났어요.';
+  const isActive = (r) => ACTIONABLE.includes(r.resolution);
+
+  function toast(msg, ms) {
+    document.querySelectorAll('.miu-toast').forEach((t) => t.remove());
+    const t = document.createElement('div');
+    t.className = 'miu-toast';
+    t.setAttribute('role', 'status');
+    t.textContent = msg;
+    t.style.maxWidth = '90vw';
+    t.style.textAlign = 'center';
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), ms || 5000);
+  }
+
+  // 모달: buttons=[{key,label,cls}], onButton(key, el) → false 이면 열어 둠. 닫기(취소)는 항상 닫힘.
+  function openModal({ title, body, buttons, onButton }) {
+    const ov = document.createElement('div');
+    ov.className = 'miu-overlay';
+    ov.innerHTML = `<div class="miu-modal" role="dialog" aria-modal="true">
+      <div class="miu-modal-head"><div class="miu-modal-title">${esc(title)}</div>
+        <button class="miu-icon-btn" data-k="__close" aria-label="닫기"><i class="ph-bold ph-x"></i></button></div>
+      <div class="miu-modal-body">${body}<div class="err" data-merr hidden></div></div>
+      <div class="miu-modal-actions">${(buttons || []).map((b) => `<button class="mbtn ${esc(b.cls || 'ghost')}" data-k="${esc(b.key)}">${esc(b.label)}</button>`).join('')}</div>
+    </div>`;
+    const close = () => { ov.remove(); document.removeEventListener('keydown', onKey); };
+    const onKey = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKey);
+    ov.addEventListener('mousedown', (e) => { if (e.target === ov) close(); });
+    ov.addEventListener('click', async (e) => {
+      const b = e.target.closest('[data-k]');
+      if (!b || !ov.contains(b)) return;
+      const k = b.dataset.k;
+      if (k === '__close' || k === 'cancel') { close(); return; }
+      const all = ov.querySelectorAll('.mbtn');
+      all.forEach((x) => { x.disabled = true; });
+      const errEl = ov.querySelector('[data-merr]');
+      errEl.hidden = true;
+      try {
+        const keep = onButton ? await onButton(k, ov) : true;
+        if (keep === false) all.forEach((x) => { x.disabled = false; }); else close();
+      } catch (er) {
+        errEl.textContent = errMsg(er);
+        errEl.hidden = false;
+        all.forEach((x) => { x.disabled = false; });
+      }
+    });
+    document.body.appendChild(ov);
+    return close;
+  }
+
+  // ---------- 쿼리 ----------
+  function resultsQuery(cols, opts, onlyActionable) {
+    let b = window.sb.from('stocktake_results').select(cols, opts).eq('session_id', S.sid).eq('kind', S.kind);
+    if (S.f.res !== 'all') b = b.eq('resolution', S.f.res);
+    if (onlyActionable) b = b.in('resolution', ACTIONABLE);
+    if (S.f.loc) { const v = orQuote(S.f.loc); b = b.or(`ledger_location.eq.${v},scanned_location.eq.${v}`); }
+    const s = cleanSearch(S.f.q);
+    if (s) b = b.or(`barcode.ilike.*${s}*,product_name.ilike.*${s}*`);
+    return b.order('barcode');
+  }
+
+  async function fetchAll(cols, onlyActionable) {
+    const out = [];
+    for (let from = 0; ; from += CHUNK) {
+      const { data, error } = await resultsQuery(cols, undefined, onlyActionable).range(from, from + CHUNK - 1);
+      if (error) throw new Error('목록을 불러오지 못했어요: ' + error.message);
+      out.push(...data);
+      if (data.length < CHUNK) break;
+    }
+    return out;
+  }
+
+  async function countOpen(kind) {
+    const { count, error } = await window.sb.from('stocktake_results').select('barcode', { count: 'exact', head: true })
+      .eq('session_id', S.sid).eq('kind', kind).eq('resolution', 'open');
+    if (error) throw new Error('미처리 건수를 불러오지 못했어요: ' + error.message);
+    return count || 0;
+  }
+
+  // ---------- 세션 로딩 ----------
+  async function init() {
+    try {
+      S.me = await ST.whoami();
+      const { data, error } = await window.sb.from('stocktake_sessions')
+        .select('id,session_date,status,note,started_by,started_at,closed_by,closed_at')
+        .eq('status', 'closed').order('started_at', { ascending: false }).limit(12);
+      if (error) throw new Error('조사 목록을 불러오지 못했어요: ' + error.message);
+      S.sessions = data || [];
+      const want = new URLSearchParams(location.search).get('session');
+      if (want) {
+        S.sid = want;
+        if (!S.sessions.some((s) => s.id === want)) {
+          const r = await window.sb.from('stocktake_sessions')
+            .select('id,session_date,status,note,started_by,started_at,closed_by,closed_at').eq('id', want).maybeSingle();
+          if (r.error) throw new Error('조사를 불러오지 못했어요: ' + r.error.message);
+          if (r.data) S.sessions = [r.data, ...S.sessions];
+        }
+      } else if (S.sessions.length) {
+        S.sid = S.sessions[0].id;
+      }
+      if (!S.sid) {
+        root.innerHTML = `<div class="empty">마감된 재고조사가 아직 없어요.<br><a href="index.html">재고조사 시작 화면으로</a></div>`;
+        return;
+      }
+      await loadSession();
+    } catch (e) { showFatal(e); }
+  }
+
+  function showFatal(e) {
+    root.innerHTML = `<div class="err">${esc(errMsg(e))}</div><div class="empty"><button class="miu-btn-sm miu-btn-secondary" data-a="reload">다시 시도</button></div>`;
+  }
+
+  function sessionSelectHtml() {
+    const opts = S.sessions.map((s) => {
+      const st = s.status === 'closed' ? '' : s.status === 'in_progress' ? ' (진행 중)' : ' (취소됨)';
+      return `<option value="${esc(s.id)}" ${s.id === S.sid ? 'selected' : ''}>${esc(ST.md(s.session_date))}${esc(st)}${s.note ? ' · ' + esc(s.note) : ''}</option>`;
+    }).join('');
+    const missing = S.sessions.some((s) => s.id === S.sid) ? '' : `<option value="${esc(S.sid)}" selected>선택한 조사</option>`;
+    return `<div class="sel-session"><label for="sessSel" style="font-size:13px;font-weight:600">조사</label><select id="sessSel">${missing}${opts}</select></div>`;
+  }
+
+  async function loadSession() {
+    const my = ++S.loadToken;
+    S.session = S.sessions.find((s) => s.id === S.sid) || null;
+    S.summary = null; S.locs = []; S.openCnt = {}; S.totalCnt = {};
+    S.sel = new Set(); S.rows = []; S.total = 0; S.page = 0; S.kind = null;
+    S.f = { res: 'open', loc: '', q: '' }; S.listErr = '';
+    root.innerHTML = sessionSelectHtml() + `<div class="empty">불러오는 중…</div>`;
+    try {
+      if (!S.session) { root.innerHTML = sessionSelectHtml() + `<div class="empty">찾을 수 없는 조사예요.<br><a href="index.html">재고조사 시작 화면으로</a></div>`; return; }
+      if (S.session.status !== 'closed') {
+        const what = S.session.status === 'in_progress' ? '아직 진행 중인 조사라 결과가 없어요. 모든 위치를 마감하고 조사를 닫으면 결과가 만들어져요.' : '취소된 조사라 결과가 없어요.';
+        root.innerHTML = sessionSelectHtml() + `<div class="empty">${esc(what)}<br><a href="admin.html">관리 화면으로</a></div>`;
+        return;
+      }
+      const [summary, progress, locRes] = await Promise.all([
+        ST.rpc('stocktake_summary', { p_session: S.sid }),
+        ST.rpc('stocktake_progress', { p_session: S.sid }),
+        window.sb.from('stocktake_locations').select('location,expected_count,state,virtual,done_by,done_at,skip_reason').eq('session_id', S.sid).order('location'),
+      ]);
+      if (locRes.error) throw new Error('위치 목록을 불러오지 못했어요: ' + locRes.error.message);
+      const prog = new Map((progress || []).map((p) => [p.location, p]));
+      S.locs = (locRes.data || []).map((l) => ({ ...l, ok: Number(prog.get(l.location)?.ok || 0) }));
+      S.summary = summary || {};
+      const counts = await Promise.all(KINDS.map(countOpen));
+      if (my !== S.loadToken) return;
+      KINDS.forEach((k, i) => { S.openCnt[k] = counts[i]; S.totalCnt[k] = Number((S.summary.kinds || {})[k] || 0); });
+      S.kind = KINDS.find((k) => S.openCnt[k] > 0) || KINDS.find((k) => S.totalCnt[k] > 0) || KINDS[0];
+      renderAll();
+      await loadList();
+    } catch (e) {
+      if (my !== S.loadToken) return;
+      root.innerHTML = sessionSelectHtml() + `<div class="err">${esc(errMsg(e))}</div><div class="empty"><button class="miu-btn-sm miu-btn-secondary" data-a="reload">다시 시도</button></div>`;
+    }
+  }
+
+  // ---------- 렌더 ----------
+  function summaryHtml() {
+    const s = S.session, sm = S.summary;
+    const done = S.locs.filter((l) => l.state === 'done' && !l.virtual);
+    const skipped = S.locs.filter((l) => l.state === 'skipped');
+    const den = done.reduce((a, l) => a + Number(l.expected_count || 0), 0);
+    const okSum = done.reduce((a, l) => a + l.ok, 0);
+    const rows = done.map((l) => `<tr><td>${esc(l.location)}</td><td>${num(l.expected_count)}</td><td>${num(l.ok)}</td><td>${pct(l.ok, Number(l.expected_count || 0))}</td></tr>`).join('');
+    return `<div class="card">
+      <h2>${esc(ST.md(s.session_date))} 재고조사</h2>
+      <div class="meta">진행 ${esc(s.started_by || '-')} · 시작 ${esc(s.started_at ? ST.kstDateTime(s.started_at) : '-')}<br>
+        닫은 사람 ${esc(s.closed_by || '-')} · ${esc(s.closed_at ? ST.kstDateTime(s.closed_at) : '-')}${s.note ? '<br>메모: ' + esc(s.note) : ''}</div>
+      <div class="stats">
+        <div class="stat"><div class="k">장부</div><div class="v">${num(sm.expected)}</div></div>
+        <div class="stat"><div class="k">스캔(고유)</div><div class="v">${num(sm.scanned)}</div></div>
+        <div class="stat"><div class="k">일치</div><div class="v">${num(sm.ok)}</div></div>
+        <div class="stat"><div class="k">일치율</div><div class="v">${pct(okSum, den)}<small>${num(okSum)} / ${num(den)}</small></div></div>
+      </div>
+      ${skipped.length ? `<div class="meta" style="margin:10px 0 0">건너뜀 ${skipped.length}곳 (일치율 계산에서 제외): ${esc(skipped.map((l) => l.location).join(', '))}</div>` : ''}
+      ${Number(sm.listed) > 0 ? `<div class="meta" style="margin:10px 0 0">목록 제출 기준 ${num(sm.listed)}건 포함 — 실물 확인 없이 목록으로 "있음" 처리된 물건이에요.</div>` : ''}
+      ${rows ? `<table class="mini"><thead><tr><th>위치</th><th>장부</th><th>일치</th><th>일치율</th></tr></thead><tbody>${rows}</tbody></table>` : ''}
+    </div>`;
+  }
+
+  function tabsHtml() {
+    return `<div class="tabs" role="tablist">${KINDS.map((k) => {
+      const o = S.openCnt[k] || 0, t = S.totalCnt[k] || 0;
+      return `<button class="tab ${k === S.kind ? 'on' : ''}${t === 0 ? ' zero' : ''}" role="tab" data-kind="${esc(k)}">${esc(KIND[k].label)}<span class="n">${o > 0 ? `<b>${num(o)}</b>` : '0'} / ${num(t)}</span></button>`;
+    }).join('')}</div>`;
+  }
+
+  function filtersHtml() {
+    const resOpts = [['open', '미처리'], ['all', '전체'], ...['found', 'ignored', 'moved', 'disposed'].map((k) => [k, RES[k]])];
+    return `<div class="filters">
+      <select id="fRes" aria-label="처리 상태">${resOpts.map(([v, l]) => `<option value="${esc(v)}" ${S.f.res === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
+      <select id="fLoc" aria-label="위치"><option value="">모든 위치</option>${S.locs.map((l) => `<option value="${esc(l.location)}" ${S.f.loc === l.location ? 'selected' : ''}>${esc(l.location)}</option>`).join('')}</select>
+      <input type="search" id="fQ" placeholder="바코드·상품명 검색" value="${esc(S.f.q)}" aria-label="검색">
+      <button class="miu-btn-sm miu-btn-secondary" data-a="csv"><i class="ph-bold ph-download-simple"></i>CSV 내려받기</button>
+    </div>`;
+  }
+
+  function renderAll() {
+    root.innerHTML = sessionSelectHtml() + summaryHtml() + `<div id="tabsBox">${tabsHtml()}</div>
+      <div id="kindBox"></div>${filtersHtml()}<div id="selBox"></div><div id="listBox"></div><div id="pagerBox"></div>`;
+    renderKindBox();
+  }
+
+  function renderKindBox() {
+    const k = S.kind;
+    document.getElementById('kindBox').innerHTML = `<div class="desc">${esc(KIND[k].desc)}</div>${KIND_NOTICE[k] && S.me.isAdmin ? `<div class="note-box">${esc(KIND_NOTICE[k])}</div>` : ''}${S.me.isAdmin ? '' : '<div class="desc" style="color:var(--miu-muted)">조회 전용이에요. 처리는 관리자만 할 수 있어요.</div>'}`;
+  }
+
+  function chipsFor(r) {
+    const c = [];
+    if (r.prior_missing && r.kind !== 'missing_found') c.push(`<span class="miu-chip danger" title="이전 조사에서도 안 나온 물건이에요. 분실 가능성이 높아요">연속 미스캔</span>`);
+    c.push(`<span class="miu-chip ${RES_TONE[r.resolution] || 'muted'}">${esc(RES[r.resolution] || r.resolution)}</span>`);
+    return c.join('');
+  }
+
+  function rowHtml(r, i) {
+    const k = r.kind;
+    let loc = '';
+    if (k === 'location_diff') loc = `${esc(r.ledger_location || '-')} <i class="ph-bold ph-arrow-right"></i> ${esc(r.scanned_location || '-')}`;
+    else if (k === 'missing') loc = esc(r.ledger_location || '-');
+    else if (r.ledger_location || r.scanned_location) loc = `장부 ${esc(r.ledger_location || '-')} · 스캔 ${esc(r.scanned_location || '-')}`;
+    const prod = [r.category, r.brand, r.product_name].filter(Boolean).map(esc).join(' · ');
+    const price = r.price != null ? ` · ${num(r.price)}원` : '';
+    const clues = [];
+    if (r.scan_count != null) clues.push(`스캔 ${num(r.scan_count)}회`);
+    if (r.scanners) clues.push(esc(r.scanners));
+    if (r.hangers) clues.push('행거 ' + esc(r.hangers));
+    const resInfo = [r.resolved_by ? esc(r.resolved_by) : '', r.resolved_at ? esc(ST.kstDateTime(r.resolved_at)) : '', r.note ? '메모: ' + esc(r.note) : ''].filter(Boolean).join(' · ');
+    const checked = S.sel.has(r.barcode);
+    return `<div class="r ${checked ? 'sel' : ''}" data-i="${i}">
+      <div class="ck">${S.me.isAdmin ? `<input type="checkbox" data-ck="${i}" ${checked ? 'checked' : ''} ${isActive(r) ? '' : 'disabled'} aria-label="선택">` : ''}</div>
+      <div class="rb" data-open="${i}">
+        <div class="l1"><span class="bc">${esc(r.barcode)}</span>${chipsFor(r)}</div>
+        <div class="prod">${prod}${price}</div>
+        ${loc ? `<div class="loc">${loc}</div>` : ''}
+        ${clues.length ? `<div class="sub">${clues.join(' · ')}</div>` : ''}
+        ${r.detail ? `<div class="sub">${esc(r.detail)}</div>` : ''}
+        ${resInfo ? `<div class="sub">${resInfo}</div>` : ''}
+      </div></div>`;
+  }
+
+  function renderList() {
+    const box = document.getElementById('listBox');
+    if (!box) return;
+    if (S.listErr) { box.innerHTML = `<div class="err">${esc(S.listErr)}</div><div class="empty"><button class="miu-btn-sm miu-btn-secondary" data-a="relist">다시 시도</button></div>`; }
+    else if (S.listBusy && !S.rows.length) box.innerHTML = '<div class="empty">불러오는 중…</div>';
+    else if (!S.rows.length) box.innerHTML = '<div class="empty">조건에 맞는 항목이 없어요.</div>';
+    else box.innerHTML = `<div class="list">${S.rows.map(rowHtml).join('')}</div>`;
+    const pages = Math.max(1, Math.ceil(S.total / PAGE));
+    document.getElementById('pagerBox').innerHTML = S.total > PAGE
+      ? `<div class="pager"><button class="miu-btn-sm miu-btn-secondary" data-a="prev" ${S.page === 0 ? 'disabled' : ''}>이전</button>
+         <span>${num(S.page * PAGE + 1)}–${num(Math.min(S.total, (S.page + 1) * PAGE))} / 총 ${num(S.total)}건 (${S.page + 1}/${pages}쪽)</span>
+         <button class="miu-btn-sm miu-btn-secondary" data-a="next" ${S.page + 1 >= pages ? 'disabled' : ''}>다음</button></div>`
+      : (S.total ? `<div class="pager">총 ${num(S.total)}건</div>` : '');
+    renderSelbar();
+  }
+
+  function renderSelbar() {
+    const box = document.getElementById('selBox');
+    if (!box) return;
+    if (!S.me.isAdmin || !S.rows.length) { box.innerHTML = ''; return; }
+    const selectable = S.rows.filter(isActive);
+    const allOnPage = selectable.length > 0 && selectable.every((r) => S.sel.has(r.barcode));
+    const n = S.sel.size;
+    box.innerHTML = `<div class="selbar">
+      <label><input type="checkbox" id="ckPage" ${allOnPage ? 'checked' : ''} ${selectable.length ? '' : 'disabled'}>이 페이지</label>
+      <button class="miu-btn-sm miu-btn-secondary" data-a="selAll">필터 결과 전체 ${num(S.total)}건 선택</button>
+      ${n ? `<span><b>${num(n)}건</b> 선택됨</span><button class="miu-btn-sm miu-btn-ghost" data-a="selClear">선택 해제</button>` : ''}
+      <span class="sp"></span>
+      ${n ? `<div class="acts">${ACTIONS[S.kind].map((a, i) => `<button class="miu-btn-sm ${a.primary ? 'miu-btn-primary' : 'miu-btn-secondary'}" data-act="${i}"><i class="ph-bold ${esc(a.icon)}"></i>${esc(a.label)}</button>`).join('')}</div>` : ''}
+    </div>`;
+  }
+
+  async function loadList() {
+    const my = ++S.token;
+    S.listBusy = true; S.listErr = '';
+    renderList();
+    try {
+      const { data, error, count } = await resultsQuery(COLS, { count: 'exact' }).range(S.page * PAGE, S.page * PAGE + PAGE - 1);
+      if (my !== S.token) return;
+      if (error) throw new Error('목록을 불러오지 못했어요: ' + error.message);
+      S.rows = data || [];
+      S.total = count || 0;
+      if (!S.rows.length && S.page > 0 && S.total > 0) { S.page = Math.max(0, Math.ceil(S.total / PAGE) - 1); S.listBusy = false; return loadList(); }
+    } catch (e) {
+      if (my !== S.token) return;
+      S.rows = []; S.total = 0; S.listErr = errMsg(e);
+    }
+    S.listBusy = false;
+    renderList();
+  }
+
+  function resetListState() { S.sel = new Set(); S.page = 0; }
+
+  async function refreshCounts() {
+    const counts = await Promise.all(KINDS.map(countOpen));
+    KINDS.forEach((k, i) => { S.openCnt[k] = counts[i]; });
+    const box = document.getElementById('tabsBox');
+    if (box) box.innerHTML = tabsHtml();
+  }
+
+  // ---------- 상세 ----------
+  async function showDetail(r) {
+    const head = `<div class="l1"><span class="bc">${esc(r.barcode)}</span>${chipsFor(r)}</div>
+      <div class="prod">${[r.category, r.brand, r.product_name].filter(Boolean).map(esc).join(' · ')}${r.price != null ? ' · ' + num(r.price) + '원' : ''}</div>
+      <div class="sub">장부 ${esc(r.ledger_location || '-')} · 스캔 ${esc(r.scanned_location || '-')}${r.hangers ? ' · 행거 ' + esc(r.hangers) : ''}</div>
+      ${r.detail ? `<div class="sub">${esc(r.detail)}</div>` : ''}`;
+    openModal({ title: '스캔 이력', body: head + '<div id="histBox" style="margin-top:12px"><div class="empty" style="padding:24px">불러오는 중…</div></div>', buttons: [{ key: 'cancel', label: '닫기', cls: 'ghost' }] });
+    const box = document.getElementById('histBox');
+    try {
+      const h = await ST.rpc('stocktake_item_history', { p_session: S.sid, p_barcode: r.barcode });
+      if (!box.isConnected) return;
+      box.innerHTML = (h && h.length)
+        ? `<table class="hist"><thead><tr><th>위치</th><th>담당자</th><th>행거</th><th>시각</th><th></th></tr></thead><tbody>${h.map((x) => `<tr class="${x.voided ? 'void' : ''}"><td>${esc(x.location)}</td><td>${esc(x.by)}</td><td>${esc(x.hanger ?? '')}</td><td>${esc(x.at ? ST.kstDateTime(x.at) : '')}</td><td>${x.voided ? '<span class="miu-chip muted">취소됨</span>' : ''}</td></tr>`).join('')}</tbody></table>`
+        : '<div class="empty" style="padding:24px">스캔 기록이 없어요. (미스캔 물건)</div>';
+    } catch (e) {
+      if (box.isConnected) box.innerHTML = `<div class="err">${esc(errMsg(e))}</div>`;
+    }
+  }
+
+  // ---------- 처리 ----------
+  function confirmAction(a, barcodes) {
+    const n = barcodes.length;
+    const body = `<div><b>${esc(KIND[S.kind].label)}</b> ${num(n)}건을 <b>${esc(a.label)}</b>(으)로 처리할까요?</div>
+      ${a.info ? `<div class="infomsg">${esc(a.info)}</div>` : ''}
+      ${a.warn ? `<div class="warnmsg"><i class="ph-bold ph-warning"></i> ${esc(a.warn)}</div>` : ''}
+      ${a.note ? `<div class="mfield"><label for="mNote">메모 (선택)</label><textarea id="mNote" maxlength="500"></textarea></div>` : ''}`;
+    openModal({
+      title: a.title, body,
+      buttons: [{ key: 'cancel', label: '취소', cls: 'ghost' }, { key: 'ok', label: `${num(n)}건 ${a.label}`, cls: a.danger ? 'danger' : 'primary' }],
+      onButton: async (k, ov) => {
+        const note = a.note ? (ov.querySelector('#mNote').value || '').trim() : '';
+        const msg = await runAction(a, barcodes, note);
+        S.sel = new Set();
+        toast(msg, a.apply ? 9000 : 5000);
+        try { await refreshCounts(); } catch (e) { toast(errMsg(e)); }
+        await loadList();
+        return true;
+      },
+    });
+  }
+
+  async function runAction(a, barcodes, note) {
+    if (a.apply) {
+      const args = { p_session: S.sid, p_kind: S.kind, p_barcodes: barcodes };
+      if (a.to) args.p_to = a.to;
+      if (note) args.p_note = note;
+      const r = await ST.rpc('stocktake_apply_moves', args) || {};
+      const moved = Number(r.moved || 0), skipped = Number(r.skipped || 0), inPlace = Number(r.in_place || 0);
+      const tail = (inPlace ? ` ${num(inPlace)}건은 같은 위치라 미확인 표시만 풀었어요.` : '') + (skipped ? ` ${num(skipped)}건은 그 사이 장부가 바뀌어 건너뜀` : '');
+      return a.to
+        ? `${num(moved)}건 ${a.to} 이동 예약됨 — 오늘 22:00 자동 승인 뒤 장부에 반영돼요.${tail}`
+        : `${num(moved)}건 정정 예약됨 — 오늘 22:00 자동 승인 뒤 장부에 반영돼요.${tail}`;
+    }
+    const n = await ST.rpc('stocktake_resolve', { p_session: S.sid, p_kind: S.kind, p_barcodes: barcodes, p_resolution: a.res, p_note: note || null });
+    return `${num(n)}건 ${RES[a.res]} 처리됨`;
+  }
+
+  async function selectAllFiltered(btn) {
+    btn.disabled = true;
+    toast('전체 목록을 가져오는 중…', 60000);
+    try {
+      const all = await fetchAll('barcode,resolution', true);
+      S.sel = new Set(all.map((r) => r.barcode));
+      toast(`처리 가능한 ${num(S.sel.size)}건을 선택했어요`);
+      renderList();
+    } catch (e) {
+      toast(errMsg(e), 8000);
+      btn.disabled = false;
+    }
+  }
+
+  // ---------- CSV ----------
+  async function downloadCsv(btn) {
+    btn.disabled = true;
+    toast('전체 목록을 가져오는 중…', 60000);
+    try {
+      const all = await fetchAll(COLS, false);
+      if (!all.length) { toast('내려받을 항목이 없어요'); return; }
+      const head = ['종류', '바코드', '카테고리', '브랜드', '상품명', '가격', '장부위치', '스캔위치', '스캔횟수', '담당자', '행거', '연속미스캔', '처리상태', '메모'];
+      const lines = [head.map(ST.csvCell).join(',')];
+      all.forEach((r) => lines.push([
+        KIND[r.kind]?.label || r.kind, r.barcode, r.category, r.brand, r.product_name, r.price, r.ledger_location, r.scanned_location,
+        r.scan_count, r.scanners, r.hangers, r.prior_missing ? '예' : '', RES[r.resolution] || r.resolution, r.note,
+      ].map(ST.csvCell).join(',')));
+      const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `재고조사_${S.session.session_date}_${KIND[S.kind].label}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      toast(`${num(all.length)}건을 내려받았어요`);
+    } catch (e) {
+      toast(errMsg(e), 8000);
+    } finally { btn.disabled = false; }
+  }
+
+  // ---------- 이벤트 ----------
+  root.addEventListener('click', (e) => {
+    const t = e.target;
+    const tab = t.closest('[data-kind]');
+    if (tab) {
+      S.kind = tab.dataset.kind; S.f = { res: 'open', loc: '', q: '' }; resetListState();
+      document.getElementById('tabsBox').innerHTML = tabsHtml();
+      renderKindBox();
+      const fb = document.querySelector('.filters'); if (fb) fb.outerHTML = filtersHtml();
+      loadList();
+      return;
+    }
+    const ck = t.closest('[data-ck]');
+    if (ck) return; // change 이벤트에서 처리
+    const act = t.closest('[data-act]');
+    if (act) {
+      const a = ACTIONS[S.kind][Number(act.dataset.act)];
+      if (a && S.sel.size) confirmAction(a, [...S.sel]);
+      return;
+    }
+    const op = t.closest('[data-open]');
+    if (op) { const r = S.rows[Number(op.dataset.open)]; if (r) showDetail(r); return; }
+    const b = t.closest('[data-a]');
+    if (!b) return;
+    switch (b.dataset.a) {
+      case 'reload': location.reload(); break;
+      case 'relist': loadList(); break;
+      case 'prev': if (S.page > 0) { S.page--; loadList(); } break;
+      case 'next': S.page++; loadList(); break;
+      case 'selAll': selectAllFiltered(b); break;
+      case 'selClear': S.sel = new Set(); renderList(); break;
+      case 'csv': downloadCsv(b); break;
+    }
+  });
+
+  let qTimer = null;
+  const applyFilter = () => { resetListState(); loadList(); };
+  root.addEventListener('change', (e) => {
+    const t = e.target;
+    if (t.id === 'sessSel') {
+      S.sid = t.value;
+      history.replaceState(null, '', '?session=' + encodeURIComponent(S.sid));
+      loadSession();
+    } else if (t.id === 'fRes') { S.f.res = t.value; applyFilter(); }
+    else if (t.id === 'fLoc') { S.f.loc = t.value; applyFilter(); }
+    else if (t.id === 'ckPage') {
+      S.rows.filter(isActive).forEach((r) => { if (t.checked) S.sel.add(r.barcode); else S.sel.delete(r.barcode); });
+      renderList();
+    } else if (t.dataset && t.dataset.ck !== undefined) {
+      const r = S.rows[Number(t.dataset.ck)];
+      if (!r) return;
+      if (t.checked) S.sel.add(r.barcode); else S.sel.delete(r.barcode);
+      t.closest('.r').classList.toggle('sel', t.checked);
+      renderSelbar();
+    }
+  });
+  root.addEventListener('input', (e) => {
+    if (e.target.id !== 'fQ') return;
+    clearTimeout(qTimer);
+    const v = e.target.value;
+    qTimer = setTimeout(() => { S.f.q = v; applyFilter(); }, 350);
+  });
+
+  init();
+})();
+</script>
+</body>
+</html>

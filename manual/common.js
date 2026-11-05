@@ -15,16 +15,15 @@ const weekdaysLabel = (wd) => (wd ? wd.slice().sort((a, b) => a - b).map((n) => 
 const appliesOn = (item, store, date) => (item.store === null || item.store === store)
   && (!item.weekdays || item.weekdays.includes(isoDow(date)));
 
-// 성수 = 본점(근무자 항상 1명). 그 밖의 활성 위치 = 키오스크(무인 팝업) 매장이고, 철수하면 위치가 비활성이 되어 목록에서 빠진다.
+// 성수 = 본점(근무자 항상 1명). 그 밖의 활성 매장(locations.kind='store') = 키오스크(무인 팝업) 매장이고, 철수하면 위치가 비활성이 되어 목록에서 빠진다.
 // 매장 추가/철수는 허브 기존 흐름(통합 관리 → 매장 추가 / 매장 현황판 → 철수완료)이 `locations`를 바꾸는 것이 전부다.
-// 매장이 아닌 위치만 여기서 뺀다(물류·온라인·폐기·재봉합). 새로 생기는 비매장 위치가 있으면 이 목록에 추가.
+// 창고·최종 처리 위치는 종류(kind)로 걸러지므로 이 파일에 위치 이름 목록을 두지 않는다.
 const HEAD_STORE = '성수';
-const NON_STORE = ['공동물류', '온라인', '폐기', '재봉합부천', '재봉합성수'];
 const storeLabel = (s) => (s === HEAD_STORE ? '성수 본점' : s);
 async function loadStores() {
-  const { data, error } = await window.sb.from('locations').select('name').eq('is_active', true).order('name');
+  const { data, error } = await window.sb.from('locations').select('name').eq('is_active', true).eq('kind', 'store').order('name');
   if (error) throw error;
-  const names = data.map((r) => r.name).filter((n) => !NON_STORE.includes(n));
+  const names = data.map((r) => r.name);
   return [...names.filter((n) => n === HEAD_STORE), ...names.filter((n) => n !== HEAD_STORE)];
 }
 
