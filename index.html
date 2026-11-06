@@ -618,16 +618,16 @@ document.getElementById('today-label').textContent =
     const dw = days[new Date(data[0].sale_date + 'T00:00:00Z').getUTCDay()];
     const sum = (k) => data.reduce((s, r) => s + Number(r[k]), 0);
     const sales = sum('sales'), prev = sum('prev_sales'), items = sum('items');
-    // 최근 3일 판매가 없는 매장(철수 등, active=false)은 목록에서만 빼고 지난주 매출은 합계 비교에 포함한다.
+    // 최근 3일 판매가 없는 매장(철수 등, active=false)은 목록에서만 빼고 지난주 매출은 합계 비교에 포함한다. 포함된 사실은 합계 줄 아래에 밝힌다.
     const gone = data.filter((r) => !r.active && Number(r.prev_sales) > 0);
     const goneNote = gone.length
-      ? `<div class="sales-vis">${gone.map((r) => `${escH(r.store)} 영업 없음(지난주 ${won(Number(r.prev_sales))} 포함)`).join(' · ')}</div>`
+      ? `<div class="sales-vis">지난주 매출에 ${gone.map((r) => `${escH(r.store)} ${won(Number(r.prev_sales))}`).join(' · ')} 포함</div>`
       : '';
     document.getElementById('sales-eyebrow').textContent = `어제 ${+m}/${+dd}(${dw}) 매출 · 현금 포함`;
     document.getElementById('sales-total').textContent = won(sales);
-    document.getElementById('sales-sub').innerHTML = prev > 0
+    document.getElementById('sales-sub').innerHTML = (prev > 0
       ? `지난주 ${dw}요일 대비 ${delta(sales, prev)} (${sales - prev >= 0 ? '+' : '-'}${won(Math.abs(sales - prev))}) · ${items}벌`
-      : `${items}벌`;
+      : `${items}벌`) + goneNote;
     // 성수 본점 줄 아래: 방문객 · 구매 전환율(RPC home_store_conversion). 실패하거나 어제 방문객이 없으면 줄을 만들지 않는다.
     let cv = null;
     try { const r = await window.sb.rpc('home_store_conversion'); if (!r.error && r.data && r.data[0]) cv = r.data[0]; } catch (e) { /* 줄만 생략 */ }
@@ -650,7 +650,7 @@ document.getElementById('today-label').textContent =
       return html;
     };
     document.getElementById('sales-stores').innerHTML = data.filter((r) => r.active).map((r) =>
-      `<div class="sales-row"><span class="nm">${escH(r.store)}</span><span class="amt">${won(Number(r.sales))}</span>${delta(Number(r.sales), Number(r.prev_sales))}</div>${convLine(r)}`).join('') + goneNote;
+      `<div class="sales-row"><span class="nm">${escH(r.store)}</span><span class="amt">${won(Number(r.sales))}</span>${delta(Number(r.sales), Number(r.prev_sales))}</div>${convLine(r)}`).join('');
     card.style.display = 'block';
   } catch (e) { console.error('[home] 어제 매출 카드 실패:', e); }
 })();
