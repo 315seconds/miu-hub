@@ -618,6 +618,11 @@ document.getElementById('today-label').textContent =
     const dw = days[new Date(data[0].sale_date + 'T00:00:00Z').getUTCDay()];
     const sum = (k) => data.reduce((s, r) => s + Number(r[k]), 0);
     const sales = sum('sales'), prev = sum('prev_sales'), items = sum('items');
+    // 최근 3일 판매가 없는 매장(철수 등, active=false)은 목록에서만 빼고 지난주 매출은 합계 비교에 포함한다.
+    const gone = data.filter((r) => !r.active && Number(r.prev_sales) > 0);
+    const goneNote = gone.length
+      ? `<div class="sales-vis">${gone.map((r) => `${escH(r.store)} 영업 없음(지난주 ${won(Number(r.prev_sales))} 포함)`).join(' · ')}</div>`
+      : '';
     document.getElementById('sales-eyebrow').textContent = `어제 ${+m}/${+dd}(${dw}) 매출 · 현금 포함`;
     document.getElementById('sales-total').textContent = won(sales);
     document.getElementById('sales-sub').innerHTML = prev > 0
@@ -644,8 +649,8 @@ document.getElementById('today-label').textContent =
       }
       return html;
     };
-    document.getElementById('sales-stores').innerHTML = data.map((r) =>
-      `<div class="sales-row"><span class="nm">${escH(r.store)}</span><span class="amt">${won(Number(r.sales))}</span>${delta(Number(r.sales), Number(r.prev_sales))}</div>${convLine(r)}`).join('');
+    document.getElementById('sales-stores').innerHTML = data.filter((r) => r.active).map((r) =>
+      `<div class="sales-row"><span class="nm">${escH(r.store)}</span><span class="amt">${won(Number(r.sales))}</span>${delta(Number(r.sales), Number(r.prev_sales))}</div>${convLine(r)}`).join('') + goneNote;
     card.style.display = 'block';
   } catch (e) { console.error('[home] 어제 매출 카드 실패:', e); }
 })();
