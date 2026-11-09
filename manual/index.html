@@ -6,14 +6,14 @@
 <title>매장 업무 — 마켓인유</title>
 <meta name="theme-color" content="#faf9f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611050636">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611050636">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611090601">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611090601">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
-<link rel="stylesheet" href="/miu-hub/manual/manual.css?v=202611050636">
-<script src="/miu-hub/shared/config.js?v=202611050636"></script>
+<link rel="stylesheet" href="/miu-hub/manual/manual.css?v=202611090601">
+<script src="/miu-hub/shared/config.js?v=202611090601"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611050636"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611050636"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611090601"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611090601"></script>
 </head>
 <body>
 
@@ -30,7 +30,7 @@
 
 <div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
 
-<script src="/miu-hub/manual/common.js?v=202611050636"></script>
+<script src="/miu-hub/manual/common.js?v=202611090601"></script>
 <script>
 const root = document.getElementById('root');
 const LS_STORE = 'miu-manual-store';
@@ -38,6 +38,9 @@ const LS_STORE = 'miu-manual-store';
 let role = null, uid = null, today = '', stores = [], store = '';
 let items = [], checks = new Map(), allChecks = new Map(), notes = [], articles = [];
 let visitors = null;   // 성수 본점 오늘 방문자 수 행(없으면 null)
+let photo = null, photoUrl = '';   // 키오스크 매장: 오늘 올린 정리 완료 사진(행, 서명 URL)
+let story = { fresh: null, allSet: [], date: '', urls: new Map() };   // 성수 본점: 인스타 스토리 이미지
+let uploading = false;
 let tab = 'check', query = '', cat = '';
 
 // ── 데이터 ─────────────────────────────────────────────
@@ -83,7 +86,7 @@ async function loadArticles() {
 }
 async function refreshDay() {
   today = await serverToday();
-  await Promise.all([loadChecks(), loadNotes(), loadVisitors()]);
+  await Promise.all([loadChecks(), loadNotes(), loadVisitors(), loadMedia()]);
 }
 
 // ── 화면 ───────────────────────────────────────────────
@@ -143,6 +146,7 @@ function renderCheck() {
       <div class="vis-row"><input type="number" id="visitor-input" inputmode="numeric" min="0" step="1" placeholder="하루 총 방문자 수" value="${esc(vDraft ?? visitors?.visitors ?? '')}"><button class="btn" id="visitor-save">저장</button></div>
       <div class="vis-meta">${visitors ? `${esc(visitors.updated_by)} · ${hhmm(visitors.updated_at)} 저장 · ` : ''}영업 마감 후 하루 총합을 적어 주세요. 다시 저장하면 덮어써요.</div>
     </section>` : '';
+  const mediaHtml = store === HEAD_STORE ? storyCardHtml() : photoCardHtml();
   // 메모: 날짜별
   const byDay = [];
   for (const n of notes) {
@@ -169,6 +173,7 @@ function renderCheck() {
     </div>
     ${checkHtml}
     ${visitorHtml}
+    ${mediaHtml}
     <section class="notes">
       <div class="group-head"><span class="label">${esc(storeLabel(store))} 특이사항 메모</span><span class="divider"></span></div>
       <textarea id="note-text" maxlength="2000" placeholder="행거 고장, 손님 문의, 인수인계할 내용 등 그날의 특이사항을 적어 주세요"></textarea>
@@ -181,13 +186,135 @@ function renderCheck() {
     if (b.dataset.store === store) return;
     store = b.dataset.store; localStorage.setItem(LS_STORE, store);
     document.getElementById('note-text').value = '';   // 다른 매장에 잘못 남기지 않게 초안 비움
-    try { await Promise.all([loadChecks(), loadNotes()]); } catch (err) { toast(errMsg(err), true); }
+    try { await Promise.all([loadChecks(), loadNotes(), loadMedia()]); } catch (err) { toast(errMsg(err), true); }
     renderCheck();
   }));
   document.querySelectorAll('.check').forEach((b) => b.addEventListener('click', () => toggle(b.dataset.id)));
   document.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', () => delNote(b.dataset.del)));
   document.getElementById('note-add').addEventListener('click', addNote);
   document.getElementById('visitor-save')?.addEventListener('click', saveVisitors);
+  document.getElementById('photo-input')?.addEventListener('change', (e) => uploadPhoto(e.target.files[0]));
+  document.querySelectorAll('[data-save]').forEach((b) => b.addEventListener('click', () => saveImage(b.dataset.save, b.dataset.name)));
+}
+
+// ── 인스타 스토리 이미지 ───────────────────────────────
+// 키오스크 매장: 정리 완료 사진을 올린다(22시까지, 매장당 하루 1장). 성수 본점: VM이 만든 신규 입고·정리 완료 이미지를 받는다.
+const BUCKET = 'store-stories';
+async function signedUrls(paths) {
+  if (!paths.length) return new Map();
+  const { data, error } = await sb.storage.from(BUCKET).createSignedUrls(paths, 3600);
+  if (error) throw error;
+  return new Map(data.map((r) => [r.path, r.signedUrl]));
+}
+async function loadMedia() {
+  if (store === HEAD_STORE) {
+    const [a, b] = await Promise.all([
+      sb.from('story_images').select('*').eq('kind', 'new_arrivals').eq('work_date', today).maybeSingle(),
+      sb.from('story_images').select('*').eq('kind', 'all_set').order('work_date', { ascending: false }).limit(20),
+    ]);
+    if (a.error) throw a.error;
+    if (b.error) throw b.error;
+    const date = b.data[0]?.work_date || '';
+    const allSet = b.data.filter((r) => r.work_date === date);
+    const urls = await signedUrls([a.data?.path, ...allSet.map((r) => r.path)].filter(Boolean));
+    story = { fresh: a.data, allSet, date, urls };
+  } else {
+    const { data, error } = await sb.from('store_photos').select('*').eq('work_date', today).eq('store', store).maybeSingle();
+    if (error) throw error;
+    photo = data;
+    photoUrl = data ? ((await signedUrls([data.path])).get(data.path) || '') : '';
+  }
+}
+function photoCardHtml() {
+  return `
+    <section class="group">
+      <div class="group-head"><span class="label">정리 완료 사진</span><span class="divider"></span></div>
+      <div class="media-card">
+        ${photo ? `<img class="media-thumb" src="${esc(photoUrl)}" alt="오늘 올린 정리 완료 사진">
+          <div class="media-meta">${esc(photo.uploaded_by)} · ${hhmm(photo.uploaded_at)} 올림 · 다시 올리면 바뀌어요</div>`
+          : '<div class="media-meta" style="margin-top:0">오늘 올린 사진이 아직 없어요.</div>'}
+        <label class="btn media-btn">${uploading ? '올리는 중…' : (photo ? '다시 올리기' : '사진 올리기')}<input type="file" id="photo-input" accept="image/*" hidden ${uploading ? 'disabled' : ''}></label>
+        <div class="media-meta">정리를 마친 매장 전체가 보이게 <b>세로로</b> 찍어 주세요. 위쪽에 천장이 조금 나오게(글자가 들어가요), 손님 얼굴은 나오지 않게요.
+          22시까지 올린 사진이 성수 본점 인스타 스토리에 쓰여요.</div>
+      </div>
+    </section>`;
+}
+function mediaTile(path, label, name) {
+  return `<figure class="media-tile">
+    <img src="${esc(story.urls.get(path) || '')}" alt="${esc(label)}" loading="lazy">
+    <figcaption>${esc(label)}</figcaption>
+    <button class="btn sm" data-save="${esc(path)}" data-name="${esc(name)}">저장</button>
+  </figure>`;
+}
+function storyCardHtml() {
+  const f = story.fresh;
+  const others = stores.filter((s) => s !== HEAD_STORE);
+  const bySt = new Map(story.allSet.map((r) => [r.store, r]));
+  const n = others.filter((s) => bySt.has(s)).length;
+  return `
+    <section class="group">
+      <div class="group-head"><span class="label">인스타 스토리</span><span class="divider"></span></div>
+      <div class="media-card">
+        <div class="media-title">신규 입고 · 오늘</div>
+        ${f ? `<div class="media-grid">${mediaTile(f.path, `+${f.number} New Arrivals`, `new-arrivals_${today}.jpg`)}</div>`
+          : '<div class="media-meta" style="margin-top:0">오늘 이미지가 아직 없어요. 매일 아침 6시에 만들어져요.</div>'}
+      </div>
+      <div class="media-card">
+        <div class="media-title">정리 완료${story.date ? ` · ${mdw(story.date)} 사진` : ''}<span class="n">${n}/${others.length} 매장</span></div>
+        ${story.date ? `<div class="media-grid">${others.map((s) => {
+          const r = bySt.get(s);
+          return r ? mediaTile(r.path, s, `all-set_${story.date}_${r.path.split('/').pop()}`)
+            : `<div class="media-empty">${esc(s)}<br>사진 없음</div>`;
+        }).join('')}</div>` : '<div class="media-meta" style="margin-top:0">아직 만들어진 이미지가 없어요. 매일 밤 10시 10분에 그날 올라온 사진으로 만들어져요.</div>'}
+        <div class="media-meta">이미지 아래 "저장"을 누르면 사진첩에 저장할 수 있어요. 스토리에는 매장당 한 장씩 올려 주세요.</div>
+      </div>
+    </section>`;
+}
+async function resizeJpeg(file, maxEdge = 1600) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();   // 브라우저가 EXIF 회전을 적용한 채로 그린다
+    const r = Math.min(1, maxEdge / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * r);
+    c.height = Math.round(img.naturalHeight * r);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    const blob = await new Promise((res) => c.toBlob(res, 'image/jpeg', 0.88));
+    if (!blob) throw new Error('사진을 변환하지 못했어요');
+    return blob;
+  } finally { URL.revokeObjectURL(url); }
+}
+async function uploadPhoto(file) {
+  if (!file || uploading) return;
+  uploading = true;
+  renderCheck();
+  try {
+    const blob = await resizeJpeg(file);
+    const path = `photos/${today}/${crypto.randomUUID()}.jpg`;
+    const up = await sb.storage.from(BUCKET).upload(path, blob, { contentType: 'image/jpeg' });
+    if (up.error) throw up.error;
+    const { error } = await sb.rpc('store_photo_set', { p_store: store, p_path: path });
+    if (error) throw error;
+    await loadMedia();
+    toast('정리 완료 사진을 올렸어요');
+  } catch (e) { toast(errMsg(e), true); }
+  uploading = false;
+  renderCheck();
+}
+async function saveImage(path, name) {
+  const url = story.urls.get(path);
+  if (!url) return toast('이미지 주소가 만료됐어요. 화면을 새로고침해 주세요', true);
+  try {
+    const blob = await (await fetch(url)).blob();
+    const file = new File([blob], name, { type: 'image/jpeg' });
+    if (navigator.canShare?.({ files: [file] })) { await navigator.share({ files: [file] }); return; }   // 폰: 공유 시트에서 "이미지 저장"
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  } catch (e) { if (e?.name !== 'AbortError') toast(errMsg(e), true); }
 }
 
 let busy = false;
