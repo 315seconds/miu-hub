@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>가이드 편집 — 마켓인유</title>
+<meta name="theme-color" content="#faf9f5">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611050636">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611050636">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<link rel="stylesheet" href="/miu-hub/office/office.css?v=202611050636">
+<script src="/miu-hub/shared/config.js?v=202611050636"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611050636"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611050636"></script>
+</head>
+<body>
+
+<header class="miu-header">
+  <a href="index.html" id="back" class="miu-header-back" aria-label="사무 업무로"><i class="ph-bold ph-caret-left"></i></a>
+  <div class="miu-header-title">
+    <div class="miu-header-eyebrow">OFFICE GUIDE · EDIT</div>
+    <h1 class="miu-header-h1">가이드 편집</h1>
+  </div>
+  <div class="miu-header-actions">
+    <button class="miu-btn-sm miu-btn-secondary" id="save-all">모두 저장</button>
+  </div>
+</header>
+
+<div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
+
+<script src="/miu-hub/office/common.js?v=202611050636"></script>
+<script>
+const root = document.getElementById('root');
+const guideId = new URLSearchParams(location.search).get('id');
+let guide = null, steps = [], atts = [], thumbs = new Map(), categories = [];
+const MAX_IMG = 1600;   // 캡처가 크면 가로 1600px로 줄여 올린다(폰 업로드·보기 속도)
+
+const val = (id) => document.getElementById(id).value;
+
+// ── 데이터 ─────────────────────────────────────────────
+async function load() {
+  const [g, cs, ss] = await Promise.all([
+    sb.from('office_guides').select('*').eq('id', guideId).maybeSingle(),
+    sb.from('office_guides').select('category'),
+    sb.from('office_steps').select('*').eq('guide_id', guideId).order('sort_order').order('id'),
+  ]);
+  for (const r of [g, cs, ss]) if (r.error) throw r.error;
+  if (!g.data) throw new Error('가이드를 찾을 수 없어요.');
+  guide = g.data; steps = ss.data;
+  categories = [...new Set(cs.data.map((r) => r.category))];
+  await loadAtts();
+}
+async function loadAtts() {
+  if (!steps.length) { atts = []; thumbs = new Map(); return; }
+  const { data, error } = await sb.from('office_attachments').select('*').in('step_id', steps.map((s) => s.id)).order('sort_order').order('created_at');
+  if (error) throw error;
+  atts = data;
+  thumbs = await signedUrls(atts.filter((a) => a.kind === 'image').map((a) => a.path));
+}
+
+// ── 화면 ───────────────────────────────────────────────
+function render() {
+  root.innerHTML = `
+    <div class="ecard">
+      <div class="eh">가이드</div>
+      <label class="fld"><span>분류 (예: 주문, 출력)</span><input type="text" id="g-cat" list="cat-list" value="${esc(guide.category)}"><datalist id="cat-list">${categories.map((c) => `<option value="${esc(c)}">`).join('')}</datalist></label>
+      <label class="fld"><span>제목</span><input type="text" id="g-title" value="${esc(guide.title)}"></label>
+      <label class="fld"><span>언제 하나요</span><textarea id="g-summary" rows="3">${esc(guide.summary)}</textarea></label>
+      <label class="fld"><span>준비물 (사이트 주소·계정 등. 줄바꿈 그대로, https:// 주소는 링크)</span><textarea id="g-prepare" rows="4">${esc(guide.prepare)}</textarea></label>
+      <label class="fld"><span>순서 (작을수록 목록 위)</span><input type="number" id="g-sort" value="${guide.sort_order}"></label>
+      <label class="fld"><input type="checkbox" id="g-active" ${guide.is_active ? 'checked' : ''}> 직원에게 보이기 (끄면 관리자만 보임)</label>
+    </div>
+    <div id="steps">${steps.map(stepHtml).join('')}</div>
+    <div class="bar"><button class="btn" id="add-step">+ 단계 추가</button><span class="sp"></span><button class="btn danger" id="del-guide">이 가이드 삭제</button></div>`;
+  document.getElementById('add-step').addEventListener('click', addStep);
+  document.getElementById('del-guide').addEventListener('click', deleteGuide);
+  steps.forEach(bindStep);
+}
+
+function stepHtml(s, i) {
+  return `<div class="ecard" data-step="${s.id}">
+    <div class="eh">${i + 1}단계<span class="sp"></span>
+      <button class="btn sec sm" data-act="up" ${i === 0 ? 'disabled' : ''}>↑</button>
+      <button class="btn sec sm" data-act="down" ${i === steps.length - 1 ? 'disabled' : ''}>↓</button>
+      <button class="btn danger sm" data-act="del">삭제</button></div>
+    <label class="fld"><span>제목</span><input type="text" class="s-title" value="${esc(s.title)}"></label>
+    <label class="fld"><span>설명 (무엇을, 어디서, 정해진 값, 흔한 실수)</span><textarea class="s-body" rows="6">${esc(s.body)}</textarea></label>
+    <div class="att-list">${attsHtml(s.id)}</div>
+    <div class="acts">
+      <button class="btn sec sm" data-act="add-img">+ 이미지(캡처)</button>
+      <button class="btn sec sm" data-act="add-file">+ 파일(받을 파일)</button>
+      <input type="file" class="in-img hidden" accept="image/*" multiple>
+      <input type="file" class="in-file hidden" multiple>
+    </div>
+    <p class="hint">파일은 최대 50MB. 이미지는 가로 ${MAX_IMG}px로 자동 축소돼요. 업로드는 바로 저장되고, 제목·설명은 "모두 저장"이나 아래 저장을 눌러야 저장돼요.</p>
+    <div class="acts"><button class="btn sm" data-act="save">이 단계 저장</button></div>
+  </div>`;
+}
+function attsHtml(stepId) {
+  return atts.filter((a) => a.step_id === stepId).map((a) => `
+    <div class="att" data-att="${a.id}">
+      ${a.kind === 'image' ? `<img src="${esc(thumbs.get(a.path) || '')}" alt="">` : '<i class="ph-bold ph-file" style="font-size:22px"></i>'}
+      <div class="nm">${esc(a.name)}<div class="sz">${a.kind === 'image' ? '이미지' : '파일'} ${fmtSize(a.size_bytes)}</div></div>
+      <button class="btn danger sm" data-act="del-att">삭제</button>
+    </div>`).join('');
+}
+function bindStep(s) {
+  const el = root.querySelector(`[data-step="${s.id}"]`);
+  const q = (sel) => el.querySelector(sel);
+  q('[data-act=up]').addEventListener('click', () => moveStep(s.id, -1));
+  q('[data-act=down]').addEventListener('click', () => moveStep(s.id, 1));
+  q('[data-act=del]').addEventListener('click', () => deleteStep(s.id));
+  q('[data-act=save]').addEventListener('click', async () => { try { await saveStep(s.id); toast('저장했어요'); } catch (e) { toast(errMsg(e), true); } });
+  q('[data-act=add-img]').addEventListener('click', () => q('.in-img').click());
+  q('[data-act=add-file]').addEventListener('click', () => q('.in-file').click());
+  q('.in-img').addEventListener('change', (e) => upload(s.id, [...e.target.files], 'image', e.target));
+  q('.in-file').addEventListener('change', (e) => upload(s.id, [...e.target.files], 'file', e.target));
+  bindAtts(s.id);
+}
+function bindAtts(stepId) {
+  const el = root.querySelector(`[data-step="${stepId}"]`);
+  el.querySelector('.att-list').innerHTML = attsHtml(stepId);
+  el.querySelectorAll('[data-act=del-att]').forEach((b) => b.addEventListener('click', () => deleteAtt(b.closest('[data-att]').dataset.att)));
+}
+
+// ── 저장 ───────────────────────────────────────────────
+async function saveGuide() {
+  const row = { category: val('g-cat').trim(), title: val('g-title').trim(), summary: val('g-summary'), prepare: val('g-prepare'), sort_order: parseInt(val('g-sort'), 10) || 0, is_active: document.getElementById('g-active').checked };
+  if (!row.category || !row.title) throw new Error('분류와 제목을 적어 주세요');
+  const { error } = await sb.from('office_guides').update(row).eq('id', guideId);
+  if (error) throw error;
+  Object.assign(guide, row);
+}
+async function saveStep(id) {
+  const el = root.querySelector(`[data-step="${id}"]`);
+  const row = { title: el.querySelector('.s-title').value.trim(), body: el.querySelector('.s-body').value };
+  if (!row.title) throw new Error('단계 제목을 적어 주세요');
+  const { error } = await sb.from('office_steps').update(row).eq('id', id);
+  if (error) throw error;
+  Object.assign(steps.find((s) => s.id === id), row);
+}
+async function saveAll() {
+  await saveGuide();
+  for (const s of steps) await saveStep(s.id);
+}
+document.getElementById('save-all').addEventListener('click', async (e) => {
+  e.target.disabled = true;
+  try { await saveAll(); toast('저장했어요'); } catch (err) { toast(errMsg(err), true); }
+  e.target.disabled = false;
+});
+
+// 순서·추가·삭제는 다시 그리기 전에 쓰던 내용을 먼저 저장한다
+async function addStep() {
+  try {
+    await saveAll();
+    const sort = steps.reduce((m, s) => Math.max(m, s.sort_order), 0) + 10;
+    const { data, error } = await sb.from('office_steps').insert({ guide_id: guideId, title: '새 단계', sort_order: sort }).select('*').single();
+    if (error) throw error;
+    steps.push(data); render();
+    root.querySelector(`[data-step="${data.id}"]`).scrollIntoView({ behavior: 'smooth' });
+  } catch (e) { toast(errMsg(e), true); }
+}
+async function moveStep(id, dir) {
+  try {
+    await saveAll();
+    const i = steps.findIndex((s) => s.id === id), j = i + dir;
+    if (j < 0 || j >= steps.length) return;
+    // 순서값이 같은 단계가 있어도 확실히 바뀌도록 배열 순서대로 10, 20, … 다시 매긴다
+    [steps[i], steps[j]] = [steps[j], steps[i]];
+    for (let k = 0; k < steps.length; k++) {
+      if (steps[k].sort_order === (k + 1) * 10) continue;
+      const { error } = await sb.from('office_steps').update({ sort_order: (k + 1) * 10 }).eq('id', steps[k].id);
+      if (error) throw error;
+      steps[k].sort_order = (k + 1) * 10;
+    }
+    render();
+  } catch (e) { toast(errMsg(e), true); await reload(); }
+}
+async function removeObjects(paths) {
+  if (!paths.length) return;
+  const { error } = await sb.storage.from(BUCKET).remove(paths);
+  if (error) throw error;
+}
+async function deleteStep(id) {
+  const s = steps.find((x) => x.id === id);
+  if (!confirm(`"${s.title}" 단계를 삭제할까요? 붙은 이미지·파일도 함께 지워져요.`)) return;
+  try {
+    await saveAll();
+    await removeObjects(atts.filter((a) => a.step_id === id).map((a) => a.path));
+    const { error } = await sb.from('office_steps').delete().eq('id', id);
+    if (error) throw error;
+    steps = steps.filter((x) => x.id !== id); atts = atts.filter((a) => a.step_id !== id);
+    render(); toast('삭제했어요');
+  } catch (e) { toast(errMsg(e), true); await reload(); }
+}
+async function deleteGuide() {
+  if (!confirm(`"${guide.title}" 가이드를 통째로 삭제할까요? 모든 단계와 이미지·파일이 지워지고 되돌릴 수 없어요. (잠시 감추려면 '직원에게 보이기'를 끄세요)`)) return;
+  try {
+    await removeObjects(atts.map((a) => a.path));
+    const { error } = await sb.from('office_guides').delete().eq('id', guideId);
+    if (error) throw error;
+    location.href = 'index.html';
+  } catch (e) { toast(errMsg(e), true); await reload(); }
+}
+async function reload() { try { await load(); render(); } catch (e) { root.innerHTML = `<div class="empty">불러오지 못했어요.<br>${esc(errMsg(e))}</div>`; } }
+
+// ── 첨부 ───────────────────────────────────────────────
+// 스토리지 키는 영문·숫자만(한글 파일 이름은 키로 못 쓴다). 원래 이름은 office_attachments.name에 따로 둔다.
+function storageKey(stepId, file) {
+  const ext = (file.name.match(/\.([A-Za-z0-9]{1,8})$/) || [, 'bin'])[1].toLowerCase();
+  return `${guideId}/${stepId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+}
+async function shrinkImage(file) {
+  if (!/^image\/(png|jpeg|webp)$/.test(file.type)) return file;
+  const bmp = await createImageBitmap(file);
+  if (bmp.width <= MAX_IMG) { bmp.close?.(); return file; }
+  const scale = MAX_IMG / bmp.width;
+  const c = document.createElement('canvas');
+  c.width = MAX_IMG; c.height = Math.round(bmp.height * scale);
+  c.getContext('2d').drawImage(bmp, 0, 0, c.width, c.height);
+  bmp.close?.();
+  const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.88));
+  return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+}
+async function upload(stepId, files, kind, input) {
+  input.value = '';
+  for (const f of files) {
+    let path = null;
+    try {
+      const body = kind === 'image' ? await shrinkImage(f) : f;
+      path = storageKey(stepId, body);
+      const up = await sb.storage.from(BUCKET).upload(path, body, { contentType: body.type || 'application/octet-stream' });
+      if (up.error) throw up.error;
+      const sort = atts.filter((a) => a.step_id === stepId).reduce((m, a) => Math.max(m, a.sort_order), 0) + 10;
+      const { data, error } = await sb.from('office_attachments').insert({ step_id: stepId, kind, path, name: body.name, size_bytes: body.size, sort_order: sort }).select('*').single();
+      if (error) { await sb.storage.from(BUCKET).remove([path]); throw error; }   // 기록이 실패하면 올린 파일도 되돌린다
+      atts.push(data);
+      if (kind === 'image') thumbs = await signedUrls(atts.filter((a) => a.kind === 'image').map((a) => a.path));
+      bindAtts(stepId);
+      toast(`${body.name} 올렸어요`);
+    } catch (e) { toast(`${f.name}: ${errMsg(e)}`, true); }
+  }
+}
+async function deleteAtt(id) {
+  const a = atts.find((x) => x.id === id);
+  if (!confirm(`"${a.name}"을(를) 삭제할까요?`)) return;
+  try {
+    await removeObjects([a.path]);
+    const { error } = await sb.from('office_attachments').delete().eq('id', id);
+    if (error) throw error;
+    atts = atts.filter((x) => x.id !== id);
+    bindAtts(a.step_id);
+  } catch (e) { toast(errMsg(e), true); }
+}
+
+// ── 시작 ───────────────────────────────────────────────
+(async function boot() {
+  try {
+    const p = await waitProfile();
+    if (p?.role !== 'admin') { root.innerHTML = '<div class="empty">관리자만 편집할 수 있어요.</div>'; document.getElementById('save-all').classList.add('hidden'); return; }
+    if (!guideId) { root.innerHTML = '<div class="empty">가이드가 지정되지 않았어요.</div>'; return; }
+    await load();
+    document.getElementById('back').href = `index.html#${guideId}`;
+    render();
+  } catch (e) {
+    root.innerHTML = `<div class="empty">불러오지 못했어요.<br>${esc(errMsg(e))}</div>`;
+  }
+})();
+</script>
+</body>
+</html>

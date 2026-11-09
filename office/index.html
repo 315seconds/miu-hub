@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>사무 업무 — 마켓인유</title>
+<meta name="theme-color" content="#faf9f5">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611050636">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611050636">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<link rel="stylesheet" href="/miu-hub/office/office.css?v=202611050636">
+<script src="/miu-hub/shared/config.js?v=202611050636"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611050636"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611050636"></script>
+</head>
+<body>
+
+<header class="miu-header">
+  <a href="/miu-hub/" id="back" class="miu-header-back" aria-label="허브로"><i class="ph-bold ph-caret-left"></i></a>
+  <div class="miu-header-title">
+    <div class="miu-header-eyebrow">OFFICE GUIDE</div>
+    <h1 class="miu-header-h1">사무 업무</h1>
+  </div>
+  <div class="miu-header-actions">
+    <a href="#" id="edit-link" class="miu-btn-sm miu-btn-secondary hidden">편집</a>
+  </div>
+</header>
+
+<div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
+<div class="lightbox" id="lightbox"><img id="lightbox-img" alt=""></div>
+
+<script src="/miu-hub/office/common.js?v=202611050636"></script>
+<script>
+const root = document.getElementById('root');
+let isAdmin = false, guides = [], query = '', cat = '';
+
+async function loadGuides() {
+  let q = sb.from('office_guides').select('*').order('category').order('sort_order').order('id');
+  if (!isAdmin) q = q.eq('is_active', true);   // 관리자는 숨긴 가이드도 본다(RLS는 읽기 전체 허용이라 화면에서만 거름)
+  const { data, error } = await q;
+  if (error) throw error;
+  guides = data;
+}
+
+// ── 목록 ───────────────────────────────────────────────
+function renderList() {
+  document.getElementById('back').href = '/miu-hub/';
+  document.getElementById('edit-link').classList.add('hidden');
+  const cats = [...new Set(guides.map((g) => g.category))];
+  const q = query.trim().toLowerCase();
+  const list = guides.filter((g) => (!cat || g.category === cat)
+    && (!q || g.title.toLowerCase().includes(q) || g.summary.toLowerCase().includes(q)));
+  const byCat = [];
+  for (const g of list) {
+    let x = byCat.find((c) => c.cat === g.category);
+    if (!x) byCat.push((x = { cat: g.category, list: [] }));
+    x.list.push(g);
+  }
+  root.innerHTML = `
+    <div class="bar">
+      <input type="text" id="q" placeholder="가이드 검색 (예: 택, 시트지, 포스터)" value="${esc(query)}">
+      ${isAdmin ? '<button class="btn" id="new-guide">+ 새 가이드</button>' : ''}
+    </div>
+    ${cats.length > 1 ? `<div class="chips"><button class="chip ${cat === '' ? 'active' : ''}" data-cat="">전체</button>${cats.map((c) => `<button class="chip ${cat === c ? 'active' : ''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
+    ${byCat.map((c) => `
+      <section class="group"><div class="group-head"><span class="label">${esc(c.cat)}</span><span class="divider"></span></div>
+      ${c.list.map((g) => `<a class="card ${g.is_active ? '' : 'off'}" href="#${g.id}"><div class="t">${esc(g.title)}${g.is_active ? '' : '<span class="badge">숨김</span>'}</div>${g.summary ? `<div class="s">${esc(g.summary)}</div>` : ''}</a>`).join('')}</section>`).join('')
+      || '<div class="empty">찾는 가이드가 없어요.<br>애매하면 혼자 해결하지 말고 담당자에게 물어보세요.</div>'}`;
+  const qi = document.getElementById('q');
+  qi.addEventListener('input', () => { query = qi.value; const p = qi.selectionStart; renderList(); const n = document.getElementById('q'); n.focus(); n.setSelectionRange(p, p); });
+  root.querySelectorAll('[data-cat]').forEach((b) => b.addEventListener('click', () => { cat = b.dataset.cat; renderList(); }));
+  document.getElementById('new-guide')?.addEventListener('click', createGuide);
+}
+
+async function createGuide() {
+  const { data, error } = await sb.from('office_guides').insert({ category: cat || '주문', title: '새 가이드', sort_order: (guides.reduce((m, g) => Math.max(m, g.sort_order), 0)) + 10 }).select('id').single();
+  if (error) return toast(errMsg(error), true);
+  location.href = `edit.html?id=${data.id}`;
+}
+
+// ── 가이드 ─────────────────────────────────────────────
+async function renderGuide(id) {
+  const g = guides.find((x) => x.id === id);
+  if (!g) { root.innerHTML = '<div class="empty">가이드를 찾을 수 없어요.</div>'; return; }
+  const back = document.getElementById('back');
+  back.href = '#';
+  const edit = document.getElementById('edit-link');
+  if (isAdmin) { edit.href = `edit.html?id=${id}`; edit.classList.remove('hidden'); } else edit.classList.add('hidden');
+  root.innerHTML = '<div class="empty">불러오는 중…</div>';
+
+  const { data: steps, error } = await sb.from('office_steps').select('*').eq('guide_id', id).order('sort_order').order('id');
+  if (error) throw error;
+  const { data: atts, error: e2 } = steps.length
+    ? await sb.from('office_attachments').select('*').in('step_id', steps.map((s) => s.id)).order('sort_order').order('created_at')
+    : { data: [], error: null };
+  if (e2) throw e2;
+  const urls = await signedUrls(atts.filter((a) => a.kind === 'image').map((a) => a.path));
+  if (location.hash.slice(1) !== id) return;   // 불러오는 사이 다른 화면으로 이동했으면 그리지 않음
+
+  root.innerHTML = `
+    <h2 class="g-title">${esc(g.title)}${g.is_active ? '' : '<span class="badge">숨김</span>'}</h2>
+    <div class="g-meta">${esc(g.category)}${g.updated_by ? ` · ${esc(g.updated_by)} 수정` : ''}</div>
+    ${g.summary ? `<div class="info"><div class="k">언제 하나요</div><div class="v">${linkify(g.summary)}</div></div>` : ''}
+    ${g.prepare ? `<div class="info"><div class="k">준비물</div><div class="v">${linkify(g.prepare)}</div></div>` : ''}
+    ${steps.map((s, i) => {
+      const mine = atts.filter((a) => a.step_id === s.id);
+      const imgs = mine.filter((a) => a.kind === 'image'), files = mine.filter((a) => a.kind === 'file');
+      return `<div class="step"><div class="num">${i + 1}</div><div class="main">
+        <div class="st">${esc(s.title)}</div>
+        ${s.body ? `<div class="body">${linkify(s.body)}</div>` : ''}
+        ${imgs.length ? `<div class="pics">${imgs.map((a) => `<img src="${esc(urls.get(a.path) || '')}" alt="${esc(a.name)}" loading="lazy">`).join('')}</div>` : ''}
+        ${files.length ? `<div class="files">${files.map((a) => `<button class="file" data-path="${esc(a.path)}" data-name="${esc(a.name)}"><i class="ph-bold ph-download-simple"></i><span class="nm">${esc(a.name)}</span><span class="sz">${fmtSize(a.size_bytes)}</span></button>`).join('')}</div>` : ''}
+      </div></div>`;
+    }).join('') || '<div class="empty">아직 단계가 없어요.</div>'}`;
+
+  root.querySelectorAll('.pics img').forEach((im) => im.addEventListener('click', () => {
+    document.getElementById('lightbox-img').src = im.src;
+    document.getElementById('lightbox').classList.add('open');
+  }));
+  root.querySelectorAll('.file').forEach((b) => b.addEventListener('click', async () => {
+    try { location.href = await downloadUrl(b.dataset.path, b.dataset.name); } catch (e) { toast(errMsg(e), true); }
+  }));
+}
+document.getElementById('lightbox').addEventListener('click', () => document.getElementById('lightbox').classList.remove('open'));
+
+async function route() {
+  try {
+    const id = location.hash.slice(1);
+    if (id) await renderGuide(id); else renderList();
+    window.scrollTo(0, 0);
+  } catch (e) { root.innerHTML = `<div class="empty">불러오지 못했어요.<br>${esc(errMsg(e))}</div>`; }
+}
+window.addEventListener('hashchange', route);
+
+(async function boot() {
+  try {
+    const p = await waitProfile();
+    if (!p) { root.innerHTML = '<div class="empty">불러오지 못했어요. 새로고침해 주세요.</div>'; return; }
+    isAdmin = p.role === 'admin';
+    await loadGuides();
+    await route();
+  } catch (e) {
+    root.innerHTML = `<div class="empty">불러오지 못했어요.<br>${esc(errMsg(e))}</div>`;
+  }
+})();
+</script>
+</body>
+</html>
