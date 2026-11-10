@@ -220,7 +220,7 @@
         sub.textContent = '이번 달 입고 기록이 아직 없어요';
         return;
       }
-      sub.textContent = '첫 ' + k + '입고일 누적 · 오늘 포함' + (k < 3 ? ' · 증감률은 3입고일부터' : '');
+      sub.textContent = '이번 달 평일 입고 기준 ' + k + '일째 누적 · 오늘 포함' + (k < 3 ? ' · 증감률은 3일째부터' : '');
       const max = Math.max(data[0].total, data[1].total, data[2].total, 1);
       ['이번 달', '지난달', '지지난달'].forEach((label, i) => {
         const r = data[i];
