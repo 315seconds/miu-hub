@@ -9,7 +9,7 @@
   <link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611050636">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
   <link rel="stylesheet" href="css/style.css?v=202611050636">
-  <!-- 임시 페이지(2026-11-03~04 택갈이 점검용). 사용 후 이 파일만 지우면 된다. -->
+  <!-- 임시 페이지(2026-11-10 하루 재개 택갈이 점검용). 사용 후 이 파일만 지우면 된다. -->
   <script src="/miu-hub/shared/config.js?v=202611050636"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/miu-hub/shared/supabase-client.js?v=202611050636"></script>
@@ -113,9 +113,9 @@
       scanEl.value = "";
       if (bc) lookup(bc);
     });
-    // 2026-11-04까지만 쓰는 임시 기능: 로그인한 직원 전체 사용(로그인은 auth-guard가 강제).
+    // 2026-11-10까지만 쓰는 임시 기능: 로그인한 직원 전체 사용(로그인은 auth-guard가 강제).
     (function gate() {
-      const LAST_DAY = "2026-11-04"; // KST, 이 날짜가 지나면 사용 불가
+      const LAST_DAY = "2026-11-10"; // KST, 이 날짜가 지나면 사용 불가
       const gateEl = document.getElementById("gate");
       if (new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Seoul" }) > LAST_DAY) {
         gateEl.textContent = "오늘만 쓰는 임시 기능이라 종료됐어요.";
