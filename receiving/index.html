@@ -17,17 +17,35 @@
 
   <style>
     /* receiving/index 전용 미세 조정 */
-    .stats-3 {
+    .stats-2 {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
-    .stats-3 .miu-stat { padding: 14px 12px; }
-    .stats-3 .miu-stat-label { font-size: 10px; }
-    .stats-3 .miu-stat-value { font-size: 24px; }
+    .stats-2 .miu-stat { padding: 14px 12px; }
+    .stats-2 .miu-stat-label { font-size: 10px; }
+    .stats-2 .miu-stat-value { font-size: 24px; }
     /* 대기중 강조 */
     .stat-pending-active { color: var(--miu-warning); }
     .stat-value-muted { color: var(--miu-muted); }
+    /* 월 누적 비교 (이번 달 vs 지난달 vs 지지난달, 같은 입고일 수까지) */
+    .cmp-sub { font-size: 11px; color: var(--miu-muted); margin: 4px 0 2px; }
+    .cmp-row {
+      display: grid;
+      grid-template-columns: 60px 1fr 72px;
+      align-items: center;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .cmp-label { font-size: 12px; font-weight: 600; color: var(--miu-body); line-height: 1.25; }
+    .cmp-label small { display: block; font-size: 10px; font-weight: 400; color: var(--miu-muted-soft); }
+    .cmp-bar { height: 10px; border-radius: 5px; background: var(--miu-surface-strong); overflow: hidden; }
+    .cmp-fill { height: 100%; border-radius: 5px; background: var(--miu-muted-soft); }
+    .cmp-row.cur .cmp-fill { background: var(--miu-ink); }
+    .cmp-val { text-align: right; font-family: var(--miu-serif); font-size: 18px; line-height: 1.1; color: var(--miu-ink); }
+    .cmp-delta { display: block; margin-top: 2px; font-family: var(--miu-sans); font-size: 11px; font-weight: 600; color: var(--miu-muted); }
+    .cmp-delta.up { color: var(--miu-success); }
+    .cmp-delta.down { color: var(--miu-error); }
   </style>
 </head>
 <body class="miu-app">
@@ -46,7 +64,7 @@
 
     <!-- 통계 -->
     <div class="miu-section" style="margin-top:20px">
-      <div class="stats-3">
+      <div class="stats-2">
         <div class="miu-stat">
           <div class="miu-stat-label">오늘 입고</div>
           <div class="miu-stat-value stat-value-muted" id="stat-today">—</div>
@@ -55,10 +73,11 @@
           <div class="miu-stat-label">승인 대기 세션</div>
           <div class="miu-stat-value stat-value-muted" id="stat-pending">—</div>
         </div>
-        <div class="miu-stat">
-          <div class="miu-stat-label">이번 주</div>
-          <div class="miu-stat-value stat-value-muted" id="stat-week">—</div>
-        </div>
+      </div>
+      <div class="miu-stat" id="month-cmp" style="margin-top:8px" hidden>
+        <div class="miu-stat-label" style="margin-bottom:0">월 누적 입고 비교</div>
+        <div class="cmp-sub" id="cmp-sub"></div>
+        <div id="cmp-rows"></div>
       </div>
     </div>
 
@@ -142,18 +161,11 @@
     document.getElementById('today-label').textContent = getTodayLabel();
 
     async function loadStats() {
-      const nowKST = new Date(Date.now() + 9 * 60 * 60 * 1000);
-      const today = nowKST.toISOString().slice(0, 10);
-      const dayOfWeek = nowKST.getUTCDay();
-      const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-      const monday = new Date(nowKST);
-      monday.setUTCDate(monday.getUTCDate() + daysToMonday);
-      const weekStart = monday.toISOString().slice(0, 10);
+      const today = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-      const [pendingRes, todayRes, weekRes] = await Promise.allSettled([
+      const [pendingRes, todayRes] = await Promise.allSettled([
         sb.from("inventory_sessions").select("status", { count: "exact", head: true }).eq("status", "pending"),
         sb.from("inventory_sessions").select("inventory_hangers(inventory_items(id))").eq("session_date", today).in("status", ["approved", "processed"]),
-        sb.from("inventory_sessions").select("inventory_hangers(inventory_items(id))").gte("session_date", weekStart).in("status", ["approved", "processed"]),
       ]);
 
       if (pendingRes.status === "fulfilled" && !pendingRes.value.error) {
@@ -177,18 +189,62 @@
         el.textContent = total;
         el.classList.remove('stat-value-muted');
       }
+    }
 
-      if (weekRes.status === "fulfilled" && !weekRes.value.error) {
-        const total = (weekRes.value.data || []).flatMap(s =>
-          (s.inventory_hangers || []).flatMap(h => h.inventory_items || [])
-        ).length;
-        const el = document.getElementById('stat-week');
-        el.textContent = total;
-        el.classList.remove('stat-value-muted');
+    function fmtMD(iso) {
+      const p = iso.split('-');
+      return Number(p[1]) + '/' + Number(p[2]);
+    }
+
+    function cmpEl(tag, cls, text) {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text !== undefined) e.textContent = text;
+      return e;
+    }
+
+    // RPC receiving_month_compare: 최근 달부터 3행, 세 달 모두 "첫 k입고일"까지 누적
+    async function loadMonthCompare() {
+      const { data, error } = await sb.rpc('receiving_month_compare');
+      if (error || !data || data.length !== 3) {
+        console.warn('월 누적 비교 로드 실패:', error && error.message);
+        return;
       }
+      const cur = data[0];
+      const k = cur.business_days;
+      document.getElementById('month-cmp').hidden = false;
+      const sub = document.getElementById('cmp-sub');
+      const rows = document.getElementById('cmp-rows');
+      rows.textContent = '';
+      if (k === 0) {
+        sub.textContent = '이번 달 입고 기록이 아직 없어요';
+        return;
+      }
+      sub.textContent = '첫 ' + k + '입고일 누적 · 오늘 포함' + (k < 3 ? ' · 증감률은 3입고일부터' : '');
+      const max = Math.max(data[0].total, data[1].total, data[2].total, 1);
+      ['이번 달', '지난달', '지지난달'].forEach((label, i) => {
+        const r = data[i];
+        const row = cmpEl('div', i === 0 ? 'cmp-row cur' : 'cmp-row');
+        const lab = cmpEl('div', 'cmp-label', label);
+        lab.appendChild(cmpEl('small', '', r.cutoff_date ? fmtMD(r.cutoff_date) + '까지' : ''));
+        const bar = cmpEl('div', 'cmp-bar');
+        const fill = cmpEl('div', 'cmp-fill');
+        fill.style.width = (r.total / max * 100) + '%';
+        bar.appendChild(fill);
+        const val = cmpEl('div', 'cmp-val', r.total.toLocaleString('ko-KR'));
+        if (i > 0 && k >= 3 && r.total > 0) {
+          const pct = Math.round((cur.total - r.total) / r.total * 100);
+          const cls = pct > 0 ? 'up' : pct < 0 ? 'down' : '';
+          const sign = pct > 0 ? '+' : pct < 0 ? '−' : '';
+          val.appendChild(cmpEl('span', 'cmp-delta ' + cls, '이번 달 ' + sign + Math.abs(pct) + '%'));
+        }
+        row.append(lab, bar, val);
+        rows.appendChild(row);
+      });
     }
 
     loadStats();
+    loadMonthCompare();
   </script>
 </body>
 </html>
