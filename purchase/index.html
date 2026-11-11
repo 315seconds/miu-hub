@@ -478,7 +478,7 @@ function renderCheck() {
   const nc = (r) => { const b = S.stats.find((x) => x.code === r.detail); return b ? `${esc(srcName(b.src))} ${esc(roundLabel(b.round))}${b.kind === '잡화' ? ' 잡화' : ''}` : esc(r.detail); };
   return block('원가 미입력 차시', '원가를 넣어야 회수율이 계산돼요', g('no_cost'), (r) => `<b>${nc(r)}</b>`)
     + block('차시 미배정 사입 물건', '사입 출처인데 어느 차시에도 없는 물건', g('unassigned'), (r) => `<div class="l1"><span class="n">${esc(r.barcode)}</span></div><div class="l2"><span>${esc(r.detail)}</span></div>`)
-    + block('재고에 없는 바코드의 판매', '바코드 오입력 의심(2026-05 이후, 사입 접두어만). 정정 전까지 통계에서 빠져요', g('orphan_sale'), (r) => `<div class="l1"><span class="n">${esc(r.barcode)}</span></div><div class="l2"><span>${esc(r.detail)}</span></div>`);
+    + block('재고에 없는 바코드의 판매', '바코드 오입력 의심(2026-05 이후, 사입 접두어만). 정정 전까지 통계에서 빠져요', g('orphan_sale'), (r) => `<div class="l1"><span class="n">${esc(r.barcode)}</span><a href="/miu-hub/correction/?barcode=${encodeURIComponent(r.barcode)}" style="font-size:13px;font-weight:600;color:var(--miu-primary)">정정하기</a></div><div class="l2"><span>${esc(r.detail)}</span></div>`);
 }
 
 // ── 엑셀 ────────────────────────────────────────────────────

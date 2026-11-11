@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>정정 · 이력 — 마켓인유</title>
+<meta name="theme-color" content="#faf9f5">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611110529">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611110529">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<style>
+body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
+.wrap { max-width: 720px; margin: 0 auto; padding: 8px 16px 64px; }
+.card { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 16px; margin-top: 14px; }
+.card h2 { font-size: 12px; font-weight: 700; color: var(--miu-muted); letter-spacing: .3px; margin-bottom: 10px; }
+.fld { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
+.fld:first-of-type { margin-top: 0; }
+.fld label { font-size: 12px; color: var(--miu-muted); font-weight: 600; }
+.fld input, .fld textarea { padding: 0 10px; height: 42px; font: inherit; font-size: 15px; color: var(--miu-ink); background: var(--miu-canvas); border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); }
+.fld textarea { height: 64px; padding: 8px 10px; }
+.row { display: flex; gap: 8px; align-items: center; }
+.row > input { flex: 1; min-width: 0; }
+.btn { padding: 10px 16px; border: none; border-radius: var(--miu-r-pill); background: var(--miu-primary); color: #fff; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.btn:disabled { opacity: .6; }
+.btn.ghost { background: var(--miu-canvas); color: var(--miu-body); border: 1px solid var(--miu-hairline); }
+.btn.sm { padding: 7px 12px; font-size: 13px; }
+.status { margin-top: 12px; font-size: 13.5px; line-height: 1.6; color: var(--miu-body); }
+.status.err { color: var(--miu-error); }
+.status.ok { color: #2e6b3a; }
+.note { margin-top: 12px; padding: 11px 14px; border-radius: var(--miu-r-md); font-size: 13px; line-height: 1.55; background: color-mix(in srgb, var(--miu-warning) 14%, transparent); color: var(--miu-body-strong); }
+.sec-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin: 26px 0 8px; }
+.sec-head .t { font-family: var(--miu-serif); font-size: 19px; font-weight: 500; letter-spacing: -.4px; }
+.sec-head .s { font-size: 12.5px; color: var(--miu-muted); }
+.list { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); overflow: hidden; }
+.item { padding: 13px 14px; border-bottom: 1px solid var(--miu-hairline-soft); }
+.item:last-child { border-bottom: none; }
+.l1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.l1 .n { font-size: 15.5px; font-weight: 700; }
+.l2 { margin-top: 5px; font-size: 13px; color: var(--miu-body); line-height: 1.6; }
+.l2 b { color: var(--miu-ink); font-weight: 600; }
+.badge { display: inline-block; margin-left: 5px; padding: 1px 7px; border-radius: var(--miu-r-pill); font-size: 11px; font-weight: 600; background: var(--miu-canvas); border: 1px solid var(--miu-hairline); color: var(--miu-body); }
+.badge.warn { color: #8a6410; border-color: #e0c37a; background: color-mix(in srgb, var(--miu-warning) 16%, transparent); }
+.acts { display: flex; gap: 6px; margin-top: 10px; }
+.panel { margin-top: 12px; padding: 14px; border-radius: var(--miu-r-md); background: var(--miu-canvas); border: 1px solid var(--miu-hairline); }
+.panel .tt { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--miu-body); }
+.toggle input { width: 17px; height: 17px; accent-color: var(--miu-primary); }
+.form-actions { display: flex; gap: 8px; margin-top: 14px; }
+.hint { margin-top: 10px; font-size: 12.5px; color: var(--miu-muted); line-height: 1.7; }
+.empty { text-align: center; padding: 28px 16px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
+.look { margin-top: 6px; font-size: 12.5px; line-height: 1.5; color: var(--miu-body); }
+.look.bad { color: var(--miu-error); }
+.hist-more { display: block; margin: 12px auto 0; }
+</style>
+<script src="/miu-hub/shared/config.js?v=202611110529"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611110529"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611110529"></script>
+</head>
+<body>
+
+<header class="miu-header">
+  <a href="/miu-hub/" class="miu-header-back" aria-label="허브로">
+    <i class="ph-bold ph-caret-left"></i>
+  </a>
+  <div class="miu-header-title">
+    <div class="miu-header-eyebrow">CORRECTIONS</div>
+    <h1 class="miu-header-h1">정정 · 이력</h1>
+  </div>
+</header>
+
+<div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
+
+<script>
+// 이력 조회는 로그인 직원 누구나. 정정·제외는 김민지 · 최영훈 · 황태훈만(화면은 버튼을 숨길 뿐이고, 서버 RPC가 같은 세 명만 허용한다).
+const EDITORS = ['김민지', '최영훈', '황태훈'];
+const canEdit = () => EDITORS.includes(window.MIU_PROFILE?.name);
+const HIST_PAGE = 50;
+
+const root = document.getElementById('root');
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const won = (n) => (n == null ? '-' : Number(n).toLocaleString('ko-KR') + '원');
+const storeLabel = (s) => String(s ?? '').replace('공동판매', '') || '-';
+const kst = (iso) => new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', year: '2-digit', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(iso));
+const STATUS = { in_stock: '보유중', sold: '판매됨', disposed: '폐기' };
+const KIND = { sale_barcode: '바코드 정정', sale_exclude: '판매 제외' };
+
+const S = { bc: '', sales: null, item: null, act: null, hist: [], histBc: '', histEnd: false };
+
+function mount() {
+  root.innerHTML = `
+    ${canEdit() ? '' : '<div class="note">정정·제외는 김민지 · 최영훈 · 황태훈만 할 수 있어요. 이력은 누구나 볼 수 있어요.</div>'}
+    <div class="card">
+      <h2>판매 기록 찾기</h2>
+      <div class="fld"><label for="q">잘못 들어온 판매의 바코드</label>
+        <div class="row"><input id="q" autocomplete="off" autocapitalize="characters" placeholder="예) CR03347"><button class="btn" id="go">찾기</button></div></div>
+      <div class="status" id="status"></div>
+      <div id="found"></div>
+    </div>
+    <div class="sec-head"><span class="t" id="hist-title">정정 이력</span><span class="s" id="hist-sub"></span></div>
+    <div id="hist"></div>`;
+  $('go').addEventListener('click', () => search($('q').value));
+  $('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') search($('q').value); });
+  root.addEventListener('click', onClick);
+}
+
+const setStatus = (msg, cls = '') => { const el = $('status'); if (el) { el.className = 'status ' + cls; el.textContent = msg; } };
+const normBc = (s) => String(s || '').trim().toUpperCase();
+const ilikeLit = (s) => s.replace(/[\\%_]/g, (c) => '\\' + c);   // 바코드에 와일드카드 문자가 있어도 글자 그대로 비교
+
+async function search(raw) {
+  const bc = normBc(raw);
+  if (!bc) return setStatus('바코드를 입력하세요', 'err');
+  $('q').value = bc; S.bc = bc; S.act = null; S.sales = null; S.item = null;
+  setStatus('찾는 중…');
+  $('found').innerHTML = '';
+  try {
+    const [s, i] = await Promise.all([
+      window.sb.from('sold_items').select('id,barcode,sold_date,store,product_name,price,quantity,refund_date,refund_type').ilike('barcode', ilikeLit(bc)).order('sold_date', { ascending: false }),
+      window.sb.from('inventory_items').select('barcode,category,price,status,location,source').ilike('barcode', ilikeLit(bc)).limit(1),
+    ]);
+    if (s.error) throw s.error;
+    if (i.error) throw i.error;
+    S.sales = s.data || []; S.item = (i.data || [])[0] || null;
+    setStatus('');
+    renderFound();
+  } catch (e) { setStatus('불러오지 못했어요: ' + (e.message || e), 'err'); }
+  loadHist(bc);
+}
+
+function renderFound() {
+  const it = S.item;
+  const head = `<div class="l2" style="margin-top:12px"><b>${esc(S.bc)}</b> · ` + (it
+    ? `재고에 있음: ${esc(it.category || '-')} · ${won(it.price)} · ${esc(STATUS[it.status] || it.status)} · ${esc(it.location || '-')}`
+    : '재고에 없는 바코드') + '</div>';
+  if (!S.sales.length) { $('found').innerHTML = head + '<div class="empty">이 바코드의 판매 기록이 없어요.</div>'; return; }
+  $('found').innerHTML = head + '<div class="list" style="margin-top:10px">' + S.sales.map(saleRow).join('') + '</div>';
+}
+
+function saleRow(r) {
+  const refunded = !!r.refund_date;
+  const open = S.act && S.act.id === r.id;
+  return `<div class="item" data-sale="${r.id}">
+    <div class="l1"><span class="n">${esc(r.sold_date)} · ${won(r.price)}</span>
+      <span>${refunded ? `<span class="badge warn">환불 ${esc(r.refund_date)}</span>` : ''}${r.quantity > 1 ? `<span class="badge">수량 ${r.quantity}</span>` : ''}</span></div>
+    <div class="l2">${esc(storeLabel(r.store))} · ${esc(r.product_name || '-')}</div>
+    ${canEdit() && !open ? `<div class="acts">
+      <button class="btn sm" data-act="barcode" data-id="${r.id}"${refunded ? ' disabled title="환불 기록이 있는 판매는 정정할 수 없어요"' : ''}>바코드 정정</button>
+      <button class="btn sm ghost" data-act="exclude" data-id="${r.id}">판매 제외</button></div>` : ''}
+    ${refunded && canEdit() && !open ? '<div class="hint">환불 기록이 있는 판매는 바코드 정정이 막혀 있어요. 제외만 가능해요.</div>' : ''}
+    ${open ? actPanel(r) : ''}
+  </div>`;
+}
+
+function actPanel(r) {
+  if (S.act.kind === 'barcode') return `<div class="panel">
+    <div class="tt">${esc(r.barcode)} → 다른 바코드로 정정</div>
+    <div class="hint" style="margin-top:0">택갈이·입력 오타처럼 판매 기록의 바코드가 틀렸을 때 씁니다. 원래 바코드가 재고에 sold 로 남아 있으면 보유중으로 돌아가고, 새 바코드는 판매됨이 됩니다.</div>
+    <div class="fld"><label for="f-to">정정 후 바코드</label><input id="f-to" autocomplete="off" autocapitalize="characters"><div class="look" id="f-look"></div></div>
+    <div class="fld"><label for="f-price">판매 금액 변경 (그대로면 비움 · 현재 ${won(r.price)})</label><input id="f-price" inputmode="numeric"></div>
+    <div class="fld"><label for="f-reason">사유 (필수)</label><textarea id="f-reason" placeholder="예) 택갈이 — 매장에서 다른 택으로 계산"></textarea></div>
+    <div class="status" id="f-status"></div>
+    <div class="form-actions"><button class="btn" id="f-run">정정하기</button><button class="btn ghost" data-act="cancel">취소</button></div></div>`;
+  return `<div class="panel">
+    <div class="tt">${esc(r.barcode)} 판매 제외</div>
+    <div class="hint" style="margin-top:0">반품·중복결제·잘못 들어온 판매 기록을 지웁니다. 지운 기록은 이력에 남아요.</div>
+    <div class="fld"><label class="toggle"><input type="checkbox" id="f-restore" checked> 재고가 판매됨이면 보유중으로 되돌리기</label></div>
+    <div class="fld"><label for="f-reason">사유 (필수)</label><textarea id="f-reason" placeholder="예) 구글시트 중복 입력"></textarea></div>
+    <div class="status" id="f-status"></div>
+    <div class="form-actions"><button class="btn" id="f-run">판매 제외하기</button><button class="btn ghost" data-act="cancel">취소</button></div></div>`;
+}
+
+function onClick(e) {
+  const t = e.target.closest('[data-act],[data-more],#f-run');
+  if (!t) return;
+  if (t.id === 'f-run') return run();
+  if (t.dataset.more) return loadHist(S.histBc, true);
+  const kind = t.dataset.act;
+  if (kind === 'cancel') S.act = null;
+  else S.act = { kind, id: Number(t.dataset.id) };
+  renderFound();
+  if (S.act?.kind === 'barcode') {
+    const to = $('f-to');
+    to.addEventListener('input', debounce(lookTarget, 350));
+    to.focus();
+  }
+}
+
+function debounce(fn, ms) { let h; return () => { clearTimeout(h); h = setTimeout(fn, ms); }; }
+
+async function lookTarget() {
+  const el = $('f-look'); if (!el) return;
+  const bc = normBc($('f-to').value);
+  if (!bc) { el.textContent = ''; return; }
+  el.className = 'look'; el.textContent = '확인 중…';
+  const [i, s] = await Promise.all([
+    window.sb.from('inventory_items').select('barcode,category,price,status,location').ilike('barcode', ilikeLit(bc)).limit(1),
+    window.sb.from('sold_items').select('sold_date').ilike('barcode', ilikeLit(bc)).limit(1),
+  ]);
+  if (normBc($('f-to')?.value) !== bc) return;   // 그 사이 입력이 바뀜
+  const it = (i.data || [])[0];
+  if (i.error || s.error) { el.className = 'look bad'; el.textContent = '확인하지 못했어요'; return; }
+  if (!it) { el.className = 'look bad'; el.textContent = '재고에 없는 바코드예요'; return; }
+  if ((s.data || []).length) { el.className = 'look bad'; el.textContent = `이미 판매 기록이 있는 바코드예요(${s.data[0].sold_date})`; return; }
+  el.className = 'look';
+  el.textContent = `${it.category || '-'} · ${won(it.price)} · ${STATUS[it.status] || it.status} · ${it.location || '-'}` + (it.status === 'disposed' ? ' — 폐기된 물건이에요. 맞는지 확인하세요' : '');
+}
+
+function rpcMessage(e) {
+  const m = String(e?.message || e);
+  return m === 'forbidden' ? '정정 권한이 없어요' : m;
+}
+
+async function run() {
+  const sale = S.sales.find((r) => r.id === S.act?.id);
+  if (!sale) return;
+  const reason = $('f-reason').value.trim();
+  if (!reason) return fstatus('사유를 입력하세요', 'err');
+  let call, summary;
+  if (S.act.kind === 'barcode') {
+    const to = normBc($('f-to').value);
+    if (!to) return fstatus('정정 후 바코드를 입력하세요', 'err');
+    const pr = $('f-price').value.trim();
+    if (pr !== '' && !/^\d+$/.test(pr)) return fstatus('판매 금액은 숫자로 입력하세요', 'err');
+    summary = `${sale.barcode} (${sale.sold_date}, ${won(sale.price)}) 판매를\n→ ${to} 로 정정${pr !== '' ? `\n판매 금액 ${won(sale.price)} → ${won(Number(pr))}` : ''}\n사유: ${reason}`;
+    call = () => window.sb.rpc('correct_sale_barcode', { p_from: sale.barcode, p_sold_date: sale.sold_date, p_to: to, p_reason: reason, p_new_price: pr === '' ? null : Number(pr) });
+  } else {
+    summary = `${sale.barcode} (${sale.sold_date}, ${won(sale.price)}) 판매 기록을 제외합니다.\n재고 복원: ${$('f-restore').checked ? '예' : '아니요'}\n사유: ${reason}`;
+    call = () => window.sb.rpc('exclude_sale', { p_barcode: sale.barcode, p_sold_date: sale.sold_date, p_reason: reason, p_restore_stock: $('f-restore').checked });
+  }
+  if (!confirm(summary + '\n\n실행할까요? (이력에 남고 되돌리는 화면은 없어요)')) return;
+  $('f-run').disabled = true; fstatus('처리 중…');
+  const { error } = await call();
+  if (error) { $('f-run').disabled = false; return fstatus(rpcMessage(error), 'err'); }
+  const done = S.act.kind === 'barcode' ? '정정했어요' : '제외했어요';
+  await search(S.bc);
+  setStatus(done, 'ok');
+}
+const fstatus = (msg, cls = '') => { const el = $('f-status'); if (el) { el.className = 'status ' + cls; el.textContent = msg; } };
+
+// ── 이력 ────────────────────────────────────────────────────
+async function loadHist(bc, more = false) {
+  if (!more) { S.hist = []; S.histEnd = false; S.histBc = bc || ''; }
+  let q = window.sb.from('corrections').select('id,kind,barcode,related_barcode,sold_date,before,after,reason,created_by,created_at').order('id', { ascending: false });
+  if (S.histBc) q = q.or(`barcode.eq.${S.histBc},related_barcode.eq.${S.histBc}`);
+  q = q.range(S.hist.length, S.hist.length + HIST_PAGE - 1);
+  const { data, error } = await q;
+  const el = $('hist'); if (!el) return;
+  if (error) { el.innerHTML = `<div class="status err">이력을 불러오지 못했어요: ${esc(error.message)}</div>`; return; }
+  S.hist = S.hist.concat(data || []);
+  S.histEnd = (data || []).length < HIST_PAGE;
+  renderHist();
+}
+
+function histRow(c) {
+  const sale = c.before?.sale || {};
+  let line;
+  if (c.kind === 'sale_barcode') {
+    const pc = c.after?.price != null && c.after.price !== sale.price ? ` · 금액 ${won(sale.price)} → ${won(c.after.price)}` : '';
+    line = `<b>${esc(c.barcode)}</b> → <b>${esc(c.related_barcode)}</b> · ${esc(c.sold_date)}${pc}`;
+  } else {
+    line = `<b>${esc(c.barcode)}</b> · ${esc(c.sold_date)} · ${won(sale.price)}${c.before?.restore_stock ? ' · 재고 복원' : ''}`;
+  }
+  return `<div class="item"><div class="l1"><span class="n">${esc(KIND[c.kind] || c.kind)}</span><span class="l2" style="margin:0">${esc(c.created_by)} · ${esc(kst(c.created_at))}</span></div>
+    <div class="l2">${line}<br>사유: ${esc(c.reason)}</div></div>`;
+}
+
+function renderHist() {
+  $('hist-title').textContent = S.histBc ? `${S.histBc} 이력` : '정정 이력';
+  $('hist-sub').innerHTML = S.histBc ? '<a href="#" id="hist-all" style="color:inherit">전체 보기</a>' : '최근 순';
+  const a = $('hist-all'); if (a) a.addEventListener('click', (e) => { e.preventDefault(); $('q').value = ''; S.bc = ''; S.sales = null; $('found').innerHTML = ''; loadHist(''); });
+  $('hist').innerHTML = S.hist.length
+    ? `<div class="list">${S.hist.map(histRow).join('')}</div>${S.histEnd ? '' : '<button class="btn ghost sm hist-more" data-more="1">더 보기</button>'}`
+    : '<div class="empty">정정 이력이 없어요.</div>';
+}
+
+(async function init() {
+  for (let i = 0; i < 50 && window.MIU_PROFILE === undefined; i++) await new Promise((r) => setTimeout(r, 100));
+  if (!window.MIU_PROFILE) { root.innerHTML = '<div class="empty">불러오지 못했어요. 새로고침해 주세요.</div>'; return; }
+  mount();
+  const bc = normBc(new URLSearchParams(location.search).get('barcode'));
+  if (bc) search(bc); else loadHist('');
+})();
+</script>
+</body>
+</html>
