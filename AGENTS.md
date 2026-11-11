@@ -9,7 +9,7 @@
 ## 1. 개요와 배포
 - 마켓인유(빈티지 의류) 물류·판매용 정적 PWA. 빌드 없음. HTML/JS + Supabase(`miu_ops` 프로젝트: Auth, Postgres RLS/RPC, Storage, Realtime). 한국어. 사용자 약 13명(관리자 7).
 - 배포: `main` push → GitHub Pages 자동 빌드(약 1분, `https://315seconds.github.io/miu-hub/`).
-- 공유 JS/CSS(`shared/*`, 각 `js/*`)를 바꿨으면 먼저 `python3 scripts/bump-cache-version.py`(모든 HTML의 로컬 js/css `?v=` 갱신, 현재 `202611050636`). HTML만 바꿨으면 불필요. 직원 폰은 새로고침/앱 재실행 필요.
+- 공유 JS/CSS(`shared/*`, 각 `js/*`)를 바꿨으면 먼저 `python3 scripts/bump-cache-version.py`(모든 HTML의 로컬 js/css `?v=` 갱신, 현재 `202611110048`). HTML만 바꿨으면 불필요. 직원 폰은 새로고침/앱 재실행 필요.
   - 2026-11-09: `manual/` 의 HTML만 `?v=202611090601`로 올렸다(`manual.css` 변경 때문; 다른 HTML은 그대로). 다음 전체 bump 때 통일된다.
 - 로컬: `python3 scripts/dev-server.py [포트]`(127.0.0.1 전용).
 - 서버 자동화(엑셀/Dropbox 반영, 자동 승인, 레터 생성)는 **이 저장소 밖**(`../work_automation`, Oracle VM 크론). 5절.

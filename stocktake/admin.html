@@ -6,8 +6,8 @@
 <title>재고조사 관리 — 마켓인유</title>
 <meta name="theme-color" content="#faf9f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611050636">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611050636">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611110048">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611110048">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
 body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
@@ -89,10 +89,10 @@ a.past:active { background: var(--miu-surface-strong); }
 .chk.bad { color: #7a2a2a; font-weight: 600; }
 .chk.ok { color: #2e6b3a; }
 </style>
-<script src="/miu-hub/shared/config.js?v=202611050636"></script>
+<script src="/miu-hub/shared/config.js?v=202611110048"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611050636"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611050636"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611110048"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611110048"></script>
 </head>
 <body>
 
@@ -116,7 +116,7 @@ a.past:active { background: var(--miu-surface-strong); }
 <div id="modalHost"></div>
 <div id="toastHost"></div>
 
-<script src="js/common.js?v=202611050636"></script>
+<script src="js/common.js?v=202611110048"></script>
 <script>
 (function () {
 'use strict';
@@ -582,7 +582,7 @@ function closeSessionModal() {
       <div class="m-line"><span>스캔한 물건</span><b>${esc(fmt(scanned))}개</b></div>
       <div style="margin-top:10px"><div class="small muted">결과 미리보기</div>${kindChips(S.summary)}</div>
       ${S.sess.session_date === new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' })
-        ? '<div class="m-note" style="background:color-mix(in srgb, var(--miu-warning) 16%, transparent);color:#6b5210;border-radius:var(--miu-r-md);padding:10px 12px"><b>오늘 시작한 조사예요.</b> 오늘 판매는 내일 새벽에, 이동은 오늘 밤 22시에 장부에 반영돼요. 지금 닫으면 오늘 팔리거나 옮겨진 물건이 "미스캔"·"위치 다름"으로 나올 수 있어요. 내일 아침에 닫으면 그런 물건은 "조사 중 변동"으로 자동 분류돼서 미스캔이 더 정확해져요. (스캔은 이미 끝났다면 내일 닫아도 돼요.)</div>' : ''}
+        ? '<div class="m-note" style="background:color-mix(in srgb, var(--miu-warning) 16%, transparent);color:#6b5210;border-radius:var(--miu-r-md);padding:10px 12px"><b>팝업매장 참고:</b> 영업 중에 조사한 매장은 조사 도중 팔린 물건이 "미스캔"으로 나올 수 있어요(판매는 다음 날 새벽에 장부에 반영돼요). 그런 미스캔은 판매 내역을 먼저 확인한 뒤 처리하세요.</div>' : ''}
       <div class="m-note">닫으면 되돌릴 수 없고 결과가 확정돼요.</div>`;
     if (err) m.body.appendChild(err);
     ok.disabled = !!reason;
