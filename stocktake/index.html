@@ -30,6 +30,7 @@ body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(-
 .guide { margin-top: 24px; font-size: 13px; color: var(--miu-muted); line-height: 1.75; }
 .guide summary { cursor: pointer; font-weight: 700; color: var(--miu-body); }
 .guide ol { padding-left: 18px; margin-top: 6px; }
+.guide a { display: inline-block; margin-top: 8px; font-weight: 600; color: var(--miu-primary); text-decoration: none; }
 .err { margin-top: 16px; padding: 12px 14px; border-radius: var(--miu-r-md); background: color-mix(in srgb, var(--miu-error) 12%, transparent); color: #7a2a2a; font-size: 13px; }
 </style>
 <script src="/miu-hub/shared/config.js?v=202611110241"></script>
@@ -107,7 +108,7 @@ body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(-
         <li>바코드를 스캔하면 바로 소리와 색으로 알려줘요. 다른 위치 장부이거나 장부에 없는 물건은 경고가 뜨지만 그대로 기록돼요.</li>
         <li>스캔은 자동으로 서버에 저장돼요. 인터넷이 끊겨도 기기에 남았다가 연결되면 전송돼요. 따로 제출하지 않아도 돼요.</li>
         <li>다 끝나면 "남은 물건"으로 못 찾은 물건을 확인하고 "위치 마감"을 누르세요.</li>
-      </ol></details>`;
+      </ol><a href="/miu-hub/office/index.html#75656a1d-7187-4816-80c8-30dacb88dfdc"><i class="ph-bold ph-file-pdf"></i> 전체 가이드(PDF) 보기 · 받기</a></details>`;
   } catch (e) {
     root.innerHTML = `<div class="err">${esc(e.message || '불러오지 못했어요.')}</div>`;
   }
