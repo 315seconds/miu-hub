@@ -6,8 +6,8 @@
 <title>재고조사 결과 — 마켓인유</title>
 <meta name="theme-color" content="#faf9f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611110048">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611110048">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611110241">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611110241">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
 body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
@@ -68,6 +68,13 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
 .mfield label { display: block; margin-bottom: 4px; font-weight: 600; }
 .warnmsg { font-size: 13px; line-height: 1.6; margin-top: 10px; padding: 10px 12px; border-radius: var(--miu-r-md); background: color-mix(in srgb, var(--miu-error) 12%, transparent); color: #7a2a2a; }
 .infomsg { font-size: 13px; line-height: 1.6; margin-top: 10px; color: var(--miu-body); }
+.swlist { margin-top: 12px; display: flex; flex-direction: column; gap: 10px; }
+.swrow { border: 1px solid var(--miu-hairline-soft); border-radius: var(--miu-r-md); padding: 10px 12px; }
+.swin { width: 100%; height: 40px; margin-top: 8px; padding: 0 12px; border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); font: inherit; font-size: 15px; text-transform: uppercase; background: var(--miu-surface, #fff); box-sizing: border-box; }
+.swchk { font-size: 12.5px; margin-top: 6px; line-height: 1.5; color: var(--miu-muted); }
+.swchk.ok { color: #1f6b3a; }
+.swchk.warn { color: #8a6100; }
+.swchk.bad { color: #a23030; }
 .mbtn { height: 40px; padding: 0 16px; border-radius: var(--miu-r-md); border: none; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
 .mbtn.primary { background: var(--miu-primary); color: white; }
 .mbtn.danger { background: var(--miu-error); color: white; }
@@ -77,10 +84,10 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
 .miu-btn-sm { cursor: pointer; border: none; border-radius: var(--miu-r-md); display: inline-flex; align-items: center; gap: 4px; font-family: inherit; }
 .miu-btn-sm:disabled { opacity: .5; cursor: default; }
 </style>
-<script src="/miu-hub/shared/config.js?v=202611110048"></script>
+<script src="/miu-hub/shared/config.js?v=202611110241"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611110048"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611110048"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611110241"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611110241"></script>
 </head>
 <body>
 
@@ -96,7 +103,7 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
 
 <div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
 
-<script src="js/common.js?v=202611110048"></script>
+<script src="js/common.js?v=202611110241"></script>
 <script>
 (function () {
   const { esc, fmt, KIND, RES } = ST;
@@ -117,7 +124,10 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
     missing: [
       { label: '찾음 (미확인 해제)', icon: 'ph-magnifying-glass', res: 'found', title: '찾음 처리', note: true,
         info: '현장에서 확인했어요. 미확인 표시만 풀리고 위치는 그대로예요.' },
-      { label: '선택한 물건 폐기', icon: 'ph-trash', apply: true, to: '폐기', danger: true, note: true, title: '선택한 물건 폐기',
+      { label: '택분실 짝 확인 후 폐기', icon: 'ph-link', swap: true, apply: true, to: '폐기', danger: true, title: '택분실 짝 확인 후 폐기' },
+      { label: '미확인 위치로 이동', icon: 'ph-question', apply: true, to: '미확인', note: true, title: '미확인 위치로 이동',
+        info: '폐기하지 않고 위치만 "미확인"으로 옮겨요. 재고(상태)는 그대로라 총 재고 숫자는 변하지 않고, 원래 매장의 재고 숫자에서만 빠져요. 다음 조사에서 어느 매장에서든 찍히면 "미확인 물건 발견"으로 알려줘요. 오늘 22:00 자동 승인 뒤 장부(DB)와 엑셀 위치가 "미확인"으로 바뀌어요.' },
+      { label: '짝 없이 폐기', icon: 'ph-trash', apply: true, to: '폐기', danger: true, note: true, title: '짝 없이 폐기',
         warn: '체크한 물건만 장부에서 폐기 처리돼요. 선택하지 않은 미스캔 물건은 그대로 재고에 남고 "미확인" 표시만 유지돼요. 오늘 22:00 자동 승인 뒤 반영되고, 이월 때 엑셀에서도 빠져요. 되돌리려면 별도 작업이 필요해요.' },
     ],
     missing_found: [
@@ -468,6 +478,7 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
 
   // ---------- 처리 ----------
   function confirmAction(a, barcodes) {
+    if (a.swap) return confirmSwap(a, barcodes);
     const n = barcodes.length;
     const body = `<div><b>${esc(KIND[S.kind].label)}</b> ${num(n)}건을 <b>${esc(a.label)}</b>(으)로 처리할까요?</div>
       ${a.info ? `<div class="infomsg">${esc(a.info)}</div>` : ''}
@@ -495,13 +506,87 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
       if (note) args.p_note = note;
       const r = await ST.rpc('stocktake_apply_moves', args) || {};
       const moved = Number(r.moved || 0), skipped = Number(r.skipped || 0), inPlace = Number(r.in_place || 0);
-      const tail = (inPlace ? ` ${num(inPlace)}건은 같은 위치라 미확인 표시만 풀었어요.` : '') + (skipped ? ` ${num(skipped)}건은 그 사이 장부가 바뀌어 건너뜀` : '');
+      const skipTxt = a.to === '미확인' ? '이미 미확인 위치이거나 그 사이 장부가 바뀌어 건너뜀' : '그 사이 장부가 바뀌어 건너뜀';
+      const tail = (inPlace ? ` ${num(inPlace)}건은 같은 위치라 미확인 표시만 풀었어요.` : '') + (skipped ? ` ${num(skipped)}건은 ${skipTxt}` : '');
       return a.to
         ? `${num(moved)}건 ${a.to} 이동 예약됨 — 오늘 22:00 자동 승인 뒤 장부에 반영돼요.${tail}`
         : `${num(moved)}건 정정 예약됨 — 오늘 22:00 자동 승인 뒤 장부에 반영돼요.${tail}`;
     }
     const n = await ST.rpc('stocktake_resolve', { p_session: S.sid, p_kind: S.kind, p_barcodes: barcodes, p_resolution: a.res, p_note: note || null });
     return `${num(n)}건 ${RES[a.res]} 처리됨`;
+  }
+
+  // 택분실 짝 확인 후 폐기: 건마다 택분실로 새로 입고한 바코드를 입력받아 비고를 자동으로 남긴다.
+  const SW_STATUS = { in_stock: '재고', sold: '판매됨', disposed: '폐기' };
+  async function confirmSwap(a, barcodes) {
+    if (barcodes.length > 50) { toast('한 번에 50건까지 짝을 입력할 수 있어요. 선택을 줄여 주세요.', 6000); return; }
+    const { data, error } = await window.sb.from('stocktake_results').select('barcode,category,brand,product_name,price,ledger_location')
+      .eq('session_id', S.sid).eq('kind', S.kind).in('barcode', barcodes);
+    if (error) { toast('물건 정보를 불러오지 못했어요: ' + error.message, 6000); return; }
+    const info = new Map((data || []).map((r) => [r.barcode, r]));
+    const look = {};
+    const rows = barcodes.map((b) => {
+      const r = info.get(b) || {};
+      const desc = [r.category, r.brand, r.product_name].filter(Boolean).map(esc).join(' · ') + (r.price != null ? ' · ' + num(r.price) + '원' : '') + (r.ledger_location ? ' · ' + esc(r.ledger_location) : '');
+      return `<div class="swrow" data-b="${esc(b)}"><div><b class="bc">${esc(b)}</b> <span class="sub">${desc}</span></div>
+        <input class="swin" type="text" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="40" placeholder="택분실로 새로 입고한 바코드">
+        <div class="swchk"></div></div>`;
+    }).join('');
+    const body = `<div class="infomsg">건마다 <b>택분실로 새로 입고한 물건의 바코드</b>를 입력하세요. 원 물건은 폐기되고 비고에 "택분실로 신규 입고 XXXX 바코드로 잡아 폐기"가 남아요. 새 물건에도 "원 바코드 …와 교환"이 남아요.</div>
+      <div class="warnmsg"><i class="ph-bold ph-warning"></i> 짝이 확실한 물건만 입력하세요. 오늘 22:00 자동 승인 뒤 폐기돼요. 되돌리려면 별도 작업이 필요해요.</div>
+      <div class="swlist">${rows}</div>`;
+    const lookup = async (row) => {
+      const b = row.dataset.b, inp = row.querySelector('.swin'), chk = row.querySelector('.swchk');
+      const v = inp.value.trim().toUpperCase();
+      if (!v) { look[b] = null; chk.className = 'swchk'; chk.textContent = ''; return; }
+      chk.className = 'swchk'; chk.textContent = '확인 중…';
+      try {
+        const x = await ST.rpc('stocktake_swap_lookup', { p_barcode: v });
+        if (inp.value.trim().toUpperCase() !== v) return;
+        if (!x) { look[b] = { ok: false }; chk.className = 'swchk bad'; chk.textContent = '장부에 없는 바코드예요'; return; }
+        const warns = [];
+        if (x.source !== '택분실') warns.push('출처가 택분실이 아니에요(' + (x.source || '없음') + ')');
+        if (x.paired) warns.push('이미 다른 물건과 짝이 맺어졌어요');
+        look[b] = { ok: true };
+        chk.className = 'swchk ' + (warns.length ? 'warn' : 'ok');
+        chk.innerHTML = esc([x.category, x.brand, x.price != null ? num(x.price) + '원' : '', '출처 ' + (x.source || '-'), SW_STATUS[x.status] || x.status, x.location].filter(Boolean).join(' · '))
+          + warns.map((w) => `<div>⚠ ${esc(w)}</div>`).join('');
+      } catch (e) { look[b] = null; chk.className = 'swchk bad'; chk.textContent = errMsg(e); }
+    };
+    openModal({
+      title: a.title, body,
+      buttons: [{ key: 'cancel', label: '취소', cls: 'ghost' }, { key: 'ok', label: `${num(barcodes.length)}건 폐기`, cls: 'danger' }],
+      onButton: async (k, ov) => {
+        const rowsEl = [...ov.querySelectorAll('.swrow')];
+        const swaps = {};
+        for (const row of rowsEl) {
+          const v = row.querySelector('.swin').value.trim().toUpperCase();
+          if (!v) throw new Error('모든 건에 짝 바코드를 입력해 주세요. 짝을 모르는 물건은 선택에서 빼 주세요.');
+          if (look[row.dataset.b] === undefined || look[row.dataset.b] === null) await lookup(row);
+          if (!look[row.dataset.b]?.ok) throw new Error(`${row.dataset.b}: 짝 바코드를 확인해 주세요.`);
+          swaps[row.dataset.b] = v;
+        }
+        const r = await ST.rpc('stocktake_apply_moves', { p_session: S.sid, p_kind: S.kind, p_barcodes: barcodes, p_to: a.to, p_swaps: swaps }) || {};
+        const moved = Number(r.moved || 0), skipped = Number(r.skipped || 0);
+        S.sel = new Set();
+        toast(`${num(moved)}건 폐기 예약됨 — 오늘 22:00 자동 승인 뒤 장부에 반영돼요.${skipped ? ` ${num(skipped)}건은 그 사이 장부가 바뀌어 건너뜀` : ''}`, 9000);
+        try { await refreshCounts(); } catch (e) { toast(errMsg(e)); }
+        await loadList();
+        return true;
+      },
+    });
+    document.querySelectorAll('.swrow').forEach((row) => {
+      const inp = row.querySelector('.swin');
+      let t;
+      inp.addEventListener('input', () => { look[row.dataset.b] = undefined; clearTimeout(t); t = setTimeout(() => lookup(row), 450); });
+      inp.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault(); clearTimeout(t); lookup(row);
+        const all = [...document.querySelectorAll('.swin')]; const nx = all[all.indexOf(inp) + 1];
+        if (nx) nx.focus(); else inp.blur();
+      });
+    });
+    const first = document.querySelector('.swin'); if (first) first.focus();
   }
 
   async function selectAllFiltered(btn) {
