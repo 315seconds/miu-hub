@@ -30,6 +30,8 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
 .mini th, .mini td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--miu-hairline-soft); }
 .mini th:first-child, .mini td:first-child { text-align: left; }
 .mini th { color: var(--miu-muted); font-weight: 600; font-size: 12px; }
+.refbox { margin-top: 12px; padding: 10px 12px; border-radius: var(--miu-r-md); background: var(--miu-surface-soft, rgba(0,0,0,.04)); font-size: 12.5px; line-height: 1.7; color: var(--miu-body); }
+.refbox b { display: block; margin-bottom: 2px; color: var(--miu-muted); font-size: 12px; }
 .tabs { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 10px; -webkit-overflow-scrolling: touch; }
 .tab { flex: 0 0 auto; border: 1px solid var(--miu-hairline); background: var(--miu-canvas); color: var(--miu-body); border-radius: var(--miu-r-pill); padding: 8px 14px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .tab .n { margin-left: 6px; font-weight: 500; color: var(--miu-muted); }
@@ -292,6 +294,8 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
       const prog = new Map((progress || []).map((p) => [p.location, p]));
       S.locs = (locRes.data || []).map((l) => ({ ...l, ok: Number(prog.get(l.location)?.ok || 0) }));
       S.summary = summary || {};
+      S.ref = null;
+      try { S.ref = await ST.rpc('stocktake_reference', { p_session: S.sid }); } catch (e) { S.ref = null; }
       const counts = await Promise.all(KINDS.map(countOpen));
       if (my !== S.loadToken) return;
       KINDS.forEach((k, i) => { S.openCnt[k] = counts[i]; S.totalCnt[k] = Number((S.summary.kinds || {})[k] || 0); });
@@ -305,6 +309,18 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
   }
 
   // ---------- 렌더 ----------
+  // 참고 수치(미스캔과 비교용): 택분실 입고 수량, 미확인 제외 재고. 화면과 CSV 에 같은 문장을 쓴다.
+  function refLines() {
+    const r = S.ref;
+    if (!r) return [];
+    const from = r.prev_date ? `지난 조사(${ST.md(r.prev_date)}) 이후 이번 조사 시작까지` : '지난 조사 기록이 없어 이번 조사 시작 전 90일 동안';
+    const stock = Number(r.in_stock || 0), flag = Number(r.flagged || 0);
+    return [
+      `${from} 택분실로 입고한 물건 ${num(r.lost_count)}건`,
+      `현재(조회 시점) 장부 재고 ${num(stock)}건 중 미확인 ${num(flag)}건 → 미확인 제외 ${num(stock - flag)}건`,
+    ];
+  }
+
   function summaryHtml() {
     const s = S.session, sm = S.summary;
     const done = S.locs.filter((l) => l.state === 'done' && !l.virtual);
@@ -325,6 +341,7 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
       ${skipped.length ? `<div class="meta" style="margin:10px 0 0">건너뜀 ${skipped.length}곳 (일치율 계산에서 제외): ${esc(skipped.map((l) => l.location).join(', '))}</div>` : ''}
       ${Number(sm.listed) > 0 ? `<div class="meta" style="margin:10px 0 0">목록 제출 기준 ${num(sm.listed)}건 포함 — 실물 확인 없이 목록으로 "있음" 처리된 물건이에요.</div>` : ''}
       ${rows ? `<table class="mini"><thead><tr><th>위치</th><th>장부</th><th>일치</th><th>일치율</th></tr></thead><tbody>${rows}</tbody></table>` : ''}
+      ${refLines().length ? `<div class="refbox"><b>참고</b>${refLines().map((t) => `<div>· ${esc(t)}</div>`).join('')}</div>` : ''}
     </div>`;
   }
 
@@ -529,7 +546,10 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
       const all = await fetchAll(COLS, false);
       if (!all.length) { toast('내려받을 항목이 없어요'); return; }
       const head = ['종류', '바코드', '카테고리', '브랜드', '상품명', '가격', '장부위치', '스캔위치', '스캔횟수', '담당자', '행거', '연속미스캔', '처리상태', '메모'];
-      const lines = [head.map(ST.csvCell).join(',')];
+      const lines = [];
+      refLines().forEach((t) => lines.push(['참고', t].map(ST.csvCell).join(',')));
+      if (refLines().length) lines.push('');
+      lines.push(head.map(ST.csvCell).join(','));
       all.forEach((r) => lines.push([
         KIND[r.kind]?.label || r.kind, r.barcode, r.category, r.brand, r.product_name, r.price, r.ledger_location, r.scanned_location,
         r.scan_count, r.scanners, r.hangers, r.prior_missing ? '예' : '', RES[r.resolution] || r.resolution, r.note,
