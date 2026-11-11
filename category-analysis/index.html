@@ -138,6 +138,8 @@ const BAND_LABELS = ['~1만', '1~2만', '2~3만', '3~4만', '4~5만', '5~7만', 
 // 행거에 거는 물건이 아닌 카테고리(앞의 '온' 제거 후 비교). 행거수가 입력돼 있으면 행거 카테고리로 본다.
 const NON_HANGER = new Set(['가방', '패션잡화', 'ETC', '패브릭', '신발', '모자', '봉투', '위탁', '(카테고리 미확인)']);
 const SECTIONS = ['물류', '온라인', '행거 외'];
+// 판매·재고가 없어도 행거수 입력 칸에 항상 보여 줄 매장별 카테고리(아직 입력 전이라 목록에 안 뜨는 것).
+const MG_EXTRA = { 신사: ['플리스'], 상수: ['플리스'] };
 // 신호 기준: 효율지수 = (매출비중 ÷ 행거비중) × 100. 100이 같은 구간 평균.
 const IDX_UP = 115, IDX_DOWN = 85, MIN_QTY = 5, STALE_DAYS = 14, MIN_DAYS = 7, REFILL_DAYS = 14;
 
@@ -472,7 +474,7 @@ function mgCategories(store) {
     .filter((r) => r.h > 0 || !NON_HANGER.has(r.category.startsWith('온') ? r.category.slice(1) : r.category))
     .sort((a, b) => b.rev - a.rev).map((r) => r.category);
   const known = [...S.mgRows.latest.keys()];
-  return [...new Set([...fromPerf, ...known])].sort((a, b) => (a.startsWith('온') - b.startsWith('온')));
+  return [...new Set([...fromPerf, ...known, ...(MG_EXTRA[store] || [])])].sort((a, b) => (a.startsWith('온') - b.startsWith('온')));
 }
 
 async function renderHg() {
