@@ -117,8 +117,8 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
     missing: [
       { label: '찾음 (미확인 해제)', icon: 'ph-magnifying-glass', res: 'found', title: '찾음 처리', note: true,
         info: '현장에서 확인했어요. 미확인 표시만 풀리고 위치는 그대로예요.' },
-      { label: '분실 확정 (폐기)', icon: 'ph-trash', apply: true, to: '폐기', danger: true, note: true, title: '분실 확정 → 폐기',
-        warn: '장부에서 폐기 처리돼요. 오늘 22:00 자동 승인 뒤 반영되고, 이월 때 엑셀에서도 빠져요. 되돌리려면 별도 작업이 필요해요.' },
+      { label: '선택한 물건 폐기', icon: 'ph-trash', apply: true, to: '폐기', danger: true, note: true, title: '선택한 물건 폐기',
+        warn: '체크한 물건만 장부에서 폐기 처리돼요. 선택하지 않은 미스캔 물건은 그대로 재고에 남고 "미확인" 표시만 유지돼요. 오늘 22:00 자동 승인 뒤 반영되고, 이월 때 엑셀에서도 빠져요. 되돌리려면 별도 작업이 필요해요.' },
     ],
     missing_found: [
       { label: '발견 처리', icon: 'ph-check-circle', primary: true, apply: true, title: '발견 처리',
