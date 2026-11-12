@@ -210,7 +210,10 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
     let b = window.sb.from('stocktake_results').select(cols, opts).eq('session_id', S.sid).eq('kind', S.kind);
     if (S.f.res !== 'all') b = b.eq('resolution', S.f.res);
     if (onlyActionable) b = b.in('resolution', ACTIONABLE);
-    if (S.f.loc) { const v = orQuote(S.f.loc); b = b.or(`ledger_location.eq.${v},scanned_location.eq.${v}`); }
+    // 가상 위치 "미확인 물건"은 장부 위치가 아니라 "이전 조사에서 안 나온 물건(연속 미스캔)" 묶음이라 prior_missing 으로 거른다.
+    if (S.f.loc === '__prior') b = b.eq('prior_missing', true);
+    else if (S.f.loc === '__prior_other') b = b.eq('prior_missing', true).neq('ledger_location', '미확인');
+    else if (S.f.loc) { const v = orQuote(S.f.loc); b = b.or(`ledger_location.eq.${v},scanned_location.eq.${v}`); }
     const s = cleanSearch(S.f.q);
     if (s) b = b.or(`barcode.ilike.*${s}*,product_name.ilike.*${s}*,detail.ilike.*${s}*`);
     return b.order('barcode');
@@ -361,7 +364,7 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
     const resOpts = [['open', '미처리'], ['all', '전체'], ...['found', 'ignored', 'moved', 'disposed'].map((k) => [k, RES[k]])];
     return `<div class="filters">
       <select id="fRes" aria-label="처리 상태">${resOpts.map(([v, l]) => `<option value="${esc(v)}" ${S.f.res === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
-      <select id="fLoc" aria-label="위치"><option value="">모든 위치</option>${S.locs.map((l) => `<option value="${esc(l.location)}" ${S.f.loc === l.location ? 'selected' : ''}>${esc(l.location)}</option>`).join('')}</select>
+      <select id="fLoc" aria-label="위치"><option value="">모든 위치</option><option value="__prior" ${S.f.loc === '__prior' ? 'selected' : ''}>연속 미스캔 전체 (이전 조사에서 안 나온 물건)</option><option value="__prior_other" ${S.f.loc === '__prior_other' ? 'selected' : ''}>연속 미스캔 중 미확인 위치 아님</option>${S.locs.filter((l) => l.location !== '미확인 물건').map((l) => `<option value="${esc(l.location)}" ${S.f.loc === l.location ? 'selected' : ''}>${esc(l.location)}</option>`).join('')}</select>
       <input type="search" id="fQ" placeholder="바코드·상품명 검색" value="${esc(S.f.q)}" aria-label="검색">
       <button class="miu-btn-sm miu-btn-secondary" data-a="csv"><i class="ph-bold ph-download-simple"></i>CSV 내려받기</button>
     </div>`;
