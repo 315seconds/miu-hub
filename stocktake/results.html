@@ -6,8 +6,8 @@
 <title>재고조사 결과 — 마켓인유</title>
 <meta name="theme-color" content="#faf9f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611110529">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611110529">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611120656">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611120656">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
 body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
@@ -79,10 +79,10 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
 .miu-btn-sm { cursor: pointer; border: none; border-radius: var(--miu-r-md); display: inline-flex; align-items: center; gap: 4px; font-family: inherit; }
 .miu-btn-sm:disabled { opacity: .5; cursor: default; }
 </style>
-<script src="/miu-hub/shared/config.js?v=202611110529"></script>
+<script src="/miu-hub/shared/config.js?v=202611120656"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611110529"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611110529"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611120656"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611120656"></script>
 </head>
 <body>
 
@@ -98,7 +98,7 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
 
 <div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
 
-<script src="js/common.js?v=202611110529"></script>
+<script src="js/common.js?v=202611120656"></script>
 <script>
 (function () {
   const { esc, fmt, KIND, RES } = ST;
@@ -127,6 +127,11 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
     missing_found: [
       { label: '발견 처리', icon: 'ph-check-circle', primary: true, apply: true, title: '발견 처리',
         info: '스캔된 위치가 장부 위치와 같으면 미확인 표시만 풀어요. 다르면 스캔된 위치로 정정 이동을 예약하고, 오늘 22:00 자동 승인 뒤 장부(DB·엑셀)에 반영되면서 미확인 표시가 풀려요.' },
+    ],
+    duplicate: [
+      { label: '실물 스캔 위치로 정정 예약', icon: 'ph-arrows-left-right', primary: true, apply: true, title: '실물 스캔 위치로 정정 예약',
+        info: '목록 제출(재봉합 등)과 실물 스캔이 겹친 물건 중 실물 스캔 위치가 장부 위치와 다른 물건만 그 위치로 이동을 예약해요(이동 누락). 위치가 같거나 실물 스캔 위치가 여러 곳인 물건은 건너뛰어요. 오늘 22:00 자동 승인 뒤 장부(DB·엑셀)에 반영돼요.' },
+      { label: '문제 없음', icon: 'ph-check', res: 'ignored', title: '문제 없음 처리', note: true },
     ],
   };
   KINDS.forEach((k) => { if (!ACTIONS[k]) ACTIONS[k] = [{ label: '확인 완료', icon: 'ph-check', res: 'ignored', primary: true, title: '확인 완료 처리', note: true }]; });
@@ -207,7 +212,7 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
     if (onlyActionable) b = b.in('resolution', ACTIONABLE);
     if (S.f.loc) { const v = orQuote(S.f.loc); b = b.or(`ledger_location.eq.${v},scanned_location.eq.${v}`); }
     const s = cleanSearch(S.f.q);
-    if (s) b = b.or(`barcode.ilike.*${s}*,product_name.ilike.*${s}*`);
+    if (s) b = b.or(`barcode.ilike.*${s}*,product_name.ilike.*${s}*,detail.ilike.*${s}*`);
     return b.order('barcode');
   }
 
@@ -370,7 +375,7 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
 
   function renderKindBox() {
     const k = S.kind;
-    document.getElementById('kindBox').innerHTML = `<div class="desc">${esc(KIND[k].desc)}</div>${KIND_NOTICE[k] && S.me.isAdmin ? `<div class="note-box">${esc(KIND_NOTICE[k])}</div>` : ''}${S.me.isAdmin ? '' : '<div class="desc" style="color:var(--miu-muted)">조회 전용이에요. 처리는 관리자만 할 수 있어요.</div>'}`;
+    document.getElementById('kindBox').innerHTML = `<div class="desc">${esc(KIND[k].desc)}</div>${KIND_NOTICE[k] && S.me.isAdmin ? `<div class="note-box">${esc(KIND_NOTICE[k])}</div>` : ''}${S.me.isAdmin ? '' : '<div class="desc" style="color:var(--miu-muted)">조회 전용이에요. 처리는 관리자만 할 수 있어요.</div>'}${k === 'missing' && S.me.isAdmin ? '<div style="margin:6px 0 2px"><button class="miu-btn-sm miu-btn-secondary" data-a="listFound"><i class="ph-bold ph-list-checks"></i>목록으로 찾음 처리</button></div>' : ''}`;
   }
 
   function chipsFor(r) {
@@ -514,7 +519,7 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
       if (note) args.p_note = note;
       const r = await ST.rpc('stocktake_apply_moves', args) || {};
       const moved = Number(r.moved || 0), skipped = Number(r.skipped || 0), inPlace = Number(r.in_place || 0);
-      const skipTxt = a.to === '미확인' ? '이미 미확인 위치이거나 그 사이 장부가 바뀌어 건너뜀' : '그 사이 장부가 바뀌어 건너뜀';
+      const skipTxt = a.to === '미확인' ? '이미 미확인 위치이거나 그 사이 장부가 바뀌어 건너뜀' : S.kind === 'duplicate' ? '위치가 같거나 실물 스캔 위치가 여러 곳이라 건너뜀' : '그 사이 장부가 바뀌어 건너뜀';
       const tail = (inPlace ? ` ${num(inPlace)}건은 같은 위치라 미확인 표시만 풀었어요.` : '') + (skipped ? ` ${num(skipped)}건은 ${skipTxt}` : '');
       return a.to
         ? `${num(moved)}건 ${a.to} 이동 예약됨 — 오늘 22:00 자동 승인 뒤 장부에 반영돼요.${tail}`
@@ -522,6 +527,79 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
     }
     const n = await ST.rpc('stocktake_resolve', { p_session: S.sid, p_kind: S.kind, p_barcodes: barcodes, p_resolution: a.res, p_note: note || null });
     return `${num(n)}건 ${RES[a.res]} 처리됨`;
+  }
+
+  // 목록으로 찾음 처리: 조사를 닫은 뒤 늦게 받은 바코드 목록(예: 물류가 뒤늦게 준 재봉합 목록)에 있는 미스캔을 한 번에 '찾음' 처리한다.
+  const parseCodes = (text) => [...new Set(String(text || '').split(/[\s,;]+/).map((s) => s.trim().toUpperCase()).filter(Boolean))];
+  function listFoundModal() {
+    const body = `<div class="infomsg" style="margin-top:0">조사를 닫은 뒤에 받은 바코드 목록에 있는 <b>미스캔 물건</b>을 한 번에 "찾음" 처리해요. 미확인 표시가 풀리고 위치는 그대로예요. 목록에 있어도 미스캔이 아닌 바코드는 건드리지 않아요.</div>
+      <div class="mfield"><label for="lfText">바코드 목록 <span class="sub" style="font-weight:400">줄바꿈·공백·쉼표·탭·세미콜론으로 구분</span></label>
+        <textarea id="lfText" style="min-height:140px;font-family:var(--miu-mono);width:100%;box-sizing:border-box" spellcheck="false" autocomplete="off"></textarea></div>
+      <div class="mfield"><label for="lfFile">파일 (.csv, .txt)</label><input type="file" id="lfFile" accept=".csv,.txt,text/csv,text/plain"></div>
+      <div class="mfield"><label for="lfNote">메모</label><input type="text" id="lfNote" maxlength="200" value="조사 후 받은 목록으로 찾음 처리" style="width:100%;height:40px;box-sizing:border-box"></div>
+      <div class="infomsg" id="lfInfo"><b>0</b>개 인식</div>`;
+    let matched = [], token = 0;
+    openModal({
+      title: '목록으로 찾음 처리', body,
+      buttons: [{ key: 'cancel', label: '취소', cls: 'ghost' }, { key: 'ok', label: '찾음 처리', cls: 'primary' }],
+      onButton: async () => {
+        if (!matched.length) throw new Error('처리할 미스캔 물건이 없어요.');
+        const note = (document.getElementById('lfNote').value || '').trim();
+        let n = 0;
+        for (let i = 0; i < matched.length; i += 500) {
+          n += Number(await ST.rpc('stocktake_resolve', { p_session: S.sid, p_kind: 'missing', p_barcodes: matched.slice(i, i + 500), p_resolution: 'found', p_note: note || null })) || 0;
+        }
+        S.sel = new Set();
+        toast(`${num(n)}건 찾음 처리됨`, 7000);
+        try { await refreshCounts(); } catch (e) { toast(errMsg(e)); }
+        await loadList();
+        return true;
+      },
+    });
+    const ta = document.getElementById('lfText'), file = document.getElementById('lfFile'), info = document.getElementById('lfInfo');
+    const okBtn = document.querySelector('.mbtn[data-k="ok"]');
+    okBtn.disabled = true;
+    const preview = async () => {
+      const my = ++token;
+      const codes = parseCodes(ta.value);
+      matched = [];
+      okBtn.disabled = true;
+      if (!codes.length) { info.innerHTML = '<b>0</b>개 인식'; return; }
+      info.innerHTML = `<b>${num(codes.length)}</b>개 인식 · 미스캔 목록과 대조 중…`;
+      try {
+        const byLoc = {}; let done = 0;
+        for (let i = 0; i < codes.length; i += 300) {
+          const { data, error } = await window.sb.from('stocktake_results').select('barcode,ledger_location,resolution')
+            .eq('session_id', S.sid).eq('kind', 'missing').in('barcode', codes.slice(i, i + 300));
+          if (error) throw new Error(error.message);
+          if (my !== token) return;
+          (data || []).forEach((r) => {
+            if (r.resolution === 'open') { matched.push(r.barcode); byLoc[r.ledger_location || '-'] = (byLoc[r.ledger_location || '-'] || 0) + 1; }
+            else done++;
+          });
+        }
+        if (my !== token) return;
+        const rest = codes.length - matched.length - done;
+        info.innerHTML = `<b>${num(codes.length)}</b>개 인식 → 미처리 미스캔 <b>${num(matched.length)}</b>건 일치`
+          + (matched.length ? ` (${Object.entries(byLoc).sort((a, b) => b[1] - a[1]).map(([l, c]) => esc(l) + ' ' + num(c)).join(', ')})` : '')
+          + (done ? `<br>이미 처리된 미스캔 ${num(done)}건은 제외` : '')
+          + (rest > 0 ? `<br>미스캔 목록에 없는 바코드 ${num(rest)}개는 무시(스캔됐거나 장부에 없는 바코드)` : '');
+        okBtn.disabled = matched.length === 0;
+        okBtn.textContent = matched.length ? `${num(matched.length)}건 찾음 처리` : '찾음 처리';
+      } catch (e) { if (my === token) info.innerHTML = `<span style="color:#a23030">${esc(errMsg(e))}</span>`; }
+    };
+    let t;
+    ta.addEventListener('input', () => { clearTimeout(t); t = setTimeout(preview, 400); });
+    file.addEventListener('change', () => {
+      const f = file.files && file.files[0];
+      if (!f) return;
+      const rd = new FileReader();
+      rd.onload = () => { ta.value = (ta.value ? ta.value + '\n' : '') + String(rd.result || ''); preview(); };
+      rd.onerror = () => { info.innerHTML = '<span style="color:#a23030">파일을 읽지 못했어요.</span>'; };
+      rd.readAsText(f);
+      file.value = '';
+    });
+    ta.focus();
   }
 
   async function selectAllFiltered(btn) {
@@ -600,6 +678,7 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
       case 'selAll': selectAllFiltered(b); break;
       case 'selClear': S.sel = new Set(); renderList(); break;
       case 'csv': downloadCsv(b); break;
+      case 'listFound': listFoundModal(); break;
     }
   });
 
