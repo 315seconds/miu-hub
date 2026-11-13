@@ -6,8 +6,8 @@
 <title>재고조사 결과 — 마켓인유</title>
 <meta name="theme-color" content="#faf9f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611120656">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611120656">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611130006">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611130006">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
 body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
@@ -79,10 +79,10 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
 .miu-btn-sm { cursor: pointer; border: none; border-radius: var(--miu-r-md); display: inline-flex; align-items: center; gap: 4px; font-family: inherit; }
 .miu-btn-sm:disabled { opacity: .5; cursor: default; }
 </style>
-<script src="/miu-hub/shared/config.js?v=202611120656"></script>
+<script src="/miu-hub/shared/config.js?v=202611130006"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611120656"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611120656"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611130006"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611130006"></script>
 </head>
 <body>
 
@@ -98,7 +98,7 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
 
 <div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
 
-<script src="js/common.js?v=202611120656"></script>
+<script src="js/common.js?v=202611130006"></script>
 <script>
 (function () {
   const { esc, fmt, KIND, RES } = ST;
@@ -114,13 +114,15 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
     location_diff: [
       { label: '위치 정정 예약', icon: 'ph-arrows-left-right', primary: true, apply: true,
         title: '위치 정정 예약', info: '스캔된 위치로 장부를 정정하는 이동을 예약해요. 오늘 22:00 자동 승인 뒤 장부(DB·엑셀)에 반영돼요.' },
-      { label: '문제 없음', icon: 'ph-check', res: 'ignored', title: '문제 없음 처리', note: true },
+      { label: '확인 완료', icon: 'ph-check', res: 'ignored', title: '확인 완료 처리', note: true },
     ],
     missing: [
       { label: '찾음 (미확인 해제)', icon: 'ph-magnifying-glass', res: 'found', title: '찾음 처리', note: true,
         info: '현장에서 확인했어요. 미확인 표시만 풀리고 위치는 그대로예요.' },
       { label: '미확인 위치로 이동', icon: 'ph-question', apply: true, to: '미확인', note: true, title: '미확인 위치로 이동',
         info: '폐기하지 않고 위치만 "미확인"으로 옮겨요. 재고(상태)는 그대로라 총 재고 숫자는 변하지 않고, 원래 매장의 재고 숫자에서만 빠져요. 다음 조사에서 어느 매장에서든 찍히면 "미확인 물건 발견"으로 알려줘요. 오늘 22:00 자동 승인 뒤 장부(DB)와 엑셀 위치가 "미확인"으로 바뀌어요.' },
+      { label: '확인 (미확인 유지)', icon: 'ph-check', res: 'ignored', title: '확인 처리 (미확인 유지)', note: true,
+        info: '물건은 그대로 두고(위치·재고·미확인 표시 유지) 이 결과만 "확인"으로 정리해요. 이미 미확인 위치에 있는 연속 미스캔처럼 더 할 일이 없는 물건에 쓰세요. 다음 조사에서 또 안 나오면 연속 횟수가 올라가요.' },
       { label: '선택한 물건 폐기', icon: 'ph-trash', apply: true, to: '폐기', danger: true, note: true, title: '선택한 물건 폐기',
         warn: '체크한 물건만 장부에서 폐기 처리돼요. 선택하지 않은 미스캔 물건은 그대로 재고에 남고 "미확인" 표시만 유지돼요. 오늘 22:00 자동 승인 뒤 반영되고, 이월 때 엑셀에서도 빠져요. 되돌리려면 별도 작업이 필요해요.' },
     ],
@@ -131,7 +133,7 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
     duplicate: [
       { label: '실물 스캔 위치로 정정 예약', icon: 'ph-arrows-left-right', primary: true, apply: true, title: '실물 스캔 위치로 정정 예약',
         info: '목록 제출(재봉합 등)과 실물 스캔이 겹친 물건 중 실물 스캔 위치가 장부 위치와 다른 물건만 그 위치로 이동을 예약해요(이동 누락). 위치가 같거나 실물 스캔 위치가 여러 곳인 물건은 건너뛰어요. 오늘 22:00 자동 승인 뒤 장부(DB·엑셀)에 반영돼요.' },
-      { label: '문제 없음', icon: 'ph-check', res: 'ignored', title: '문제 없음 처리', note: true },
+      { label: '확인 완료', icon: 'ph-check', res: 'ignored', title: '확인 완료 처리', note: true },
     ],
   };
   KINDS.forEach((k) => { if (!ACTIONS[k]) ACTIONS[k] = [{ label: '확인 완료', icon: 'ph-check', res: 'ignored', primary: true, title: '확인 완료 처리', note: true }]; });
