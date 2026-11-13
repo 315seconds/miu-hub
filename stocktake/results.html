@@ -352,6 +352,7 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
       ${Number(sm.listed) > 0 ? `<div class="meta" style="margin:10px 0 0">목록 제출 기준 ${num(sm.listed)}건 포함 — 실물 확인 없이 목록으로 "있음" 처리된 물건이에요.</div>` : ''}
       ${rows ? `<table class="mini"><thead><tr><th>위치</th><th>장부</th><th>일치</th><th>일치율</th></tr></thead><tbody>${rows}</tbody></table>` : ''}
       ${refLines().length ? `<div class="refbox"><b>참고</b>${refLines().map((t) => `<div>· ${esc(t)}</div>`).join('')}</div>` : ''}
+      <div style="margin-top:12px"><button class="miu-btn-sm miu-btn-primary" data-a="report"><i class="ph-bold ph-file-xls"></i>종합 보고서(.xlsx) 내려받기</button></div>
     </div>`;
   }
 
@@ -622,6 +623,200 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
     ta.focus();
   }
 
+  // ---------- 종합 보고서(.xlsx) ----------
+  // 내려받는 순간의 처리 결과(찾음·이동·폐기·확인 완료·미처리)를 그대로 반영해 한 파일(여러 시트)로 만든다. 서버에 파일을 남기지 않는다.
+  const loadExcelJS = () => (window.ExcelJS ? Promise.resolve() : new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';
+    s.onload = res;
+    s.onerror = () => rej(new Error('보고서 라이브러리를 불러오지 못했어요. 인터넷 연결을 확인해 주세요.'));
+    document.head.appendChild(s);
+  }));
+  const MV_STATUS = { pending: '승인 대기', approved: '반영 완료' };
+  const editDist1 = (a, b) => {
+    if (Math.abs(a.length - b.length) > 1) return false;
+    let i = 0, j = 0, d = 0;
+    while (i < a.length && j < b.length) {
+      if (a[i] === b[j]) { i++; j++; continue; }
+      if (++d > 1) return false;
+      if (a.length > b.length) i++; else if (a.length < b.length) j++; else { i++; j++; }
+    }
+    return d + (a.length - i) + (b.length - j) <= 1;
+  };
+  async function fetchAllResults() {
+    const cols = 'barcode,kind,item_barcode,ledger_location,scanned_location,category,price,brand,product_name,scan_count,scanners,hangers,detail,prior_missing,resolution,resolved_by,resolved_at,note,move_session_id';
+    const out = [];
+    for (let from = 0; ; from += CHUNK) {
+      const { data, error } = await window.sb.from('stocktake_results').select(cols).eq('session_id', S.sid).order('kind').order('barcode').range(from, from + CHUNK - 1);
+      if (error) throw new Error('결과를 불러오지 못했어요: ' + error.message);
+      out.push(...data);
+      if (data.length < CHUNK) break;
+    }
+    return out;
+  }
+  async function downloadReport(btn) {
+    btn.disabled = true;
+    toast('종합 보고서를 만드는 중…', 120000);
+    try {
+      const [all, extra] = await Promise.all([fetchAllResults(), ST.rpc('stocktake_report_data', { p_session: S.sid }), loadExcelJS()]).then(([a, e]) => [a, e || {}]);
+      const ids = [...new Set(all.map((r) => r.move_session_id).filter(Boolean))];
+      const mv = new Map();
+      for (let i = 0; i < ids.length; i += 100) {
+        const { data, error } = await window.sb.from('move_sessions').select('id,from_location,to_location,status').in('id', ids.slice(i, i + 100));
+        if (error) throw new Error('이동 정보를 불러오지 못했어요: ' + error.message);
+        (data || []).forEach((m) => mv.set(m.id, m));
+      }
+      const handled = (r) => {
+        if (r.resolution === 'open') return '';
+        const m = r.move_session_id && mv.get(r.move_session_id);
+        if (r.resolution === 'moved' || r.resolution === 'disposed') return m ? `${m.from_location} → ${m.to_location} (${MV_STATUS[m.status] || m.status})` : (r.resolution === 'disposed' ? '폐기' : '미확인 위치로 이동(DB 직접)');
+        return RES[r.resolution] || r.resolution;
+      };
+      const when = (r) => (r.resolved_at ? ST.kstDateTime(r.resolved_at) : '');
+      const lastMoved = extra.last_moved || {};
+      const E = window.ExcelJS;
+      const wb = new E.Workbook();
+      wb.creator = '마켓인유 허브';
+      const HEAD_FILL = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEADFCB' } };
+      const sheet = (name, headers, rows, widths, priceCols) => {
+        const ws = wb.addWorksheet(name);
+        const hr = ws.addRow(headers);
+        hr.font = { bold: true }; hr.fill = HEAD_FILL; hr.alignment = { vertical: 'middle', wrapText: true };
+        rows.forEach((r) => ws.addRow(r));
+        widths.forEach((w, i) => { ws.getColumn(i + 1).width = w; });
+        (priceCols || []).forEach((c) => { ws.getColumn(c).numFmt = '#,##0'; });
+        ws.views = [{ state: 'frozen', ySplit: 1 }];
+        if (rows.length) ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: headers.length } };
+        return ws;
+      };
+      const byKind = (k) => all.filter((r) => r.kind === k);
+      const missing = byKind('missing');
+      const s = S.session, sm = S.summary || {};
+
+      // ---- 요약 ----
+      const ws = wb.addWorksheet('요약');
+      const put = (vals, opt) => { const r = ws.addRow(vals); if (opt && opt.bold) r.font = { bold: true }; if (opt && opt.head) { r.font = { bold: true }; r.fill = HEAD_FILL; } return r; };
+      ws.getColumn(1).width = 22;
+      for (let c = 2; c <= 11; c++) ws.getColumn(c).width = 13;
+      const t = ws.addRow([`재고조사 종합 보고서 — ${ST.md(s.session_date)}`]); t.font = { bold: true, size: 14 };
+      put([`진행 ${s.started_by || '-'} · 시작 ${s.started_at ? ST.kstDateTime(s.started_at) : '-'}`]);
+      put([`닫은 사람 ${s.closed_by || '-'} · ${s.closed_at ? ST.kstDateTime(s.closed_at) : '-'}${s.note ? ' · 메모: ' + s.note : ''}`]);
+      put([`내려받은 시각 ${ST.kstDateTime(new Date().toISOString())} — 이 시점까지의 처리 결과(찾음·이동·폐기·확인 완료)가 반영된 보고서예요.`]);
+      ws.addRow([]);
+      put(['1. 전체 결과'], { bold: true });
+      const done = S.locs.filter((l) => l.state === 'done' && !l.virtual);
+      const den = done.reduce((a, l) => a + Number(l.expected_count || 0), 0), okSum = done.reduce((a, l) => a + l.ok, 0);
+      put(['장부', Number(sm.expected || 0)]); put(['스캔(고유)', Number(sm.scanned || 0)]); put(['일치', Number(sm.ok || 0)]);
+      put(['일치율(마감한 위치 기준)', den > 0 ? okSum / den : null]).getCell(2).numFmt = '0.0%';
+      if (Number(sm.listed) > 0) put([`목록 제출 기준 ${num(sm.listed)}건 포함 (실물 확인 없이 목록으로 "있음" 처리)`]);
+      ws.addRow([]);
+
+      put(['2. 위치별 결과와 분실 추정'], { bold: true });
+      put(['위치', '장부', '일치', '일치율', '신규 미스캔(건)', '신규 미스캔(금액)', '연속 미스캔(건)', '택분실 입고(건)', '택분실 입고(금액)', '분실 추정(건)', '분실 추정(금액)'], { head: true });
+      const lost = new Map((extra.lost_by_location || []).map((x) => [x.location, x]));
+      const locSet = [...S.locs.filter((l) => !l.virtual).map((l) => l.location)];
+      [...missing.map((r) => r.ledger_location), ...lost.keys()].forEach((l) => { if (l && !locSet.includes(l)) locSet.push(l); });
+      let tot = { exp: 0, ok: 0, nm: 0, na: 0, pm: 0, ln: 0, la: 0 };
+      locSet.forEach((l) => {
+        const sl = S.locs.find((x) => x.location === l);
+        const inLoc = missing.filter((r) => r.ledger_location === l);
+        const fresh = inLoc.filter((r) => !r.prior_missing && r.resolution !== 'found');
+        const nm = fresh.length, na = fresh.reduce((a, r) => a + Number(r.price || 0), 0);
+        const pm = inLoc.filter((r) => r.prior_missing && r.resolution !== 'found').length;
+        const lo = lost.get(l) || { n: 0, amount: 0 };
+        if (!sl && !nm && !pm && !lo.n) return;
+        const exp = sl ? Number(sl.expected_count || 0) : null, ok = sl ? sl.ok : null;
+        const row = put([l + (sl && sl.state === 'skipped' ? ' (건너뜀)' : ''), exp, ok, exp ? ok / exp : null, nm, na, pm, Number(lo.n), Number(lo.amount), nm - Number(lo.n), na - Number(lo.amount)]);
+        row.getCell(4).numFmt = '0.0%';
+        [6, 9, 11].forEach((c) => { row.getCell(c).numFmt = '#,##0'; });
+        if (sl && sl.state === 'done') { tot.exp += exp; tot.ok += ok; }
+        tot.nm += nm; tot.na += na; tot.pm += pm; tot.ln += Number(lo.n); tot.la += Number(lo.amount);
+      });
+      const trow = put(['합계', tot.exp, tot.ok, tot.exp ? tot.ok / tot.exp : null, tot.nm, tot.na, tot.pm, tot.ln, tot.la, tot.nm - tot.ln, tot.na - tot.la], { bold: true });
+      trow.getCell(4).numFmt = '0.0%'; [6, 9, 11].forEach((c) => { trow.getCell(c).numFmt = '#,##0'; });
+      put(['※ 신규 미스캔 = 이번 조사에서 처음 안 나온 물건(찾음 처리된 건 제외). 연속 미스캔 = 이전 조사에서도 안 나온 물건.']);
+      put(['※ 택분실 입고 = 지난 조사 이후 이번 조사 시작 전까지 출처 "택분실"로 입고한 물건(현재 위치 기준, 지난 조사가 없으면 최근 90일).']);
+      put(['※ 분실 추정 = 신규 미스캔 − 택분실 입고. 음수는 택분실이 더 많다는 뜻이라 발생 지점이 다르게 기록됐을 수 있어요.']);
+      ws.addRow([]);
+
+      put(['3. 미스캔 처리 현황'], { bold: true });
+      put(['처리', '건수'], { head: true });
+      const cnt = (f) => missing.filter(f).length;
+      put(['미처리', cnt((r) => r.resolution === 'open')]);
+      put(['찾음', cnt((r) => r.resolution === 'found')]);
+      put(['확인 완료(미확인 유지)', cnt((r) => r.resolution === 'ignored')]);
+      put(['이동(미확인·위치 정정 등)', cnt((r) => r.resolution === 'moved')]);
+      put(['폐기(위탁종료 포함)', cnt((r) => r.resolution === 'disposed')]);
+      put(['합계', missing.length], { bold: true });
+      ws.addRow([]);
+
+      put(['4. 종류별 결과'], { bold: true });
+      put(['종류', '전체', '미처리', '처리 완료'], { head: true });
+      KINDS.forEach((k) => { const rows = byKind(k); put([KIND[k].label, rows.length, rows.filter((r) => r.resolution === 'open').length, rows.filter((r) => r.resolution !== 'open').length]); });
+      ws.addRow([]);
+      if (S.ref) { put(['5. 참고'], { bold: true }); refLines().forEach((x) => put(['· ' + x])); }
+
+      // ---- 미스캔 ----
+      sheet('미스캔', ['바코드', '카테고리', '브랜드', '상품명', '가격', '장부 위치', '구분', '마지막 이동일', '처리 상태', '처리 내용', '처리자', '처리 시각', '메모'],
+        missing.map((r) => [r.item_barcode || r.barcode, r.category, r.brand, r.product_name, r.price == null ? null : Number(r.price), r.ledger_location, r.prior_missing ? '연속 미스캔' : '신규', lastMoved[r.barcode] || '', RES[r.resolution] || r.resolution, handled(r), r.resolved_by || '', when(r), r.note || '']),
+        [14, 12, 14, 30, 11, 12, 11, 13, 12, 28, 12, 14, 30], [5]);
+
+      // ---- 위치 다름 ----
+      sheet('위치 다름', ['바코드', '카테고리', '상품명', '가격', '장부 위치', '스캔 위치', '담당자', '행거', '처리 상태', '처리 내용', '처리자', '처리 시각', '메모'],
+        byKind('location_diff').map((r) => [r.item_barcode || r.barcode, r.category, r.product_name, r.price == null ? null : Number(r.price), r.ledger_location, r.scanned_location, r.scanners || '', r.hangers || '', RES[r.resolution] || r.resolution, handled(r), r.resolved_by || '', when(r), r.note || '']),
+        [14, 12, 30, 11, 12, 12, 12, 8, 12, 28, 12, 14, 30], [4]);
+
+      // ---- 장부에 없음 (+ 비슷한 미스캔 후보) ----
+      const mk = missing.map((r) => ({ b: String(r.barcode).toUpperCase(), r }));
+      sheet('장부에 없음', ['찍은 바코드', '스캔 위치', '담당자', '행거', '스캔 횟수', '비슷한 미스캔 후보(잘못 읽혔을 수 있음)', '처리 상태', '처리자', '처리 시각', '메모'],
+        byKind('unknown').map((r) => {
+          const u = String(r.barcode).toUpperCase();
+          const cand = u.length >= 3 ? mk.filter((m) => (u.length >= 4 && (m.b.includes(u) || u.includes(m.b))) || (u.length >= 5 && editDist1(u, m.b))).slice(0, 3).map((m) => `${m.r.item_barcode || m.b} (${m.r.category || '-'} ${m.r.price != null ? num(m.r.price) + '원' : ''} · ${m.r.ledger_location || '-'})`).join('\n') : '';
+          return [r.barcode, r.scanned_location, r.scanners || '', r.hangers || '', r.scan_count, cand, RES[r.resolution] || r.resolution, r.resolved_by || '', when(r), r.note || ''];
+        }), [16, 12, 12, 8, 9, 50, 12, 12, 14, 30]);
+
+      // ---- 중복 스캔 ----
+      sheet('중복 스캔', ['바코드', '카테고리', '상품명', '가격', '장부 위치', '실물 스캔 위치', '스캔 횟수', '담당자', '비고', '처리 상태', '처리자', '처리 시각', '메모'],
+        byKind('duplicate').map((r) => [r.item_barcode || r.barcode, r.category, r.product_name, r.price == null ? null : Number(r.price), r.ledger_location, r.scanned_location || '(여러 곳)', r.scan_count, r.scanners || '', r.detail || '', RES[r.resolution] || r.resolution, r.resolved_by || '', when(r), r.note || '']),
+        [14, 12, 30, 11, 12, 14, 9, 12, 40, 12, 12, 14, 30], [4]);
+
+      // ---- 미확인 물건 발견 ----
+      sheet('미확인 물건 발견', ['바코드', '카테고리', '상품명', '가격', '장부 위치', '스캔 위치', '담당자', '행거', '처리 상태', '처리 내용', '처리자', '처리 시각', '메모'],
+        byKind('missing_found').map((r) => [r.item_barcode || r.barcode, r.category, r.product_name, r.price == null ? null : Number(r.price), r.ledger_location, r.scanned_location, r.scanners || '', r.hangers || '', RES[r.resolution] || r.resolution, handled(r), r.resolved_by || '', when(r), r.note || '']),
+        [14, 12, 30, 11, 12, 12, 12, 8, 12, 28, 12, 14, 30], [4]);
+
+      // ---- 판매·폐기인데 스캔 ----
+      sheet('판매·폐기인데 스캔', ['종류', '바코드', '카테고리', '상품명', '가격', '장부 위치', '스캔 위치', '담당자', '처리 상태', '처리자', '처리 시각', '메모'],
+        [...byKind('sold_scanned'), ...byKind('disposed_scanned')].map((r) => [KIND[r.kind].label, r.item_barcode || r.barcode, r.category, r.product_name, r.price == null ? null : Number(r.price), r.ledger_location, r.scanned_location, r.scanners || '', RES[r.resolution] || r.resolution, r.resolved_by || '', when(r), r.note || '']),
+        [16, 14, 12, 30, 11, 12, 12, 12, 12, 12, 14, 30], [5]);
+
+      // ---- 조사 중 변동 ----
+      sheet('조사 중 변동', ['바코드', '카테고리', '상품명', '가격', '장부 위치', '스캔 위치', '변동 내용', '처리 상태', '처리자', '처리 시각', '메모'],
+        byKind('changed').map((r) => [r.item_barcode || r.barcode, r.category, r.product_name, r.price == null ? null : Number(r.price), r.ledger_location, r.scanned_location || '', r.detail || '', RES[r.resolution] || r.resolution, r.resolved_by || '', when(r), r.note || '']),
+        [14, 12, 30, 11, 12, 12, 34, 12, 12, 14, 30], [4]);
+
+      // ---- 처리 내역 ----
+      sheet('처리 내역', ['종류', '바코드', '처리 상태', '처리 내용', '처리자', '처리 시각', '메모'],
+        all.filter((r) => r.resolution !== 'open').sort((a, b) => String(a.resolved_at || '').localeCompare(String(b.resolved_at || ''))).map((r) => [KIND[r.kind]?.label || r.kind, r.item_barcode || r.barcode, RES[r.resolution] || r.resolution, handled(r), r.resolved_by || '', when(r), r.note || '']),
+        [18, 14, 12, 34, 14, 14, 40]);
+
+      const buf = await wb.xlsx.writeBuffer();
+      const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `재고조사_종합보고서_${s.session_date}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      toast('종합 보고서를 내려받았어요', 5000);
+    } catch (e) {
+      toast(errMsg(e), 8000);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
   async function selectAllFiltered(btn) {
     btn.disabled = true;
     toast('전체 목록을 가져오는 중…', 60000);
@@ -699,6 +894,7 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
       case 'selClear': S.sel = new Set(); renderList(); break;
       case 'csv': downloadCsv(b); break;
       case 'listFound': listFoundModal(); break;
+      case 'report': downloadReport(b); break;
     }
   });
 
