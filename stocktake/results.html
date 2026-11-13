@@ -817,7 +817,7 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
         const fresh = missing.filter(isFreshLoss);
         const wn = wb.addWorksheet('신규 미스캔(지점별)', { pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
         const LC = 'H';
-        [16, 12, 14, 32, 13, 14, 14, 34].forEach((w, i) => { wn.getColumn(i + 1).width = w; });
+        [16, 12, 14, 13, 14, 14, 32, 34].forEach((w, i) => { wn.getColumn(i + 1).width = w; });
         const amt = (rows) => rows.reduce((a, r) => a + Number(r.price || 0), 0);
         const locs = [];
         S.locs.filter((l) => !l.virtual).forEach((l) => { if (!locs.includes(l.location)) locs.push(l.location); });
@@ -831,30 +831,43 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
         const t2 = wn.addRow([`총 ${num(fresh.length)}건 · ${num(amt(fresh))}원  (찾음 처리된 물건, 위탁종료로 정리된 물건, 이전 조사에서도 안 나온 연속 미스캔은 제외 · ${ST.kstDateTime(new Date().toISOString())} 기준)`]);
         wn.mergeCells(`A${t2.number}:${LC}${t2.number}`); t2.font = { color: { argb: 'FF666666' } };
         wn.addRow([]);
-        const sh = wn.addRow(['지점', '건수', '금액', '비율']);
-        sh.font = FONT_W; sh.fill = DARK;
-        const total = amt(fresh);
-        withItems.forEach((l) => {
+        const sh = wn.addRow(['지점', '신규 미스캔(건)', '신규 미스캔(금액)', '택분실 입고(건)', '택분실 입고(금액)', '분실 추정(건)', '분실 추정(금액)']);
+        sh.font = FONT_W; sh.fill = DARK; sh.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }; sh.height = 30;
+        const sumLocs = [...withItems, ...[...lost.keys()].filter((k) => k && !withItems.includes(k))];
+        let tl = { m: 0, ma: 0, l: 0, la: 0 };
+        const sumRow = (label, m, ma, ln, la, bold) => {
+          const x = wn.addRow([label, m, ma, ln, la, m - ln, ma - la]);
+          [3, 5, 7].forEach((c) => { x.getCell(c).numFmt = '#,##0"원"'; });
+          x.alignment = { horizontal: 'right' }; x.getCell(1).alignment = { horizontal: 'left' };
+          if (bold) { x.font = { bold: true }; x.fill = SOFT; }
+          return x;
+        };
+        sumLocs.forEach((l) => {
           const rows = fresh.filter((r) => r.ledger_location === l);
-          const x = wn.addRow([l, rows.length, amt(rows), total ? amt(rows) / total : 0]);
-          x.getCell(3).numFmt = '#,##0"원"'; x.getCell(4).numFmt = '0.0%';
+          const lo = lost.get(l) || { n: 0, amount: 0 };
+          sumRow(l, rows.length, amt(rows), Number(lo.n), Number(lo.amount));
+          tl.m += rows.length; tl.ma += amt(rows); tl.l += Number(lo.n); tl.la += Number(lo.amount);
         });
-        const sr = wn.addRow(['총계', fresh.length, total, total ? 1 : 0]);
-        sr.font = { bold: true }; sr.fill = SOFT; sr.getCell(3).numFmt = '#,##0"원"'; sr.getCell(4).numFmt = '0.0%';
+        sumRow('총계', tl.m, tl.ma, tl.l, tl.la, true);
+        const pendingN = [...lost.values()].reduce((a, x) => a + Number(x.pending || 0), 0);
+        const note1 = wn.addRow([`※ 택분실 입고 = ${ledger ? '첨부한 LOST 관리대장 기준 발견 지점별' : 'DB 출처 "택분실" 기준 현재 위치별'} 건수. 금액은 입고 완료 물건의 DB 가격이고${pendingN ? ` 입고 대기 ${num(pendingN)}건은 건수에만 들어가요.` : ' 입고 대기 건은 없어요.'}`]);
+        wn.mergeCells(`A${note1.number}:${LC}${note1.number}`); note1.font = { color: { argb: 'FF666666' }, size: 10 };
+        const note2 = wn.addRow(['※ 분실 추정 = 신규 미스캔 − 택분실 입고. 음수는 택분실이 더 많다는 뜻이고, 발견 지점과 미스캔 지점이 다를 수 있어 지점별보다 총계를 기준으로 봐 주세요.']);
+        wn.mergeCells(`A${note2.number}:${LC}${note2.number}`); note2.font = { color: { argb: 'FF666666' }, size: 10 };
         wn.addRow([]);
         withItems.forEach((l) => {
           const rows = fresh.filter((r) => r.ledger_location === l).sort((a, b) => Number(b.price || 0) - Number(a.price || 0) || String(a.barcode).localeCompare(String(b.barcode)));
           const hr = wn.addRow([`${l} — ${num(rows.length)}건 · ${num(amt(rows))}원`]);
           wn.mergeCells(`A${hr.number}:${LC}${hr.number}`); hr.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } }; hr.fill = DARK; hr.height = 22;
           if (l !== withItems[0]) hr.addPageBreak();
-          const ch = wn.addRow(['바코드', '카테고리', '브랜드', '상품명', '가격', '마지막 이동일', '처리 상태', '메모']);
+          const ch = wn.addRow(['바코드', '카테고리', '브랜드', '가격', '마지막 이동일', '처리 상태', '상품명', '메모']);
           ch.font = { bold: true }; ch.fill = SOFT;
           rows.forEach((r) => {
-            const x = wn.addRow([r.item_barcode || r.barcode, r.category || '', r.brand || '', r.product_name || '', r.price == null ? null : Number(r.price), lastMoved[r.barcode] || '', RES[r.resolution] || r.resolution, r.note || '']);
-            x.getCell(5).numFmt = '#,##0';
+            const x = wn.addRow([r.item_barcode || r.barcode, r.category || '', r.brand || '', r.price == null ? null : Number(r.price), lastMoved[r.barcode] || '', RES[r.resolution] || r.resolution, r.product_name || '', r.note || '']);
+            x.getCell(4).numFmt = '#,##0';
           });
-          const st = wn.addRow(['소계', `${num(rows.length)}건`, '', '', amt(rows)]);
-          st.font = { bold: true }; st.getCell(5).numFmt = '#,##0'; st.border = { top: { style: 'thin' } };
+          const st = wn.addRow(['소계', `${num(rows.length)}건`, '', amt(rows)]);
+          st.font = { bold: true }; st.getCell(4).numFmt = '#,##0'; st.border = { top: { style: 'thin' } };
           wn.addRow([]);
         });
         if (!withItems.length) wn.addRow(['이번 조사에서 새로 안 나온 물건이 없어요.']);
