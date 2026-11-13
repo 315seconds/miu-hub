@@ -691,13 +691,11 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
     ledger.forEach((r) => { const o = r.origin || '-'; const x = m.get(o) || { n: 0, amount: 0, pending: 0 }; x.n++; if (r.pending) x.pending++; else x.amount += Number(r.db?.price || 0); m.set(o, x); });
     return m;
   };
-  const catKey = (c) => String(c || '').toLowerCase().replace(/\s/g, '').replace(/^온/, '');
-  const catMatch = (lc, mc) => { const b = catKey(mc); return b && String(lc || '').split('/').some((p) => { const a = catKey(p); return a && (a === b || (a.length >= 2 && b.includes(a)) || (b.length >= 2 && a.includes(b))); }); };
 
   function reportModal(btn) {
     const body = `<div class="infomsg" style="margin-top:0">조사 결과에 처리한 내용을 반영해 종합 보고서를 만들어요.</div>
       <div class="mfield"><label for="rpLedger">LOST 관리대장 첨부 (선택)</label><input type="file" id="rpLedger" accept=".xlsx"></div>
-      <div class="infomsg">첨부하면 택분실 입고를 대장의 <b>발견 지점</b>·입고 대기 건수까지 계산하고, 신규 미스캔마다 같은 카테고리의 <b>택분실 후보</b>와 "LOST 대조" 시트를 보여 줘요. 첨부하지 않으면 DB의 출처 "택분실" 기준으로만 계산해요. 파일은 서버에 저장하지 않아요.</div>`;
+      <div class="infomsg">첨부하면 택분실 입고를 대장의 <b>발견 지점</b>·입고 대기 건수까지 계산하고 "LOST 대조" 시트를 보여 줘요. 첨부하지 않으면 DB의 출처 "택분실" 기준으로만 계산해요. 파일은 서버에 저장하지 않아요.</div>`;
     openModal({
       title: '종합 보고서 만들기', body,
       buttons: [{ key: 'cancel', label: '취소', cls: 'ghost' }, { key: 'ok', label: '보고서 만들기', cls: 'primary' }],
@@ -818,8 +816,8 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
       {
         const fresh = missing.filter(isFreshLoss);
         const wn = wb.addWorksheet('신규 미스캔(지점별)', { pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
-        const LC = ledger ? 'I' : 'H';
-        (ledger ? [16, 12, 14, 32, 13, 14, 14, 34, 48] : [16, 12, 14, 32, 13, 14, 14, 34]).forEach((w, i) => { wn.getColumn(i + 1).width = w; });
+        const LC = 'H';
+        [16, 12, 14, 32, 13, 14, 14, 34].forEach((w, i) => { wn.getColumn(i + 1).width = w; });
         const amt = (rows) => rows.reduce((a, r) => a + Number(r.price || 0), 0);
         const locs = [];
         S.locs.filter((l) => !l.virtual).forEach((l) => { if (!locs.includes(l.location)) locs.push(l.location); });
@@ -849,14 +847,10 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
           const hr = wn.addRow([`${l} — ${num(rows.length)}건 · ${num(amt(rows))}원`]);
           wn.mergeCells(`A${hr.number}:${LC}${hr.number}`); hr.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } }; hr.fill = DARK; hr.height = 22;
           if (l !== withItems[0]) hr.addPageBreak();
-          const ch = wn.addRow(['바코드', '카테고리', '브랜드', '상품명', '가격', '마지막 이동일', '처리 상태', '메모', ...(ledger ? ['택분실 후보(같은 카테고리, 같은 지점 우선)'] : [])]);
+          const ch = wn.addRow(['바코드', '카테고리', '브랜드', '상품명', '가격', '마지막 이동일', '처리 상태', '메모']);
           ch.font = { bold: true }; ch.fill = SOFT;
           rows.forEach((r) => {
-            const cands = !ledger ? [] : ledger.filter((e) => !e.matched && catMatch(e.category, r.category))
-              .sort((a, b) => (b.origin === l ? 1 : 0) - (a.origin === l ? 1 : 0) || Math.abs(Number(a.db?.price || r.price) - Number(r.price || 0)) - Math.abs(Number(b.db?.price || r.price) - Number(r.price || 0)));
-            const candTxt = cands.slice(0, 5).map((e) => `${e.pending ? '(입고 대기)' : e.barcode} ${e.origin} ${e.db?.price != null ? num(e.db.price) + '원' : ''} ${e.desc.slice(0, 18)}${e.db?.status === 'sold' ? ' [판매됨]' : ''}`.replace(/\s+/g, ' ').trim()).join('\n') + (cands.length > 5 ? `\n… 외 ${cands.length - 5}건` : '');
-            const x = wn.addRow([r.item_barcode || r.barcode, r.category || '', r.brand || '', r.product_name || '', r.price == null ? null : Number(r.price), lastMoved[r.barcode] || '', RES[r.resolution] || r.resolution, r.note || '', ...(ledger ? [candTxt] : [])]);
-            if (ledger) x.getCell(9).alignment = { wrapText: true, vertical: 'top' };
+            const x = wn.addRow([r.item_barcode || r.barcode, r.category || '', r.brand || '', r.product_name || '', r.price == null ? null : Number(r.price), lastMoved[r.barcode] || '', RES[r.resolution] || r.resolution, r.note || '']);
             x.getCell(5).numFmt = '#,##0';
           });
           const st = wn.addRow(['소계', `${num(rows.length)}건`, '', '', amt(rows)]);
