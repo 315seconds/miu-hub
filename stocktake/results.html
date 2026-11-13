@@ -654,11 +654,67 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
     }
     return out;
   }
-  async function downloadReport(btn) {
+  // LOST 관리대장(직원이 관리하는 엑셀)을 보고서 만들 때 선택적으로 첨부한다. DB에는 저장하지 않는다.
+  //   열: 택분실 출처(=발견 지점) / 입고일 / 카테고리 / 바코드("아직 신규입고X"면 입고 대기) / 상품 특징 / 짝이 판명된 원 바코드
+  const cellText = (c) => {
+    if (c == null) return '';
+    if (c instanceof Date) return c.toISOString().slice(0, 10);
+    if (typeof c === 'object') return String(c.richText ? c.richText.map((t) => t.text).join('') : (c.result != null ? c.result : (c.text != null ? c.text : ''))).trim();
+    return String(c).trim();
+  };
+  async function readLostLedger(file) {
+    const wb = new window.ExcelJS.Workbook();
+    await wb.xlsx.load(await file.arrayBuffer());
+    const ws = wb.worksheets[0];
+    if (!ws || !cellText(ws.getRow(1).getCell(1).value).includes('택분실')) throw new Error('LOST 관리대장 형식이 달라요. 첫 열 제목이 "택분실 출처"인 파일을 올려 주세요.');
+    const rows = [];
+    ws.eachRow({ includeEmpty: false }, (row, n) => {
+      if (n === 1) return;
+      const v = (i) => cellText(row.getCell(i).value);
+      const bc = v(4);
+      if (!v(1) && !bc) return;
+      rows.push({ origin: v(1), date: v(2), category: v(3), barcode: bc, desc: v(5), matched: v(6), pending: bc.includes('아직') });
+    });
+    const entered = rows.filter((r) => !r.pending && r.barcode);
+    const info = new Map();
+    for (let i = 0; i < entered.length; i += 300) {
+      const keys = entered.slice(i, i + 300).map((r) => r.barcode.toUpperCase());
+      const { data, error } = await window.sb.from('inventory_items').select('barcode,status,location,price,source,category').in('barcode', keys);
+      if (error) throw new Error('관리대장 물건 정보를 불러오지 못했어요: ' + error.message);
+      (data || []).forEach((x) => info.set(String(x.barcode).toUpperCase(), x));
+    }
+    rows.forEach((r) => { r.db = r.pending ? null : info.get(r.barcode.toUpperCase()) || null; });
+    return rows;
+  }
+  const ledgerByOrigin = (ledger) => {
+    const m = new Map();
+    ledger.forEach((r) => { const o = r.origin || '-'; const x = m.get(o) || { n: 0, amount: 0, pending: 0 }; x.n++; if (r.pending) x.pending++; else x.amount += Number(r.db?.price || 0); m.set(o, x); });
+    return m;
+  };
+  const catKey = (c) => String(c || '').toLowerCase().replace(/\s/g, '').replace(/^온/, '');
+  const catMatch = (lc, mc) => { const b = catKey(mc); return b && String(lc || '').split('/').some((p) => { const a = catKey(p); return a && (a === b || (a.length >= 2 && b.includes(a)) || (b.length >= 2 && a.includes(b))); }); };
+
+  function reportModal(btn) {
+    const body = `<div class="infomsg" style="margin-top:0">조사 결과에 처리한 내용을 반영해 종합 보고서를 만들어요.</div>
+      <div class="mfield"><label for="rpLedger">LOST 관리대장 첨부 (선택)</label><input type="file" id="rpLedger" accept=".xlsx"></div>
+      <div class="infomsg">첨부하면 택분실 입고를 대장의 <b>발견 지점</b>·입고 대기 건수까지 계산하고, 신규 미스캔마다 같은 카테고리의 <b>택분실 후보</b>와 "LOST 대조" 시트를 보여 줘요. 첨부하지 않으면 DB의 출처 "택분실" 기준으로만 계산해요. 파일은 서버에 저장하지 않아요.</div>`;
+    openModal({
+      title: '종합 보고서 만들기', body,
+      buttons: [{ key: 'cancel', label: '취소', cls: 'ghost' }, { key: 'ok', label: '보고서 만들기', cls: 'primary' }],
+      onButton: async (k, ov) => {
+        const f = ov.querySelector('#rpLedger').files[0] || null;
+        setTimeout(() => downloadReport(btn, f), 50);
+        return true;
+      },
+    });
+  }
+  async function downloadReport(btn, ledgerFile) {
     btn.disabled = true;
     toast('종합 보고서를 만드는 중…', 120000);
     try {
-      const [all, extra] = await Promise.all([fetchAllResults(), ST.rpc('stocktake_report_data', { p_session: S.sid }), loadExcelJS()]).then(([a, e]) => [a, e || {}]);
+      await loadExcelJS();
+      const ledger = ledgerFile ? await readLostLedger(ledgerFile) : null;
+      const [all, extra] = await Promise.all([fetchAllResults(), ST.rpc('stocktake_report_data', { p_session: S.sid })]).then(([a, e]) => [a, e || {}]);
       const ids = [...new Set(all.map((r) => r.move_session_id).filter(Boolean))];
       const mv = new Map();
       for (let i = 0; i < ids.length; i += 100) {
@@ -674,6 +730,8 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
       };
       const when = (r) => (r.resolved_at ? ST.kstDateTime(r.resolved_at) : '');
       const lastMoved = extra.last_moved || {};
+      // 신규 미스캔(분실 후보): 이번 조사에서 처음 안 나왔고, 찾음 처리되지 않았고, 위탁 종료로 정리된 물건이 아닌 것
+      const isFreshLoss = (r) => !r.prior_missing && r.resolution !== 'found' && !((r.resolution === 'disposed' || r.resolution === 'moved') && r.move_session_id && mv.get(r.move_session_id)?.to_location === '위탁종료');
       const E = window.ExcelJS;
       const wb = new E.Workbook();
       wb.creator = '마켓인유 허브';
@@ -713,14 +771,14 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
 
       put(['2. 위치별 결과와 분실 추정'], { bold: true });
       put(['위치', '장부', '일치', '일치율', '신규 미스캔(건)', '신규 미스캔(금액)', '연속 미스캔(건)', '택분실 입고(건)', '택분실 입고(금액)', '분실 추정(건)', '분실 추정(금액)'], { head: true });
-      const lost = new Map((extra.lost_by_location || []).map((x) => [x.location, x]));
+      const lost = ledger ? ledgerByOrigin(ledger) : new Map((extra.lost_by_location || []).map((x) => [x.location, x]));
       const locSet = [...S.locs.filter((l) => !l.virtual).map((l) => l.location)];
       [...missing.map((r) => r.ledger_location), ...lost.keys()].forEach((l) => { if (l && !locSet.includes(l)) locSet.push(l); });
       let tot = { exp: 0, ok: 0, nm: 0, na: 0, pm: 0, ln: 0, la: 0 };
       locSet.forEach((l) => {
         const sl = S.locs.find((x) => x.location === l);
         const inLoc = missing.filter((r) => r.ledger_location === l);
-        const fresh = inLoc.filter((r) => !r.prior_missing && r.resolution !== 'found');
+        const fresh = inLoc.filter(isFreshLoss);
         const nm = fresh.length, na = fresh.reduce((a, r) => a + Number(r.price || 0), 0);
         const pm = inLoc.filter((r) => r.prior_missing && r.resolution !== 'found').length;
         const lo = lost.get(l) || { n: 0, amount: 0 };
@@ -734,8 +792,8 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
       });
       const trow = put(['합계', tot.exp, tot.ok, tot.exp ? tot.ok / tot.exp : null, tot.nm, tot.na, tot.pm, tot.ln, tot.la, tot.nm - tot.ln, tot.na - tot.la], { bold: true });
       trow.getCell(4).numFmt = '0.0%'; [6, 9, 11].forEach((c) => { trow.getCell(c).numFmt = '#,##0'; });
-      put(['※ 신규 미스캔 = 이번 조사에서 처음 안 나온 물건(찾음 처리된 건 제외). 연속 미스캔 = 이전 조사에서도 안 나온 물건.']);
-      put(['※ 택분실 입고 = 지난 조사 이후 이번 조사 시작 전까지 출처 "택분실"로 입고한 물건(현재 위치 기준, 지난 조사가 없으면 최근 90일).']);
+      put(['※ 신규 미스캔 = 이번 조사에서 처음 안 나온 물건(찾음 처리된 건과 위탁종료로 정리된 건은 제외). 연속 미스캔 = 이전 조사에서도 안 나온 물건.']);
+      put([ledger ? `※ 택분실 입고 = 첨부한 LOST 관리대장 기준 발견 지점별 건수(입고 완료 ${num(ledger.filter((r) => !r.pending).length)}건 + 입고 대기 ${num(ledger.filter((r) => r.pending).length)}건). 금액은 입고 완료 물건의 DB 가격이고 입고 대기 건은 금액이 없어요.` : '※ 택분실 입고 = 지난 조사 이후 이번 조사 시작 전까지 출처 "택분실"로 입고한 물건(현재 위치 기준, 지난 조사가 없으면 최근 90일).']);
       put(['※ 분실 추정 = 신규 미스캔 − 택분실 입고. 음수는 택분실이 더 많다는 뜻이라 발생 지점이 다르게 기록됐을 수 있어요.']);
       ws.addRow([]);
 
@@ -755,6 +813,69 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
       KINDS.forEach((k) => { const rows = byKind(k); put([KIND[k].label, rows.length, rows.filter((r) => r.resolution === 'open').length, rows.filter((r) => r.resolution !== 'open').length]); });
       ws.addRow([]);
       if (S.ref) { put(['5. 참고'], { bold: true }); refLines().forEach((x) => put(['· ' + x])); }
+
+      // ---- 신규 미스캔(지점별) — 보고용: 이번 조사에서 처음 안 나온 물건만 지점별로 묶어 소계·총계를 보여 준다 ----
+      {
+        const fresh = missing.filter(isFreshLoss);
+        const wn = wb.addWorksheet('신규 미스캔(지점별)', { pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0 } });
+        const LC = ledger ? 'I' : 'H';
+        (ledger ? [16, 12, 14, 32, 13, 14, 14, 34, 48] : [16, 12, 14, 32, 13, 14, 14, 34]).forEach((w, i) => { wn.getColumn(i + 1).width = w; });
+        const amt = (rows) => rows.reduce((a, r) => a + Number(r.price || 0), 0);
+        const locs = [];
+        S.locs.filter((l) => !l.virtual).forEach((l) => { if (!locs.includes(l.location)) locs.push(l.location); });
+        fresh.forEach((r) => { if (r.ledger_location && !locs.includes(r.ledger_location)) locs.push(r.ledger_location); });
+        const withItems = locs.filter((l) => fresh.some((r) => r.ledger_location === l));
+        const FONT_W = { bold: true, color: { argb: 'FFFFFFFF' } };
+        const DARK = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF3A3A3A' } };
+        const SOFT = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF3ECDF' } };
+        const t1 = wn.addRow([`${ST.md(s.session_date)} 재고조사 — 이번에 새로 안 나온 물건(신규 미스캔)`]);
+        wn.mergeCells(`A${t1.number}:${LC}${t1.number}`); t1.font = { bold: true, size: 15 }; t1.height = 26;
+        const t2 = wn.addRow([`총 ${num(fresh.length)}건 · ${num(amt(fresh))}원  (찾음 처리된 물건, 위탁종료로 정리된 물건, 이전 조사에서도 안 나온 연속 미스캔은 제외 · ${ST.kstDateTime(new Date().toISOString())} 기준)`]);
+        wn.mergeCells(`A${t2.number}:${LC}${t2.number}`); t2.font = { color: { argb: 'FF666666' } };
+        wn.addRow([]);
+        const sh = wn.addRow(['지점', '건수', '금액', '비율']);
+        sh.font = FONT_W; sh.fill = DARK;
+        const total = amt(fresh);
+        withItems.forEach((l) => {
+          const rows = fresh.filter((r) => r.ledger_location === l);
+          const x = wn.addRow([l, rows.length, amt(rows), total ? amt(rows) / total : 0]);
+          x.getCell(3).numFmt = '#,##0"원"'; x.getCell(4).numFmt = '0.0%';
+        });
+        const sr = wn.addRow(['총계', fresh.length, total, total ? 1 : 0]);
+        sr.font = { bold: true }; sr.fill = SOFT; sr.getCell(3).numFmt = '#,##0"원"'; sr.getCell(4).numFmt = '0.0%';
+        wn.addRow([]);
+        withItems.forEach((l) => {
+          const rows = fresh.filter((r) => r.ledger_location === l).sort((a, b) => Number(b.price || 0) - Number(a.price || 0) || String(a.barcode).localeCompare(String(b.barcode)));
+          const hr = wn.addRow([`${l} — ${num(rows.length)}건 · ${num(amt(rows))}원`]);
+          wn.mergeCells(`A${hr.number}:${LC}${hr.number}`); hr.font = { bold: true, size: 12, color: { argb: 'FFFFFFFF' } }; hr.fill = DARK; hr.height = 22;
+          if (l !== withItems[0]) hr.addPageBreak();
+          const ch = wn.addRow(['바코드', '카테고리', '브랜드', '상품명', '가격', '마지막 이동일', '처리 상태', '메모', ...(ledger ? ['택분실 후보(같은 카테고리, 같은 지점 우선)'] : [])]);
+          ch.font = { bold: true }; ch.fill = SOFT;
+          rows.forEach((r) => {
+            const cands = !ledger ? [] : ledger.filter((e) => !e.matched && catMatch(e.category, r.category))
+              .sort((a, b) => (b.origin === l ? 1 : 0) - (a.origin === l ? 1 : 0) || Math.abs(Number(a.db?.price || r.price) - Number(r.price || 0)) - Math.abs(Number(b.db?.price || r.price) - Number(r.price || 0)));
+            const candTxt = cands.slice(0, 5).map((e) => `${e.pending ? '(입고 대기)' : e.barcode} ${e.origin} ${e.db?.price != null ? num(e.db.price) + '원' : ''} ${e.desc.slice(0, 18)}${e.db?.status === 'sold' ? ' [판매됨]' : ''}`.replace(/\s+/g, ' ').trim()).join('\n') + (cands.length > 5 ? `\n… 외 ${cands.length - 5}건` : '');
+            const x = wn.addRow([r.item_barcode || r.barcode, r.category || '', r.brand || '', r.product_name || '', r.price == null ? null : Number(r.price), lastMoved[r.barcode] || '', RES[r.resolution] || r.resolution, r.note || '', ...(ledger ? [candTxt] : [])]);
+            if (ledger) x.getCell(9).alignment = { wrapText: true, vertical: 'top' };
+            x.getCell(5).numFmt = '#,##0';
+          });
+          const st = wn.addRow(['소계', `${num(rows.length)}건`, '', '', amt(rows)]);
+          st.font = { bold: true }; st.getCell(5).numFmt = '#,##0'; st.border = { top: { style: 'thin' } };
+          wn.addRow([]);
+        });
+        if (!withItems.length) wn.addRow(['이번 조사에서 새로 안 나온 물건이 없어요.']);
+      }
+
+      // ---- LOST 대조 — 첨부한 관리대장을 발견 지점별로 보여 주고 DB 상태를 대조 ----
+      if (ledger) {
+        const stTxt = { in_stock: '재고', sold: '판매됨', disposed: '폐기' };
+        sheet('LOST 대조', ['발견 지점', '입고일', '카테고리', '바코드', '상품 특징', '짝(원 바코드)', 'DB 상태', 'DB 현재 위치', 'DB 가격', 'DB 출처', '확인'],
+          [...ledger].sort((a, b) => String(a.origin).localeCompare(String(b.origin)) || String(a.date).localeCompare(String(b.date))).map((r) => [
+            r.origin, r.date, r.category, r.pending ? '(입고 대기)' : r.barcode, r.desc, r.matched,
+            r.pending ? '' : (r.db ? stTxt[r.db.status] || r.db.status : 'DB에 없음'), r.db?.location || '', r.db?.price == null ? null : Number(r.db.price), r.db?.source || '',
+            r.pending ? '입고 전' : !r.db ? '대장에만 있음' : r.db.source !== '택분실' && !r.matched ? '출처가 택분실이 아님' : '',
+          ]), [12, 12, 14, 16, 40, 14, 10, 14, 11, 12, 20], [9]);
+      }
 
       // ---- 미스캔 ----
       sheet('미스캔', ['바코드', '카테고리', '브랜드', '상품명', '가격', '장부 위치', '구분', '마지막 이동일', '처리 상태', '처리 내용', '처리자', '처리 시각', '메모'],
@@ -894,7 +1015,7 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
       case 'selClear': S.sel = new Set(); renderList(); break;
       case 'csv': downloadCsv(b); break;
       case 'listFound': listFoundModal(); break;
-      case 'report': downloadReport(b); break;
+      case 'report': reportModal(b); break;
     }
   });
 
