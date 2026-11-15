@@ -2,17 +2,17 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>매출 리포트 · 마켓인유</title>
 
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151148">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
-<script src="/miu-hub/shared/config.js?v=202611151148"></script>
+<script src="/miu-hub/shared/config.js?v=202611151334"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
 
 <style>
   /* ── 월별 탭 ── */
@@ -24,20 +24,21 @@
     margin-bottom: 12px;
   }
   .month-tab {
-    padding: 6px 14px;
+    min-height: 40px;
+    padding: 0 16px;
     border-radius: var(--miu-r-pill);
     background: var(--miu-surface-card);
     color: var(--miu-muted);
     font-family: var(--miu-sans);
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     border: none;
     cursor: pointer;
     transition: background .12s, color .12s;
   }
   .month-tab.active {
-    background: var(--miu-ink);
-    color: white;
+    background: var(--miu-primary);
+    color: var(--miu-on-primary);
   }
   .month-panel { display: none; padding: 0 20px; }
   .month-panel.active { display: block; }
@@ -54,37 +55,21 @@
     padding: 10px 12px;
   }
   .month-kpi-label {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.2px;
     color: var(--miu-muted);
-    text-transform: uppercase;
     margin-bottom: 3px;
   }
   .month-kpi-value {
-    font-family: var(--miu-serif);
+    font-family: var(--miu-sans);
     font-size: 16px;
     font-weight: 700;
     color: var(--miu-ink);
     letter-spacing: -0.3px;
     font-variant-numeric: tabular-nums;
   }
-  .month-detail-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 12px;
-    padding: 8px 16px;
-    background: var(--miu-ink);
-    color: white;
-    border-radius: var(--miu-r-pill);
-    font-family: var(--miu-sans);
-    font-size: 12px;
-    font-weight: 700;
-    text-decoration: none;
-    transition: opacity .12s;
-  }
-  .month-detail-link:hover { opacity: 0.8; }
+  .month-detail-link { margin-top: 12px; }
 
   /* ── 인사이트 박스 ── */
   .insight-box {
@@ -113,9 +98,9 @@
     padding: 9px 11px;
     border: 1px solid var(--miu-hairline-soft);
   }
-  .insight-label { font-size: 10px; color: var(--miu-muted); margin-bottom: 3px; }
-  .insight-value { font-family: var(--miu-serif); font-size: 15px; font-weight: 700; color: var(--miu-ink); }
-  .insight-value.accent { color: #b34c2a; }
+  .insight-label { font-size: 12px; color: var(--miu-muted); margin-bottom: 3px; }
+  .insight-value { font-family: var(--miu-sans); font-size: 15px; font-weight: 700; color: var(--miu-ink); font-variant-numeric: tabular-nums; }
+  .insight-value.accent { color: var(--miu-primary); }
 
   /* ── 위치별 랭킹 리스트 ── */
   .loc-row {
@@ -132,7 +117,7 @@
     display: inline-block;
     height: 5px;
     border-radius: 3px;
-    background: #b34c2a;
+    background: var(--miu-primary);
     flex-shrink: 0;
   }
 
@@ -148,7 +133,6 @@
     border-radius: var(--miu-r-lg);
     padding: 14px 16px;
     transition: transform .12s;
-    border-left: 3px solid transparent;
   }
   .popup-card:active { transform: scale(0.98); }
   .popup-card-top {
@@ -169,7 +153,7 @@
     border-radius: var(--miu-r-pill);
     background: var(--miu-canvas);
     color: var(--miu-muted);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
   }
   .popup-mini-kpis {
@@ -183,36 +167,39 @@
     border-radius: var(--miu-r-sm);
     padding: 7px 10px;
   }
-  .popup-mini-kpi .lbl { font-size: 10px; color: var(--miu-muted); margin-bottom: 2px; }
-  .popup-mini-kpi .val { font-family: var(--miu-serif); font-size: 13px; font-weight: 500; color: var(--miu-ink); }
+  .popup-mini-kpi .lbl { font-size: 12px; color: var(--miu-muted); margin-bottom: 2px; }
+  .popup-mini-kpi .val { font-family: var(--miu-sans); font-size: 14px; font-weight: 600; color: var(--miu-ink); font-variant-numeric: tabular-nums; }
 
   /* ── 날짜 행 ── */
   .date-list { display: flex; flex-direction: column; gap: 4px; }
   .date-row {
     display: flex;
+    flex-wrap: wrap;
     justify-content: space-between;
     align-items: center;
-    padding: 7px 10px;
+    gap: 2px 10px;
+    min-height: var(--miu-tap);
+    padding: 6px 10px;
     border-radius: var(--miu-r-sm);
     background: var(--miu-canvas);
     text-decoration: none;
     color: var(--miu-body);
-    font-size: 12px;
+    font-size: 13px;
     transition: background .1s;
   }
   .date-row:hover { background: var(--miu-surface-strong); }
   .date-range { font-weight: 700; color: var(--miu-ink); font-variant-numeric: tabular-nums; }
-  .date-meta { color: var(--miu-muted); font-size: 11px; }
+  .date-meta { color: var(--miu-muted); font-size: 13px; }
   .date-list:not(.open) .fold-extra { display: none; }
   .fold-toggle {
     margin-top: 6px;
     width: 100%;
-    padding: 6px 0;
+    min-height: var(--miu-tap);
     border: 0;
     border-radius: var(--miu-r-sm);
     background: transparent;
     color: var(--miu-muted);
-    font-size: 11px;
+    font-size: 13px;
     cursor: pointer;
   }
   .fold-toggle:hover { background: var(--miu-surface-strong); }
@@ -221,13 +208,13 @@
   .search-wrap { padding: 0 20px; margin-bottom: 14px; }
   .search-input {
     width: 100%;
-    height: 40px;
-    padding: 0 14px 0 36px;
+    height: var(--miu-tap);
+    padding: 0 14px 0 38px;
     background: var(--miu-surface-card);
     border: 1px solid var(--miu-hairline);
     border-radius: var(--miu-r-pill);
     font-family: var(--miu-sans);
-    font-size: 13px;
+    font-size: 16px;
     color: var(--miu-ink);
     outline: none;
     box-sizing: border-box;
@@ -247,21 +234,21 @@
   /* ── FAB ── */
   .fab {
     position: fixed;
-    bottom: 24px;
+    bottom: calc(24px + env(safe-area-inset-bottom));
     right: 20px;
     left: 20px;
     max-width: 440px;
     margin: 0 auto;
     z-index: 10;
   }
-  .fab .miu-btn { box-shadow: 0 8px 24px rgba(20,20,19,0.15); }
+  .fab .miu-btn { width: 100%; box-shadow: 0 8px 24px rgba(20,20,19,0.15); }
 
   .chip-main {
     padding: 2px 8px;
     border-radius: var(--miu-r-pill);
-    background: color-mix(in srgb, #4a6b8a 12%, transparent);
-    color: #4a6b8a;
-    font-size: 10px;
+    background: color-mix(in srgb, var(--miu-primary) 12%, transparent);
+    color: var(--miu-primary-active);
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.5px;
     text-transform: uppercase;
@@ -290,7 +277,7 @@
     </div>
 
     <div class="month-tabs" id="main-tabs">
-      <span style="font-size:12px;color:var(--miu-muted)">불러오는 중…</span>
+      <div class="miu-loading" style="width:100%;padding:16px"><span class="miu-spinner"></span>불러오는 중…</div>
     </div>
     <div id="main-panels"></div>
 
@@ -311,7 +298,7 @@
         <span class="miu-section-label">위치별 해외 비중</span>
         <span class="miu-section-divider"></span>
       </div>
-      <div style="padding: 0 20px; margin: 0 20px;" id="loc-list"></div>
+      <div style="padding: 0 20px;" id="loc-list"></div>
     </div>
 
     <!-- 04 팝업 아카이브 -->
@@ -329,7 +316,7 @@
     </div>
 
     <div class="popup-grid" id="popup-grid">
-      <span style="font-size:12px;color:var(--miu-muted)">불러오는 중…</span>
+      <div class="miu-loading" style="grid-column:1/-1"><span class="miu-spinner"></span>불러오는 중…</div>
     </div>
     <div id="popup-empty" style="display:none;text-align:center;padding:20px 0;font-size:13px;color:var(--miu-muted)">
       검색 결과가 없습니다.
@@ -344,12 +331,7 @@
   </div>
 
 <script>
-const STORE_PALETTE = ['#b34c2a','#1e4d70','#3d7a5f','#8a5a1e','#5a3d7a','#2a6b6b'];
-function storeColor(name) {
-  let h = 0;
-  for (const c of String(name)) h = (h * 31 + c.charCodeAt(0)) & 0xffff;
-  return STORE_PALETTE[h % STORE_PALETTE.length];
-}
+// 팝업 카드는 매장마다 색을 달리하지 않는다(색은 상태 표시에만 쓴다)
 
 const fmtWon = (n) => {
   const x = Number(n || 0);
@@ -375,8 +357,9 @@ async function loadAll() {
     .order('start_date', { ascending: true });
 
   if (error || !data) {
+    document.getElementById('popup-grid').innerHTML = '';
     document.getElementById('main-tabs').innerHTML =
-      `<span style="color:var(--miu-error);font-size:13px">로드 실패: ${error?.message}</span>`;
+      `<div class="miu-alert" role="alert" style="width:100%"><i class="ph-bold ph-warning-circle"></i><div>불러오지 못했어요<div style="font-size:13px;margin-top:2px;opacity:.85">${error?.message || ''}</div><button class="miu-btn miu-btn-sm miu-btn-secondary" style="margin-top:10px" onclick="loadAll()">다시 시도</button></div></div>`;
     return;
   }
 
@@ -387,6 +370,7 @@ async function loadAll() {
   buildPopupSection();
   buildInsight();
   buildLocationTable();
+  updateSectionNums();
 }
 
 // ── 성수본점 탭 ───────────────────────────────────────────
@@ -395,7 +379,7 @@ function buildMainSection() {
   const panelsEl = document.getElementById('main-panels');
 
   if (mainReports.length === 0) {
-    tabsEl.innerHTML = `<span style="font-size:12px;color:var(--miu-muted)">등록된 데이터 없음</span>`;
+    tabsEl.innerHTML = `<div class="miu-state compact" style="width:100%"><div class="miu-state-desc" style="margin:0">등록된 데이터가 없어요</div></div>`;
     return;
   }
 
@@ -466,7 +450,7 @@ function monthPanelHTML(r) {
         <div class="month-kpi-value">${r.top_category || '—'}</div>
       </div>
     </div>
-    <a class="month-detail-link" href="view.html?id=${r.id}">
+    <a class="month-detail-link miu-btn miu-btn-sm miu-btn-primary" href="view.html?id=${r.id}">
       상세 리포트 <i class="ph-bold ph-arrow-right"></i>
     </a>
   `;
@@ -553,16 +537,16 @@ function buildLocationTable() {
 
   document.getElementById('loc-list').innerHTML = rows.map((r, i) => `
     <div class="loc-row">
-      <div style="font-size:11px;font-weight:700;color:var(--miu-muted);min-width:16px;text-align:center;flex-shrink:0">${i + 1}</div>
+      <div style="font-size:13px;font-weight:700;color:var(--miu-muted);min-width:16px;text-align:center;flex-shrink:0">${i + 1}</div>
       <div style="flex:1;min-width:0">
         <div style="font-weight:700;color:var(--miu-ink);font-size:13px">${r.store}</div>
-        <div style="font-size:10px;color:var(--miu-muted);margin-top:2px">${r.period}</div>
+        <div style="font-size:13px;color:var(--miu-muted);margin-top:2px">${r.period}</div>
       </div>
       <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
         <span class="for-bar" style="width:${Math.round(r.share * 44)}px"></span>
-        <strong style="font-family:var(--miu-serif);font-size:14px">${fmtPct(r.share)}</strong>
+        <strong style="font-family:var(--miu-sans);font-size:14px;font-variant-numeric:tabular-nums">${fmtPct(r.share)}</strong>
       </div>
-      <div style="font-family:var(--miu-serif);white-space:nowrap;font-size:13px;color:var(--miu-muted);min-width:52px;text-align:right">${fmtWon(r.daily)}</div>
+      <div style="font-family:var(--miu-sans);white-space:nowrap;font-size:13px;color:var(--miu-muted);min-width:52px;text-align:right;font-variant-numeric:tabular-nums">${fmtWon(r.daily)}</div>
     </div>
   `).join('');
   document.getElementById('location-section').style.display = '';
@@ -588,7 +572,7 @@ function updateSectionNums() {
 function buildPopupSection() {
   const gridEl = document.getElementById('popup-grid');
   if (popupReports.length === 0) {
-    gridEl.innerHTML = `<span style="font-size:13px;color:var(--miu-muted)">등록된 팝업 데이터 없음</span>`;
+    gridEl.innerHTML = `<div class="miu-state compact" style="grid-column:1/-1"><div class="miu-state-desc" style="margin:0">등록된 팝업 데이터가 없어요</div></div>`;
     return;
   }
 
@@ -619,7 +603,6 @@ function buildPopupSection() {
 
     const card = document.createElement('div');
     card.className = 'popup-card';
-    card.style.borderLeftColor = storeColor(store);
     card.dataset.search = searchText;
     card.innerHTML = `
       <div class="popup-card-top">

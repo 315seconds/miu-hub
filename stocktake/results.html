@@ -2,87 +2,92 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>재고조사 결과 — 마켓인유</title>
 <meta name="theme-color" content="#faf9f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151148">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
 body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
 .wrap { max-width: 980px; margin: 0 auto; padding: 8px 16px 120px; }
 .empty { text-align: center; padding: 64px 24px; color: var(--miu-muted); font-size: 14px; line-height: 1.7; }
-.empty a { color: var(--miu-primary-active); font-weight: 600; }
-.err { background: color-mix(in srgb, var(--miu-error) 12%, transparent); color: #7a2a2a; border-radius: var(--miu-r-md); padding: 12px 14px; font-size: 13.5px; line-height: 1.5; margin: 12px 0; }
+.empty a:not(.miu-btn) { color: var(--miu-primary-active); font-weight: 600; }
+.err { background: color-mix(in srgb, var(--miu-error) 12%, transparent); color: var(--miu-error-text); border: 1px solid color-mix(in srgb, var(--miu-error) 28%, transparent); border-radius: var(--miu-r-md); padding: 12px 14px; font-size: 14px; line-height: 1.5; margin: 12px 0; }
 .sel-session { display: flex; align-items: center; gap: 8px; margin: 12px 0; }
 .sel-session select { flex: 1; min-width: 0; }
-select, input[type=search], textarea { font: inherit; font-size: 14px; color: var(--miu-ink); background: var(--miu-canvas); border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); padding: 8px 10px; }
+select, input[type=search], textarea { font: inherit; font-size: 16px; min-height: 44px; color: var(--miu-ink); background: var(--miu-canvas); border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); padding: 8px 10px; }
 textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-box; }
 .card { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 16px; margin-bottom: 12px; }
 .card h2 { margin: 0 0 10px; font-family: var(--miu-serif); font-size: 17px; font-weight: 500; }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
-.stat .k { font-size: 12px; color: var(--miu-muted); }
+.stat .k { font-size: 13px; color: var(--miu-muted); }
 .stat .v { font-size: 20px; font-weight: 700; margin-top: 2px; }
-.stat .v small { font-size: 12px; font-weight: 500; color: var(--miu-muted); margin-left: 4px; }
+.stat .v small { font-size: 13px; font-weight: 500; color: var(--miu-muted); margin-left: 4px; }
 .meta { font-size: 13px; color: var(--miu-muted); margin-bottom: 12px; line-height: 1.6; }
 .mini { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
 .mini th, .mini td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--miu-hairline-soft); }
 .mini th:first-child, .mini td:first-child { text-align: left; }
-.mini th { color: var(--miu-muted); font-weight: 600; font-size: 12px; }
-.refbox { margin-top: 12px; padding: 10px 12px; border-radius: var(--miu-r-md); background: var(--miu-surface-soft, rgba(0,0,0,.04)); font-size: 12.5px; line-height: 1.7; color: var(--miu-body); }
-.refbox b { display: block; margin-bottom: 2px; color: var(--miu-muted); font-size: 12px; }
+.mini th { color: var(--miu-muted); font-weight: 600; font-size: 13px; }
+.refbox { margin-top: 12px; padding: 10px 12px; border-radius: var(--miu-r-md); background: var(--miu-surface-soft, rgba(0,0,0,.04)); font-size: 13px; line-height: 1.7; color: var(--miu-body); }
+.refbox b { display: block; margin-bottom: 2px; color: var(--miu-muted); font-size: 13px; }
 .tabs { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 10px; -webkit-overflow-scrolling: touch; }
-.tab { flex: 0 0 auto; border: 1px solid var(--miu-hairline); background: var(--miu-canvas); color: var(--miu-body); border-radius: var(--miu-r-pill); padding: 8px 14px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.tab { flex: 0 0 auto; border: 1px solid var(--miu-hairline); background: var(--miu-canvas); color: var(--miu-body); border-radius: var(--miu-r-pill); padding: 0 14px; min-height: 40px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .tab .n { margin-left: 6px; font-weight: 500; color: var(--miu-muted); }
 .tab .n b { color: var(--miu-error); font-weight: 700; }
 .tab.zero:not(.on) { opacity: .5; }
-.tab.on { background: var(--miu-ink); color: var(--miu-on-dark); border-color: var(--miu-ink); }
-.tab.on .n { color: var(--miu-on-dark-soft); }
-.tab.on .n b { color: var(--miu-accent-amber); }
+.tab.on { background: var(--miu-primary); color: #fff; border-color: var(--miu-primary); }
+.tab.on .n { color: rgba(255,255,255,.88); }
+.tab.on .n b { color: #fff; text-decoration: underline; }
 .desc { font-size: 13px; color: var(--miu-body); line-height: 1.6; margin: 4px 0 8px; }
-.note-box { font-size: 13px; line-height: 1.6; background: color-mix(in srgb, var(--miu-warning) 14%, transparent); color: #6b5210; border-radius: var(--miu-r-md); padding: 10px 12px; margin: 8px 0; }
+.note-box { font-size: 13px; line-height: 1.6; background: color-mix(in srgb, var(--miu-warning) 14%, transparent); color: var(--miu-warning-text); border-radius: var(--miu-r-md); padding: 10px 12px; margin: 8px 0; }
 .filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; align-items: center; }
 .filters input[type=search] { flex: 1 1 180px; min-width: 0; }
-.selbar { position: sticky; top: 0; z-index: 20; background: var(--miu-canvas); border-bottom: 1px solid var(--miu-hairline); padding: 8px 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; }
+.selbar { position: sticky; top: var(--miu-header-h); z-index: 9; background: var(--miu-canvas); border-bottom: 1px solid var(--miu-hairline); padding: 8px 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 14px; }
 .selbar .sp { flex: 1; }
+.selbar .acts { flex: 1 1 100%; gap: 8px; }
+.selbar .acts .miu-btn-sm { flex: 1 1 auto; justify-content: center; }
+.selbar label { min-height: 44px; }
 .selbar label { display: inline-flex; gap: 6px; align-items: center; font-weight: 600; }
+.selbar label input { width: 24px; height: 24px; accent-color: var(--miu-primary); }
 .acts { display: flex; flex-wrap: wrap; gap: 6px; }
 .list { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); overflow: hidden; margin-top: 8px; }
 .r { display: flex; gap: 10px; padding: 12px 14px; border-bottom: 1px solid var(--miu-hairline-soft); }
 .r:last-child { border-bottom: none; }
 .r.sel { background: var(--miu-surface-strong); }
-.r .ck { flex: 0 0 auto; padding-top: 2px; }
-.r .ck input { width: 18px; height: 18px; }
+.r .ck { flex: 0 0 auto; padding: 8px 10px 8px 4px; margin: -8px 0 -8px -4px; }
+.r .ck input { width: 24px; height: 24px; }
 .r .rb { flex: 1; min-width: 0; cursor: pointer; font-size: 13px; line-height: 1.55; }
 .l1 { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .bc { font-family: var(--miu-mono); font-size: 13px; font-weight: 700; word-break: break-all; }
 .prod { color: var(--miu-body); margin-top: 2px; }
 .loc { margin-top: 2px; font-weight: 600; }
 .loc i { color: var(--miu-muted); }
-.sub { color: var(--miu-muted); font-size: 12.5px; margin-top: 2px; }
+.sub { color: var(--miu-muted); font-size: 13px; margin-top: 2px; }
 .pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 14px 0; font-size: 13px; color: var(--miu-muted); }
 .hist { width: 100%; border-collapse: collapse; font-size: 13px; }
 .hist th, .hist td { padding: 6px 6px; text-align: left; border-bottom: 1px solid var(--miu-hairline-soft); vertical-align: top; }
-.hist th { font-size: 12px; color: var(--miu-muted); }
+.hist th { font-size: 13px; color: var(--miu-muted); }
 .hist tr.void td { text-decoration: line-through; color: var(--miu-muted-soft); }
 .mfield { margin-top: 12px; font-size: 13px; }
 .mfield label { display: block; margin-bottom: 4px; font-weight: 600; }
-.warnmsg { font-size: 13px; line-height: 1.6; margin-top: 10px; padding: 10px 12px; border-radius: var(--miu-r-md); background: color-mix(in srgb, var(--miu-error) 12%, transparent); color: #7a2a2a; }
+.warnmsg { font-size: 13px; line-height: 1.6; margin-top: 10px; padding: 10px 12px; border-radius: var(--miu-r-md); background: color-mix(in srgb, var(--miu-error) 12%, transparent); color: var(--miu-error-text); }
 .infomsg { font-size: 13px; line-height: 1.6; margin-top: 10px; color: var(--miu-body); }
-.mbtn { height: 40px; padding: 0 16px; border-radius: var(--miu-r-md); border: none; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.mbtn { height: 44px; padding: 0 16px; border-radius: var(--miu-r-md); border: none; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
 .mbtn.primary { background: var(--miu-primary); color: white; }
 .mbtn.danger { background: var(--miu-error); color: white; }
 .mbtn.ghost { background: transparent; color: var(--miu-body); }
-.mbtn:disabled { opacity: .5; cursor: default; }
+.mbtn:disabled { opacity: .45; cursor: default; }
+.mbtn.primary:disabled { opacity: 1; background: var(--miu-primary-disabled); color: var(--miu-muted); }
 .miu-modal { max-width: 560px; }
 .miu-btn-sm { cursor: pointer; border: none; border-radius: var(--miu-r-md); display: inline-flex; align-items: center; gap: 4px; font-family: inherit; }
 .miu-btn-sm:disabled { opacity: .5; cursor: default; }
 </style>
-<script src="/miu-hub/shared/config.js?v=202611151148"></script>
+<script src="/miu-hub/shared/config.js?v=202611151334"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
 </head>
 <body>
 
@@ -96,9 +101,9 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
   </div>
 </header>
 
-<div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
+<div class="wrap" id="root"><div class="miu-loading"><span class="miu-spinner"></span>불러오는 중…</div></div>
 
-<script src="js/common.js?v=202611151148"></script>
+<script src="js/common.js?v=202611151334"></script>
 <script>
 (function () {
   const { esc, fmt, KIND, RES } = ST;
@@ -278,7 +283,7 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
       return `<option value="${esc(s.id)}" ${s.id === S.sid ? 'selected' : ''}>${esc(ST.md(s.session_date))}${esc(st)}${s.note ? ' · ' + esc(s.note) : ''}</option>`;
     }).join('');
     const missing = S.sessions.some((s) => s.id === S.sid) ? '' : `<option value="${esc(S.sid)}" selected>선택한 조사</option>`;
-    return `<div class="sel-session"><label for="sessSel" style="font-size:13px;font-weight:600">조사</label><select id="sessSel">${missing}${opts}</select></div>`;
+    return `<div class="sel-session"><label for="sessSel" style="font-size:13px;font-weight:600">조사</label><select id="sessSel" class="miu-select">${missing}${opts}</select></div>`;
   }
 
   async function loadSession() {
@@ -292,7 +297,7 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
       if (!S.session) { root.innerHTML = sessionSelectHtml() + `<div class="empty">찾을 수 없는 조사예요.<br><a href="index.html">재고조사 시작 화면으로</a></div>`; return; }
       if (S.session.status !== 'closed') {
         const what = S.session.status === 'in_progress' ? '아직 진행 중인 조사라 결과가 없어요. 모든 위치를 마감하고 조사를 닫으면 결과가 만들어져요.' : '취소된 조사라 결과가 없어요.';
-        root.innerHTML = sessionSelectHtml() + `<div class="empty">${esc(what)}<br><a href="admin.html">관리 화면으로</a></div>`;
+        root.innerHTML = sessionSelectHtml() + `<div class="empty">${esc(what)}<br><a class="miu-btn miu-btn-secondary" href="admin.html" style="margin-top:14px">관리 화면으로</a></div>`;
         return;
       }
       const [summary, progress, locRes] = await Promise.all([
@@ -366,8 +371,8 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
   function filtersHtml() {
     const resOpts = [['open', '미처리'], ['all', '전체'], ...['found', 'ignored', 'moved', 'disposed'].map((k) => [k, RES[k]])];
     return `<div class="filters">
-      <select id="fRes" aria-label="처리 상태">${resOpts.map(([v, l]) => `<option value="${esc(v)}" ${S.f.res === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
-      <select id="fLoc" aria-label="위치"><option value="">모든 위치</option><option value="__prior" ${S.f.loc === '__prior' ? 'selected' : ''}>연속 미스캔 전체 (이전 조사에서 안 나온 물건)</option><option value="__prior_other" ${S.f.loc === '__prior_other' ? 'selected' : ''}>연속 미스캔 중 미확인 위치 아님</option>${S.locs.filter((l) => l.location !== '미확인 물건').map((l) => `<option value="${esc(l.location)}" ${S.f.loc === l.location ? 'selected' : ''}>${esc(l.location)}</option>`).join('')}</select>
+      <select id="fRes" class="miu-select" style="flex:1 1 150px;width:auto" aria-label="처리 상태">${resOpts.map(([v, l]) => `<option value="${esc(v)}" ${S.f.res === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
+      <select id="fLoc" class="miu-select" style="flex:1 1 150px;width:auto" aria-label="위치"><option value="">모든 위치</option><option value="__prior" ${S.f.loc === '__prior' ? 'selected' : ''}>연속 미스캔 전체 (이전 조사에서 안 나온 물건)</option><option value="__prior_other" ${S.f.loc === '__prior_other' ? 'selected' : ''}>연속 미스캔 중 미확인 위치 아님</option>${S.locs.filter((l) => l.location !== '미확인 물건').map((l) => `<option value="${esc(l.location)}" ${S.f.loc === l.location ? 'selected' : ''}>${esc(l.location)}</option>`).join('')}</select>
       <input type="search" id="fQ" placeholder="바코드·상품명 검색" value="${esc(S.f.q)}" aria-label="검색">
       <button class="miu-btn-sm miu-btn-secondary" data-a="csv"><i class="ph-bold ph-download-simple"></i>CSV 내려받기</button>
     </div>`;
@@ -604,10 +609,10 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
           + (matched.length ? ` (${Object.entries(byLoc).sort((a, b) => b[1] - a[1]).map(([l, c]) => esc(l) + ' ' + num(c)).join(', ')})` : '')
           + (done ? `<br>이미 처리된 미스캔 ${num(done)}건은 제외` : '')
           + (rest > 0 ? `<br>미스캔 목록에 없는 바코드 ${num(rest)}개는 무시(스캔됐거나 장부에 없는 바코드)` : '')
-          + (sold + disposed + moved > 0 ? `<br><span style="color:#8a6100">⚠ 일치한 ${num(matched.length)}건 중 조사 뒤 장부가 바뀐 물건이 있어요: ${[sold ? '판매됨 ' + num(sold) : '', disposed ? '폐기됨 ' + num(disposed) : '', moved ? '다른 위치로 이동 ' + num(moved) : ''].filter(Boolean).join(', ')}. 그래도 "찾음" 처리하면 기록만 정리되고 장부(판매·위치)는 바뀌지 않아요.</span>` : '');
+          + (sold + disposed + moved > 0 ? `<br><span style="color:var(--miu-warning-text)"><i class="ph-bold ph-warning"></i> 일치한 ${num(matched.length)}건 중 조사 뒤 장부가 바뀐 물건이 있어요: ${[sold ? '판매됨 ' + num(sold) : '', disposed ? '폐기됨 ' + num(disposed) : '', moved ? '다른 위치로 이동 ' + num(moved) : ''].filter(Boolean).join(', ')}. 그래도 "찾음" 처리하면 기록만 정리되고 장부(판매·위치)는 바뀌지 않아요.</span>` : '');
         okBtn.disabled = matched.length === 0;
         okBtn.textContent = matched.length ? `${num(matched.length)}건 찾음 처리` : '찾음 처리';
-      } catch (e) { if (my === token) info.innerHTML = `<span style="color:#a23030">${esc(errMsg(e))}</span>`; }
+      } catch (e) { if (my === token) info.innerHTML = `<span style="color:var(--miu-error-text)">${esc(errMsg(e))}</span>`; }
     };
     let t;
     ta.addEventListener('input', () => { clearTimeout(t); t = setTimeout(preview, 400); });
@@ -616,7 +621,7 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
       if (!f) return;
       const rd = new FileReader();
       rd.onload = () => { ta.value = (ta.value ? ta.value + '\n' : '') + String(rd.result || ''); preview(); };
-      rd.onerror = () => { info.innerHTML = '<span style="color:#a23030">파일을 읽지 못했어요.</span>'; };
+      rd.onerror = () => { info.innerHTML = '<span style="color:var(--miu-error-text)">파일을 읽지 못했어요.</span>'; };
       rd.readAsText(f);
       file.value = '';
     });

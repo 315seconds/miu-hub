@@ -2,38 +2,39 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>매출 리포트 · 마켓인유</title>
 
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151148">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
-<script src="/miu-hub/shared/config.js?v=202611151148"></script>
+<script src="/miu-hub/shared/config.js?v=202611151334"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
 
 <style>
   :root {
-    --dom: #1e4d70;
-    --dom-bg: rgba(30,77,112,0.10);
-    --for: #b34c2a;
-    --for-bg: rgba(179,76,42,0.10);
+    /* 국내/해외 두 계열 비교. 해외는 테라코타, 국내는 중립(웜 그레이)으로 맞춘다 */
+    --dom: var(--miu-body);
+    --dom-bg: color-mix(in srgb, var(--miu-body) 8%, transparent);
+    --for: var(--miu-primary);
+    --for-bg: color-mix(in srgb, var(--miu-primary) 10%, transparent);
   }
 
   /* ── 히어로 ── */
   .report-hero {
     padding: 20px 20px 0;
-    background: linear-gradient(160deg, var(--miu-canvas) 60%, rgba(204,120,92,0.07) 100%);
+    background: linear-gradient(160deg, var(--miu-canvas) 60%, color-mix(in srgb, var(--miu-primary-soft) 7%, transparent) 100%);
   }
   .hero-eyebrow {
     display: inline-block;
     padding: 3px 10px;
     background: var(--miu-primary);
     color: white;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 1.2px;
     border-radius: var(--miu-r-pill);
@@ -51,7 +52,7 @@
     margin-bottom: 4px;
   }
   .hero-period {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--miu-muted);
     font-variant-numeric: tabular-nums;
     margin-bottom: 16px;
@@ -59,70 +60,64 @@
 
   /* 총 매출 배너 */
   .hero-sales-banner {
-    background: var(--miu-ink);
+    background: var(--miu-primary);
     color: white;
     border-radius: var(--miu-r-lg) var(--miu-r-lg) 0 0;
     padding: 16px 18px;
     margin: 0 -20px;
   }
   .hero-sales-label {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: 1.2px;
     text-transform: uppercase;
-    opacity: 0.7;
+    opacity: 0.9;
     margin-bottom: 4px;
   }
   .hero-sales-value {
-    font-family: var(--miu-serif);
+    font-family: var(--miu-sans);
     font-size: 30px;
-    font-weight: 500;
+    font-weight: 700;
     letter-spacing: -0.8px;
     line-height: 1.1;
     font-variant-numeric: tabular-nums;
   }
   .hero-sales-sub {
-    font-size: 12px;
-    opacity: 0.7;
+    font-size: 13px;
+    opacity: 0.9;
     margin-top: 4px;
   }
 
   /* KPI 가로 스크롤 스트립 */
   .hero-kpi-strip {
-    display: flex;
-    gap: 0;
-    background: var(--miu-surface-card);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1px;
+    background: var(--miu-hairline-soft);
     border-bottom: 1px solid var(--miu-hairline);
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
   }
-  .hero-kpi-strip::-webkit-scrollbar { display: none; }
   .hero-kpi-cell {
-    flex: 0 0 auto;
     padding: 12px 14px;
-    border-right: 1px solid var(--miu-hairline-soft);
-    min-width: 90px;
+    min-width: 0;
+    background: var(--miu-surface-card);
   }
-  .hero-kpi-cell:last-child { border-right: none; }
   .hkc-label {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.2px;
     color: var(--miu-muted);
-    text-transform: uppercase;
     margin-bottom: 4px;
-    white-space: nowrap;
   }
   .hkc-value {
-    font-family: var(--miu-serif);
-    font-size: 15px;
-    font-weight: 600;
+    font-family: var(--miu-sans);
+    font-size: 16px;
+    font-weight: 700;
     color: var(--miu-ink);
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
   }
-  .hkc-value.dom { color: var(--dom); font-weight: 700; }
-  .hkc-value.for { color: var(--for); font-weight: 700; }
+  .hkc-value.dom { color: var(--dom); }
+  .hkc-value.for { color: var(--for); }
 
   /* ── 요약 ── */
   .summary-list {
@@ -164,8 +159,8 @@
     padding: 2px 8px;
     border-radius: var(--miu-r-pill);
     background: color-mix(in srgb, var(--for) 10%, transparent);
-    color: var(--for);
-    font-size: 10px;
+    color: var(--miu-primary-active);
+    font-size: 12px;
     font-weight: 700;
     border: 1px solid color-mix(in srgb, var(--for) 20%, transparent);
   }
@@ -181,21 +176,21 @@
     border-radius: var(--miu-r-lg);
     padding: 14px 16px;
   }
-  .domfor-tile.dom { background: var(--dom-bg); border: 1px solid rgba(74,107,138,0.18); }
-  .domfor-tile.for { background: var(--for-bg); border: 1px solid rgba(204,120,92,0.18); }
+  .domfor-tile.dom { background: var(--dom-bg); border: 1px solid var(--miu-hairline); }
+  .domfor-tile.for { background: var(--for-bg); border: 1px solid color-mix(in srgb, var(--miu-primary) 22%, transparent); }
   .domfor-label {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
-    letter-spacing: 0.8px;
+    letter-spacing: 0.4px;
     text-transform: uppercase;
     margin-bottom: 6px;
   }
   .domfor-tile.dom .domfor-label { color: var(--dom); }
   .domfor-tile.for .domfor-label { color: var(--for); }
   .domfor-pct {
-    font-family: var(--miu-serif);
+    font-family: var(--miu-sans);
     font-size: 28px;
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: -0.5px;
     line-height: 1;
     margin-bottom: 4px;
@@ -203,7 +198,7 @@
   .domfor-tile.dom .domfor-pct { color: var(--dom); }
   .domfor-tile.for .domfor-pct { color: var(--for); }
   .domfor-sub {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--miu-muted);
     line-height: 1.4;
     font-variant-numeric: tabular-nums;
@@ -212,13 +207,13 @@
     margin-top: 8px;
     padding-top: 8px;
     border-top: 1px solid rgba(0,0,0,0.06);
-    font-size: 11px;
+    font-size: 13px;
     color: var(--miu-body-strong);
   }
   .domfor-aov span {
-    font-family: var(--miu-serif);
-    font-size: 13px;
-    font-weight: 500;
+    font-family: var(--miu-sans);
+    font-size: 14px;
+    font-weight: 600;
   }
 
   /* 피크타임 바 */
@@ -235,7 +230,7 @@
     text-align: center;
   }
   .peak-label {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.5px;
     color: var(--miu-muted);
@@ -243,14 +238,14 @@
     margin-bottom: 4px;
   }
   .peak-hour {
-    font-family: var(--miu-serif);
+    font-family: var(--miu-sans);
     font-size: 22px;
-    font-weight: 500;
+    font-weight: 700;
     color: var(--miu-ink);
     line-height: 1;
   }
   .peak-sales {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--miu-muted);
     margin-top: 3px;
     font-variant-numeric: tabular-nums;
@@ -291,12 +286,12 @@
   }
   .top3-group-head-half {
     padding: 10px 14px 8px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.5px;
     text-transform: uppercase;
   }
-  .top3-group-head-half.dom { color: var(--dom); background: var(--dom-bg); border-right: 1px solid rgba(74,107,138,0.12); }
+  .top3-group-head-half.dom { color: var(--dom); background: var(--dom-bg); border-right: 1px solid var(--miu-hairline); }
   .top3-group-head-half.for { color: var(--for); background: var(--for-bg); }
   .top3-group-body {
     display: grid;
@@ -310,22 +305,22 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 5px 0;
+    padding: 8px 0;
     border-bottom: 1px solid var(--miu-hairline-soft);
   }
   .top3-row-item:last-child { border-bottom: none; }
   .top3-rank {
-    font-family: var(--miu-serif);
+    font-family: var(--miu-sans);
     font-size: 16px;
-    font-weight: 500;
+    font-weight: 700;
     color: var(--miu-muted-soft);
     width: 18px;
     flex-shrink: 0;
   }
   .top3-rank.r1 { color: var(--miu-primary); }
-  .top3-name { font-size: 12px; font-weight: 600; color: var(--miu-ink); flex: 1; }
-  .top3-cnt { font-size: 11px; color: var(--miu-muted); flex-shrink: 0; }
-  .top3-empty { font-size: 12px; color: var(--miu-muted); padding: 8px 0; }
+  .top3-name { font-size: 14px; font-weight: 600; color: var(--miu-ink); flex: 1; }
+  .top3-cnt { font-size: 13px; color: var(--miu-muted); flex-shrink: 0; font-variant-numeric: tabular-nums; }
+  .top3-empty { font-size: 13px; color: var(--miu-muted); padding: 8px 0; }
 
   /* ── 지도 ── */
   .map-wrap {
@@ -352,7 +347,7 @@
     <div class="miu-header-title">
       <h1 class="miu-header-h1">매출 리포트</h1>
     </div>
-    <div class="miu-header-actions">
+    <div class="miu-header-actions" id="header-actions">
       <button class="miu-icon-btn" onclick="window.print()" aria-label="인쇄">
         <i class="ph-bold ph-printer"></i>
       </button>
@@ -360,10 +355,7 @@
   </header>
 
   <div class="miu-app-body" style="padding-bottom:40px" id="body">
-    <div class="loading-state">
-      <div class="miu-spinner" style="margin: 0 auto 12px"></div>
-      <div>불러오는 중…</div>
-    </div>
+    <div class="miu-loading" style="padding:60px 20px"><span class="miu-spinner"></span>불러오는 중…</div>
   </div>
 
 <script>
@@ -383,13 +375,14 @@ async function loadReport() {
   if (!id) { showError('리포트 ID가 없습니다.'); return; }
 
   const { data, error } = await sb.from('sales_reports').select('*').eq('id', id).single();
-  if (error || !data) { showError(error?.message || '리포트를 찾을 수 없어요.'); return; }
+  if (error || !data) { showError(error?.message || '리포트를 찾을 수 없어요.', !!error); return; }
   render(data);
 }
 
-function showError(msg) {
+function showError(msg, retry) {
+  document.getElementById('header-actions').style.display = 'none';   // 오류 화면에는 인쇄할 내용이 없다
   document.getElementById('body').innerHTML =
-    `<div class="miu-state"><div class="miu-state-title">불러오기 실패</div><div class="miu-state-desc">${esc(msg)}</div></div>`;
+    `<div class="miu-state"><div class="miu-state-icon"><i class="ph-bold ph-warning-circle"></i></div><div class="miu-state-title">불러오지 못했어요</div><div class="miu-state-desc">${esc(msg)}</div>${retry ? '<button class="miu-btn miu-btn-secondary" style="margin-bottom:10px" onclick="location.reload()">다시 시도</button>' : ''}<a href="index.html" class="miu-btn miu-btn-primary">목록으로</a></div>`;
 }
 
 function render(r) {
@@ -471,7 +464,7 @@ function render(r) {
           <span>TOP 카테고리: <strong>${esc(r.top_category)}</strong></span>
         </li>` : ''}
       </ul>
-      ${kws ? `<div style="font-size:10px;font-weight:700;letter-spacing:0.6px;color:var(--miu-muted);text-transform:uppercase;margin-top:12px;margin-bottom:4px">해외 판정 키워드</div><div class="kw-strip">${kws}</div>` : ''}
+      ${kws ? `<div style="font-size:12px;font-weight:700;letter-spacing:0.4px;color:var(--miu-muted);margin-top:12px;margin-bottom:4px">해외 판정 키워드</div><div class="kw-strip">${kws}</div>` : ''}
     </div>
   `;
 
@@ -583,10 +576,10 @@ function render(r) {
 /* ── Chart.js ── */
 function renderCharts(hourly) {
   const labels  = hourly.map(h => h.hour + '시');
-  const primary = getComputedStyle(document.documentElement).getPropertyValue('--miu-primary').trim() || '#cc785c';
+  const primary = getComputedStyle(document.documentElement).getPropertyValue('--miu-primary').trim() || '#9f5238';
   Chart.defaults.font.family = "'Pretendard Variable', 'Pretendard', sans-serif";
-  Chart.defaults.font.size   = 11;
-  Chart.defaults.color       = '#888';
+  Chart.defaults.font.size   = 12;
+  Chart.defaults.color       = '#5f5d57';
 
   new Chart(document.getElementById('chart-total'), {
     type: 'bar',
@@ -609,7 +602,7 @@ function renderCharts(hourly) {
     data: {
       labels,
       datasets: [
-        { label: '국내', data: hourly.map(h => h['국내매출'] || 0), backgroundColor: '#4a6b8a', borderRadius: 3 },
+        { label: '국내', data: hourly.map(h => h['국내매출'] || 0), backgroundColor: '#b9b3a6', borderRadius: 3 },
         { label: '해외', data: hourly.map(h => h['해외매출'] || 0), backgroundColor: primary, borderRadius: 3 }
       ]
     },

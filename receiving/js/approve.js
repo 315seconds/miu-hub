@@ -30,7 +30,7 @@ async function load() {
 
     render(pendingRes.data || [], doneRes.data || []);
   } catch (e) {
-    showError("승인 목록 로드 실패: " + e.message);
+    showError("승인 목록 로드 실패: " + e.message, load);
   }
 }
 
@@ -56,8 +56,8 @@ function render(pending, done) {
       </a>`).join("");
   } else {
     html += `
-      <div class="card" style="text-align:center; padding:32px 16px">
-        <div style="font-size:32px; margin-bottom:8px">✅</div>
+      <div class="card miu-state compact">
+        <div class="miu-state-icon"><i class="ph-bold ph-check-circle"></i></div>
         <div class="muted">대기 중인 세션이 없습니다</div>
       </div>`;
   }
@@ -72,7 +72,10 @@ function render(pending, done) {
             <span class="badge badge-${escapeHtml(s.status)}" style="margin-right:8px">${STATUS_LABEL[s.status] || s.status}</span>
             <span class="text-sm">${escapeHtml(s.barcode_prefix)}*</span>
             ${s.total_items ? `<span class="muted text-sm" style="margin-left:auto">${s.total_items}벌</span>` : ""}
-            ${s.excel_updated ? '<span class="success text-sm" style="margin-left:8px">✓ 엑셀</span>' : ""}
+            ${s.excel_updated ? '<span class="success text-sm" style="margin-left:8px"><i class="ph-bold ph-check"></i> 엑셀</span>' : ""}
+          </div>
+          <div class="text-sm muted" style="margin-top:4px">
+            ${escapeHtml(s.location || "")}${s.created_by ? " · " + escapeHtml(s.created_by) : ""}
           </div>
         </div>
       </a>`).join("");

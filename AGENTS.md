@@ -9,7 +9,7 @@
 ## 1. 개요와 배포
 - 마켓인유(빈티지 의류) 물류·판매용 정적 PWA. 빌드 없음. HTML/JS + Supabase(`miu_ops` 프로젝트: Auth, Postgres RLS/RPC, Storage, Realtime). 한국어. 사용자 약 13명(관리자 7).
 - 배포: `main` push → GitHub Pages 자동 빌드(약 1분, `https://315seconds.github.io/miu-hub/`).
-- 공유 JS/CSS(`shared/*`, 각 `js/*`)를 바꿨으면 먼저 `python3 scripts/bump-cache-version.py`(모든 HTML의 로컬 js/css `?v=` 갱신, 현재 `202611151148`). HTML만 바꿨으면 불필요. 직원 폰은 새로고침/앱 재실행 필요.
+- 공유 JS/CSS(`shared/*`, 각 `js/*`)를 바꿨으면 먼저 `python3 scripts/bump-cache-version.py`(모든 HTML의 로컬 js/css `?v=` 갱신, 현재 `202611151320`). HTML만 바꿨으면 불필요. 직원 폰은 새로고침/앱 재실행 필요.
 - 로컬: `python3 scripts/dev-server.py [포트]`(127.0.0.1 전용).
 - 서버 자동화(엑셀/Dropbox 반영, 자동 승인, 레터 생성)는 **이 저장소 밖**(`../work_automation`, Oracle VM 크론). 5절.
 
@@ -40,6 +40,7 @@
 - 일부 페이지(`sold-report`, `turnover`, `item-scanner`)는 `window.sb` 대신 세션 `access_token`으로 REST/RPC를 직접 호출한다. 토큰 없으면 실패.
 - 가드 없는 페이지: `login.html`, `design-system.html`, `move/compare-barcodes.html`(개발용, 비로그인 차단 후 동작 안 할 것 `[추정]`).
 - `manifest.json`의 theme_color는 토큰·`index.html` 메타와 다르다.
+- **디자인 규칙(2026-11-15 개편, "현장형 따뜻한 실용 UI")**: 직원이 거의 폰으로 쓴다. 크림 바탕 + 포인트 색은 **테라코타 하나**(`--miu-primary` #9f5238, 흰 글자 5.6:1. 옛 연한 코랄 #cc785c는 `--miu-primary-soft`로 큰 면·장식에만, 글자·버튼 배경 금지). 색으로 기능을 구분하지 않는다(상태 색은 상태 표시에만: `.miu-chip.success|warn|danger`, `.miu-alert`). 탭 대상 44px(칩 40px)·정보 글자 13px 이상(배지 12px)·입력 16px(폰에서 CSS가 강제), 숫자는 고딕+`tabular-nums`(명조는 제목만), 위험 동작은 `.miu-btn-danger`로 주 버튼과 떼기. sticky 하위 요소는 `top: var(--miu-header-h)`·z-index 9. 새 화면은 `layout.css`의 `.miu-chip-btn`·`.miu-tabs/.miu-tab`·`.miu-alert`·`.miu-state.compact`·`.miu-page`·`.miu-action-bar`를 쓰고 페이지마다 칩·탭·오류 박스를 새로 만들지 않는다. 이모지 대신 Phosphor(`ph-bold`). viewport는 `width=device-width, initial-scale=1, viewport-fit=cover`(확대를 막지 않는다). 렌더 확인은 로그인 없이 스텁으로(운영 DB에 닿지 않게); 캐시 때문에 공유 CSS 변경이 안 보이면 캐시를 끈 서버·새 origin으로 연다.
 
 ## 4. 권한·DB 규칙
 ### 4.1 사람
@@ -121,6 +122,7 @@
 - **엑셀 입고시트 ≠ DB 물건 목록(2026-11-06 전수 대조)**: 매월 새 월 파일을 만들 때 판매됐거나 관리자가 정리해도 된다고 본 물건을 입고시트에서 지워 이월해 왔고(사유 기록 없음), 허브 DB는 **시드 당시 입고시트에 있던 물건만** 기준으로 만들었다. 그래서 2025.02~2026.11 입고시트 바코드 155,139개 중 71,531개가 DB에 없다(65,559개는 엑셀 판매 시트에 판매 기록이 있어 정상, 5,972개는 판매 기록 없이 이월 때 사라진 것으로 사유 불명 — 둘 다 현재 운영에 영향 없어 **채우지 않기로 함**). 신경 쓸 것 둘: ①`sold_items`에는 있는데 `inventory_items`에 없는 바코드 4,743건(거의 전부 2026-04 판매, 판매액 약 1.36억; `category_performance`가 "(카테고리 미확인)"·행거당 소진 일수 없음으로 잡으므로 2026-04 기간 분석은 이 점을 감안) ②DB는 재고인데 엑셀 판매 시트에서는 판매된 34건(판매일 모두 2026-04-01 이전, 25건은 `7/2재고조사`; C44502·B68384·C13761은 바코드 재사용 의심이라 현장 확인 후 처리). **엑셀 입고시트에 직접 입력한 물건은 `sync_stock_items.py` 자동 실행이 2026-09 말 중단돼 DB로 들어오지 않는다**(E3415~E3426 12건이 2026-07-29 입고분이 누락돼 `scripts/add-missing-e3415-3426-20261106.sql`로 보충). 입고는 허브 화면으로만 한다.
 
 ## 7. 이력 (줄기만, 최신순)
+- 2026-11-15 디자인 개편(위 3절 "디자인 규칙"): `shared/tokens.css`·`layout.css` 재구성(테라코타 AA 대비, 44px 타깃, 포커스 링, 상태 컴포넌트), 홈 재구성(작업 타일 먼저·핵심 두 개는 채움·어제 매출 카드는 아래·캘린더 강등·매장 직원은 매장 업무가 맨 위), 하위 화면 43개 정리(옛 파랑·다크 테마 팔레트 제거, 이모지→Phosphor, 오류 화면에 다시 시도). 같이 고친 결함: `admin/js/admin.js`에서 2026-11-04 재작성 때 사라진 `toggleLocation`·`deleteLocation` 복구, `receiving/` 헤더 id(`page-title`·`page-badge`·`back-btn-wrap`) 복구, `sold-report` `offsetHeight` null 오류, 로그인 오류 한글화. 스텁 렌더 44화면에서 JS 오류 0·가로 넘침 0(개편 전 3화면에서 오류). 로그인한 실제 화면과 스캔 후 상태·모달은 확인 못 함.
 - 2026-11-15 구조 점검(Claude Fable 5.2 읽기 전용 분석) 뒤 안전 항목 정리: `scripts/safe-hardening-20261115.sql`(`session_items(session_id)`·`(barcode)` 인덱스, anon 함수 실행권·신규 테이블 TRUNCATE 등 회수, `profiles.name` 관리자 전용)·`drop-duplicate-barcode-index-20261115.sql` 운영 DB 적용(롤백 트랜잭션 통과 뒤 적용, 직원 name 변경 거절·관리자 허용 확인). 로그인 `shouldCreateUser:false`, 임시 `receiving/tag-check.html`·홈 섹션·`auth-callback` 경로 삭제, `item-scanner/supabase/.temp` 추적 해제. 점검에서 나온 미처리 위험(안 고침): ①anon 라벨 도구 예외(재고 전 컬럼 읽기·`color`/`pattern` 쓰기) ②판매 동기화의 재판매·환불 처리 ③22시 이후 정정 이동 세션 미승인→만료 ④`authenticated_all` 19개 테이블·입고 세션 삭제 CASCADE.
 - 2026-11-11 판매 정정 체계 1단계 + 정정 화면 + 유어스업 8차. `corrections`·정정/제외 RPC·재동기화 방어 트리거·`correction/`·홈 타일(03 분석 도구에서 사입 통계와 정정·이력이 반반 한 줄)을 운영에 적용(상세는 6절 판매 정정 체계). **차시 운영 규칙: 새 사입은 차시를 먼저 만들고 입고한다**(점검의 "차시 미배정"은 빼먹은 것을 발견하는 안전장치; 사후 배정·재배정 기능은 만들지 않기로 함, 필요하면 SQL로). 수선·지연 입고가 있으면 차시를 종료하지 않고 열어 둔다. 입고 전에 들어간 유어스업 모자 83개는 `scripts/purchase-batch-cr8-20261111.sql`로 8차(`CR8` 의류 빈 차시 + `CR8_E` 잡화, 입고 시작 11/9, 총액은 잡화 차시)에 한 번 수동 편입했고 아직 입고 안 한 1개는 돌아오면 같은 차시를 고른다. 같은 날 사용자 결정으로 **택분실 짝 맞추기·교환은 폐지**(STOCK이 관련 RPC·결과 화면 항목 제거). 화면은 supabase를 스텁한 브라우저로 확인(운영 로그인 화면은 확인 대기).
 - 2026-11-10 신규입고 앱 메인(`receiving/index.html`)에 "월 누적 입고 비교"(이번 달 vs 지난달 vs 지지난달, 같은 입고일 수까지의 입고량)를 넣고 "이번 주" 카드는 뺐다. RPC `receiving_month_compare()`(호출자 권한, `scripts/receiving-month-compare-20261110.sql`, 운영 DB 적용 완료). 입고량 = 승인(approved·processed) 세션의 물건 수(메인 "오늘 입고"와 같은 정의; 세션 없는 엑셀 일괄 반영분은 안 셈, 그런 물건은 2026-08까지만 있음). **입고일 = 그날 입고가 1건 이상 있는 날**로 센다(평일 기준으로 하면 2026-10의 대체공휴일 10/5·한글날 10/9가 0건 영업일로 잡혀 10월이 5일치만 쌓인 채 비교됨; 공휴일 테이블 없음). 3입고일 미만이면 증감률 숨김. 오늘은 덜 쌓였을 수 있어 이번 달이 낮게 나올 수 있다. 운영 값 930 / 1,523 / 1,538(11/2~11/10 7입고일)을 일별 집계로 손계산 대조. 화면은 supabase를 스텁한 브라우저로 확인(실제 로그인 화면은 푸시 뒤 확인 대기).

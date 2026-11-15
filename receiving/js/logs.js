@@ -38,7 +38,7 @@ document.querySelectorAll(".log-filter-btn").forEach(btn => {
       document.getElementById("date-from").value = today;
       document.getElementById("date-to").value   = today;
       document.getElementById("log-list").innerHTML =
-        '<div class="log-empty"><div class="log-empty-icon">📅</div><div>날짜를 설정 후 조회하세요</div></div>';
+        '<div class="log-empty"><div class="log-empty-icon"><i class="ph-bold ph-calendar-blank"></i></div><div>날짜를 설정 후 조회하세요</div></div>';
     } else {
       customEl.classList.remove("open");
       loadLog();
@@ -49,7 +49,7 @@ document.getElementById("custom-load-btn").addEventListener("click", loadLog);
 
 async function loadLog() {
   const listEl = document.getElementById("log-list");
-  listEl.innerHTML = '<div class="log-loading">불러오는 중...</div>';
+  listEl.innerHTML = '<div class="miu-state compact"><span class="miu-spinner"></span><div class="miu-state-desc" style="margin:8px 0 0">불러오는 중...</div></div>';
   Object.keys(itemCache).forEach(k => delete itemCache[k]);
 
   const { from, to } = getRange();
@@ -69,14 +69,20 @@ async function loadLog() {
     });
     renderLog(sessions);
   } catch (e) {
-    listEl.innerHTML = `<div class="log-empty"><div class="log-empty-icon">⚠️</div><div>오류: ${escapeHtml(e.message)}</div></div>`;
+    listEl.innerHTML = `<div class="miu-state compact">
+      <div class="miu-state-icon"><i class="ph-bold ph-warning-circle"></i></div>
+      <div class="miu-state-title">불러오지 못했어요</div>
+      <div class="miu-state-desc">${escapeHtml(e.message)}</div>
+      <button type="button" class="btn btn-primary" id="log-retry-btn">다시 시도</button>
+    </div>`;
+    document.getElementById("log-retry-btn").addEventListener("click", loadLog);
   }
 }
 
 function renderLog(sessions) {
   const listEl = document.getElementById("log-list");
   if (!sessions.length) {
-    listEl.innerHTML = '<div class="log-empty"><div class="log-empty-icon">📭</div><div>해당 기간에 입고 기록이 없어요</div></div>';
+    listEl.innerHTML = '<div class="log-empty"><div class="log-empty-icon"><i class="ph-bold ph-tray"></i></div><div>해당 기간에 입고 기록이 없어요</div></div>';
     return;
   }
   const grouped = {};
@@ -113,15 +119,15 @@ function renderLog(sessions) {
     Object.entries(locationMap).forEach(([loc, data]) => {
       locHtml += `
         <div style="margin-bottom:10px">
-          <div style="display:flex; justify-content:space-between; font-size:13px; font-weight:700; color:#e2e8f0; padding-bottom:4px; border-bottom:1px solid var(--border)">
+          <div style="display:flex; justify-content:space-between; font-size:14px; font-weight:700; color:var(--miu-ink); padding-bottom:4px; border-bottom:1px solid var(--miu-hairline)">
             <span>${escapeHtml(loc)}</span>
-            <span style="color:var(--brand-primary)">${data.total}벌</span>
+            <span style="color:var(--miu-ink); font-variant-numeric:tabular-nums">${data.total}벌</span>
           </div>`;
       Object.entries(data.cats)
         .sort((a, b) => b[1] - a[1])
         .forEach(([cat, cnt]) => {
           locHtml += `
-          <div style="display:flex; justify-content:space-between; font-size:12px; color:#64748b; padding:3px 0 0 10px">
+          <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--miu-muted); padding:3px 0 0 10px">
             <span>${escapeHtml(cat)}</span>
             <span>${cnt}벌</span>
           </div>`;
@@ -129,10 +135,10 @@ function renderLog(sessions) {
       locHtml += `</div>`;
     });
     html += `
-      <div class="card" style="background:var(--bg-secondary); margin-bottom:16px; padding:14px 16px">
+      <div class="card" style="background:var(--miu-surface-soft); margin-bottom:16px; padding:14px 16px">
         <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:12px">
           <span class="text-xs muted">기간 입고 요약</span>
-          <span style="font-size:20px; font-weight:700; color:var(--brand-primary)">${periodTotal}벌 <span class="text-xs muted" style="font-weight:400">${doneSessions.length}건</span></span>
+          <span style="font-size:20px; font-weight:700; color:var(--miu-ink); font-variant-numeric:tabular-nums">${periodTotal}벌 <span class="text-xs muted" style="font-weight:400">${doneSessions.length}건</span></span>
         </div>
         ${locHtml}
       </div>`;
@@ -142,7 +148,7 @@ function renderLog(sessions) {
     const ds = dateSummary[date];
     if (ds && ds.total > 0) {
       html += `<div class="log-day-summary">
-        <div class="log-day-total">📦 승인 완료 총 ${ds.total}벌</div>
+        <div class="log-day-total"><i class="ph-bold ph-package"></i> 승인 완료 총 ${ds.total}벌</div>
       </div>`;
     }
     list.forEach(s => {
@@ -150,17 +156,17 @@ function renderLog(sessions) {
       html += `
         <div class="log-session-card" id="lsc-${escapeHtml(s.id)}">
           <div class="log-session-header" data-id="${escapeHtml(s.id)}" data-date="${escapeHtml(s.session_date)}" data-prefix="${escapeHtml(s.barcode_prefix)}">
-            <span class="log-session-chevron" id="chv-${escapeHtml(s.id)}">▶</span>
+            <span class="log-session-chevron" id="chv-${escapeHtml(s.id)}"><i class="ph-bold ph-caret-right"></i></span>
             <div style="flex:1; min-width:0">
-              <div style="font-size:14px; font-weight:700; color:#e2e8f0">
+              <div style="font-size:15px; font-weight:700; color:var(--miu-ink)">
                 ${escapeHtml(s.barcode_prefix)}* · ${cnt}벌
               </div>
-              <div style="font-size:12px; color:#475569; margin-top:2px">
+              <div style="font-size:13px; color:var(--miu-muted); margin-top:2px">
                 ${escapeHtml(s.location || "")}${s.created_by ? " · " + escapeHtml(s.created_by) : ""}
-                ${s.start_barcode_num ? ' · <span style="font-family:monospace; color:#64748b">' + escapeHtml(s.barcode_prefix) + s.start_barcode_num + '~</span>' : ""}
+                ${s.start_barcode_num ? ' · <span style="font-family:var(--font-mono); color:var(--miu-muted); white-space:nowrap">' + escapeHtml(s.barcode_prefix) + s.start_barcode_num + '~</span>' : ""}
               </div>
             </div>
-            <span class="badge ${statusClass[s.status] || "badge-pending"}" style="flex-shrink:0; font-size:11px">
+            <span class="badge ${statusClass[s.status] || "badge-pending"}" style="flex-shrink:0">
               ${statusLabel[s.status] || s.status}
             </span>
           </div>
@@ -199,17 +205,17 @@ async function toggleSession(sessionId) {
     itemCache[sessionId] = mapped;
     renderSessionItems(sessionId, mapped);
   } catch (e) {
-    body.innerHTML = `<div style="color:#f87171; font-size:13px">오류: ${escapeHtml(e.message)}</div>`;
+    body.innerHTML = `<div style="color:var(--miu-error-text); font-size:13px">오류: ${escapeHtml(e.message)}</div>`;
   }
 }
 
 function renderSessionItems(sessionId, hangers) {
   const body = document.getElementById(`lbody-${sessionId}`);
-  if (!hangers.length) { body.innerHTML = '<div style="color:#475569; font-size:13px; padding:8px 0">행거 없음</div>'; return; }
+  if (!hangers.length) { body.innerHTML = '<div style="color:var(--miu-muted); font-size:13px; padding:8px 0">행거 없음</div>'; return; }
   let html = "";
   hangers.forEach(h => {
     const cats = [...new Set(h.items.map(it => it.category).filter(Boolean))];
-    html += `<div style="font-size:11px; font-weight:700; color:#64748b; margin:10px 0 6px; text-transform:uppercase">
+    html += `<div style="font-size:13px; font-weight:700; color:var(--miu-muted); margin:10px 0 6px">
       행거 ${escapeHtml(h.hanger_number)} · ${escapeHtml(cats.join(" · ") || "미분류")} · ${h.items.length}벌
     </div>`;
     h.items.forEach((item, i) => {
@@ -226,8 +232,7 @@ function renderSessionItems(sessionId, hangers) {
   const prefix = header ? header.dataset.prefix : "";
   html += `<div style="margin-top:12px; text-align:right">
     <button onclick="downloadCSV('${sessionId}')"
-      style="font-size:12px; padding:5px 12px; border:1px solid #334155; border-radius:6px; background:none; color:#64748b; cursor:pointer">
-      ⬇ CSV 다운로드
+      class="btn btn-outline btn-sm"><i class="ph-bold ph-download-simple"></i> CSV 다운로드
     </button>
   </div>`;
   body.innerHTML = html;

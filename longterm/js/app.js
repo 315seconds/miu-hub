@@ -153,7 +153,7 @@ function initScanStep() {
   const labelSuffix = S.directMode
     ? '직접 가격수정'
     : S.threshold2 !== null
-      ? `기준 🟠${S.threshold2}일 / 🔴${S.threshold}일`
+      ? `기준 순환필요 ${S.threshold2}일 / 가격변경 ${S.threshold}일`
       : `기준 ${S.threshold}일`;
   document.getElementById('scan-store-label').textContent = `${S.store} · ${labelSuffix}`;
   renderScanList();
@@ -312,8 +312,8 @@ function renderScanList() {
   if (!S.directMode) {
     const t2Count = valid.filter(i => i.tier === 2).length;
     const t1Count = valid.filter(i => i.tier === 1).length;
-    if (t2Count) alertParts.push(`🔴 가격변경 ${t2Count}개`);
-    if (t1Count) alertParts.push(`🟠 순환필요 ${t1Count}개`);
+    if (t2Count) alertParts.push(`가격변경 ${t2Count}개`);
+    if (t1Count) alertParts.push(`순환필요 ${t1Count}개`);
   }
 
   document.getElementById('scan-count').textContent =
@@ -326,7 +326,7 @@ function renderScanList() {
   list.innerHTML = sorted.map(item => {
     const rm = `<button class="remove-btn" data-bc="${escapeHtml(item.barcode)}">×</button>`;
     if (item.loading) return `<div class="scan-card"><span class="bc-text">${escapeHtml(item.barcode)}</span> <span class="muted">조회 중...</span></div>`;
-    if (item.notFound) return `<div class="scan-card card-err"><div class="row-sb"><span class="bc-text">${escapeHtml(item.barcode)}</span>${rm}</div><div class="err-text">⚠ DB에서 찾을 수 없음</div></div>`;
+    if (item.notFound) return `<div class="scan-card card-err"><div class="row-sb"><span class="bc-text">${escapeHtml(item.barcode)}</span>${rm}</div><div class="err-text"><i class="ph-bold ph-warning"></i> DB에서 찾을 수 없음</div></div>`;
     if (item.error) return `<div class="scan-card card-err"><div class="row-sb"><span class="bc-text">${escapeHtml(item.barcode)}</span>${rm}</div><div class="err-text">${escapeHtml(item.error)}</div></div>`;
 
     const soldTag = item.status==='sold' ? '<span class="sold-tag">판매됨</span>' : '';
@@ -356,8 +356,8 @@ function renderScanList() {
         <span class="date-pill date-initial">최초입고 ${fmtDate(item.createdAt)}</span>
         <span class="date-pill date-arrival">이 매장 ${fmtDate(item.arrivalDate)}</span>
       </div>
-      ${item.locMismatch ? `<div class="loc-warn">⚠ 기록된 위치는 <strong>${escapeHtml(item.location)}</strong> — 이동 누락 확인 필요</div>` : ''}
-      ${item.lastPriceChange ? `<div class="price-history">📉 ${item.lastPriceChange.oldPrice.toLocaleString()}원 → ${item.lastPriceChange.newPrice.toLocaleString()}원으로 수정한 지 ${item.lastPriceChange.daysAgo}일 지났습니다</div>` : ''}
+      ${item.locMismatch ? `<div class="loc-warn"><i class="ph-bold ph-warning"></i> 기록된 위치는 <strong>${escapeHtml(item.location)}</strong> — 이동 누락 확인 필요</div>` : ''}
+      ${item.lastPriceChange ? `<div class="price-history"><i class="ph-bold ph-trend-down"></i> ${item.lastPriceChange.oldPrice.toLocaleString()}원 → ${item.lastPriceChange.newPrice.toLocaleString()}원으로 수정한 지 ${item.lastPriceChange.daysAgo}일 지났습니다</div>` : ''}
     </div>`;
   }).join('') || '<div class="empty-msg">바코드를 스캔하면 여기에 표시됩니다</div>';
 
@@ -389,12 +389,12 @@ function initProcessStep() {
   </div>`;
 
   if (t2.length) {
-    html += `<div class="section-hd red-hd">🔴 가격변경 ${t2.length}개 (${S.threshold}일 초과)</div>`;
+    html += `<div class="section-hd red-hd"><span class="dot" style="background:var(--error)"></span>가격변경 ${t2.length}개 (${S.threshold}일 초과)</div>`;
     html += t2.map(i => processCard(i)).join('');
   }
   if (t1.length) {
     const gap = t2.length ? 'margin-top:12px' : '';
-    html += `<div class="section-hd" style="color:var(--warn);${gap}">🟠 순환필요 ${t1.length}개 (${S.threshold2}일 초과)</div>`;
+    html += `<div class="section-hd" style="color:var(--warn-text);${gap}"><span class="dot" style="background:var(--warn)"></span>순환필요 ${t1.length}개 (${S.threshold2}일 초과)</div>`;
     html += t1.map(i => processCard(i)).join('');
   }
   if (ok.length) {
@@ -478,7 +478,7 @@ function initPriceStep() {
     <button class="back-btn" id="price-back">← 선택으로</button>
     <span class="page-title">가격수정 (${S.priceOriginal.length}개)</span>
   </div>
-  <div class="slack-notice">⚠️ Slack <strong>공동판매 사용중</strong> 채널에 <strong>현재 사용중</strong> 메시지를 먼저 남기세요.</div>`;
+  <div class="slack-notice"><i class="ph-bold ph-warning"></i> Slack <strong>공동판매 사용중</strong> 채널에 <strong>현재 사용중</strong> 메시지를 먼저 남기세요.</div>`;
 
   html += groups.map(g => `
     <div class="hanger-group">
@@ -490,17 +490,17 @@ function initPriceStep() {
       </div>
       <div class="bulk-box" id="bulk-box-pct-${g.hangerNumber}">
         <div class="row-gap">
-          <span style="color:#fbbf24;font-weight:600">할인율</span>
+          <span style="color:var(--miu-warning-text);font-weight:600">할인율</span>
           <input class="bulk-input" id="bulk-pct-${g.hangerNumber}" type="number" min="1" max="99" placeholder="30">
-          <span style="color:#fbbf24;font-weight:700">%</span>
+          <span style="color:var(--miu-warning-text);font-weight:700">%</span>
           <span class="muted" style="font-size:12px">반올림 천원 단위</span>
         </div>
       </div>
       <div class="bulk-box" id="bulk-box-fixed-${g.hangerNumber}">
         <div class="row-gap">
-          <span style="color:#fbbf24;font-weight:600">동일 가격</span>
+          <span style="color:var(--miu-warning-text);font-weight:600">동일 가격</span>
           <input class="bulk-input" id="bulk-fixed-${g.hangerNumber}" type="number" min="0" step="1000" placeholder="10000" style="width:96px">
-          <span style="color:#fbbf24;font-weight:700">원</span>
+          <span style="color:var(--miu-warning-text);font-weight:700">원</span>
         </div>
       </div>
       ${g.indices.map(i => {
@@ -524,10 +524,10 @@ function initPriceStep() {
       }).join('')}
     </div>`).join('');
 
-  html += `<button class="btn btn-price btn-block" id="price-apply" style="margin-top:16px">✅ 수정 적용하기</button>
+  html += `<button class="btn btn-price btn-block" id="price-apply" style="margin-top:16px"><i class="ph-bold ph-check"></i> 수정 적용하기</button>
   <div class="modal-overlay" id="price-modal">
     <div class="modal-box">
-      <div style="font-weight:700;margin-bottom:12px">⚠️ 가격 수정 확인</div>
+      <div style="font-weight:700;margin-bottom:12px"><i class="ph-bold ph-warning"></i> 가격 수정 확인</div>
       <div id="price-summary" class="modal-msg"></div>
       <div style="display:flex;gap:8px;margin-top:16px">
         <button class="btn btn-outline flex-1" id="price-cancel">취소</button>
@@ -537,11 +537,11 @@ function initPriceStep() {
   </div>
   <div id="price-done" style="display:none;margin-top:14px">
     <div class="success-box">
-      <div style="font-weight:700;margin-bottom:10px">✅ 가격 수정 완료</div>
+      <div style="font-weight:700;margin-bottom:10px"><i class="ph-bold ph-check-circle"></i> 가격 수정 완료</div>
       <div id="bulk-notice" class="muted" style="display:none;margin-bottom:12px;font-size:13px">
         일괄 할인된 물건에는 <strong>해당 %가 표시된 스티커</strong>를 기존 바코드 위에 붙여주세요.
       </div>
-      <button class="btn btn-green btn-block" id="zpl-btn" style="display:none">🖨 수정된 라벨 ZPL 다운로드</button>
+      <button class="btn btn-green btn-block" id="zpl-btn" style="display:none"><i class="ph-bold ph-printer"></i> 수정된 라벨 ZPL 다운로드</button>
       <button class="btn btn-kiosk btn-block" id="kiosk-btn" style="margin-top:8px">📥 키오스크 업로드 파일 다운로드</button>
       <div id="kiosk-status" class="muted" style="font-size:12px;text-align:center;margin-top:6px"></div>
     </div>
@@ -709,10 +709,10 @@ function downloadKioskFile() {
   const dateStr = new Date().toISOString().slice(0, 10);
   XLSX.writeFile(wb, `kiosk_upload_${dateStr}.xlsx`);
 
-  btn.textContent = '✅ 다운로드 완료';
-  btn.style.background = '#166534';
+  btn.innerHTML = '<i class="ph-bold ph-check"></i> 다운로드 완료';
+  btn.style.background = 'var(--miu-success-text)';
   status.textContent = `${S.lastChanges.length}개 · 키오스크 관리사이트에서 수동으로 업로드해주세요`;
-  status.style.color = '#166534';
+  status.style.color = 'var(--miu-success-text)';
   status.style.fontWeight = '500';
 }
 
@@ -733,9 +733,9 @@ function initMoveStep() {
         <span class="muted">${escapeHtml(i.displayName)}</span>
       </div>`).join('')}
     </div>
-    <button class="btn btn-move btn-block" id="copy-btn" style="margin-top:16px">📋 바코드 클립보드 복사</button>
-    <div id="copy-status" style="display:none;color:#22c55e;text-align:center;margin-top:8px;font-size:13px">
-      ✅ 복사됨! 이동앱에서 붙여넣기 하세요.
+    <button class="btn btn-move btn-block" id="copy-btn" style="margin-top:16px"><i class="ph-bold ph-clipboard-text"></i> 바코드 클립보드 복사</button>
+    <div id="copy-status" style="display:none;color:var(--miu-success-text);text-align:center;margin-top:8px;font-size:13px">
+      <i class="ph-bold ph-check"></i> 복사됨! 이동앱에서 붙여넣기 하세요.
     </div>`;
 
   document.getElementById('move-back').onclick = () => { showStep('process'); initProcessStep(); };
@@ -743,7 +743,7 @@ function initMoveStep() {
     try {
       await navigator.clipboard.writeText(barcodes.join('\n'));
       document.getElementById('copy-status').style.display = 'block';
-      document.getElementById('copy-btn').textContent = '✅ 복사됨';
+      document.getElementById('copy-btn').innerHTML = '<i class="ph-bold ph-check"></i> 복사됨';
     } catch(e) {
       appAlert('클립보드 복사 실패.\n수동으로 복사해주세요:\n\n' + barcodes.join('\n'));
     }

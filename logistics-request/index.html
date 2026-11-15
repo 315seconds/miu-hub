@@ -2,40 +2,39 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>물류요청 판매 집계 — 마켓인유</title>
 <meta name="theme-color" content="#faf9f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151148">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
 body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
-.wrap { max-width: 560px; margin: 0 auto; padding: 8px 20px 48px; }
-.card { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 18px 16px; margin-top: 16px; }
-.card h2 { font-size: 13px; font-weight: 700; color: var(--miu-body-strong); margin-bottom: 12px; }
+.wrap { max-width: 560px; margin: 0 auto; padding: 8px 16px 64px; }
+.card { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 16px; margin-top: 14px; }
+.card h2 { font-size: 13px; font-weight: 700; color: var(--miu-muted); letter-spacing: .3px; margin-bottom: 10px; }
 .dates { display: flex; align-items: center; gap: 8px; }
-.dates input[type=date] { flex: 1; min-width: 0; height: 44px; padding: 0 12px; font: inherit; font-size: 15px; color: var(--miu-ink); background: var(--miu-canvas); border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); }
-.dates input[type=date]:focus { outline: none; border-color: var(--miu-primary); box-shadow: 0 0 0 3px rgba(204,120,92,0.15); }
+.dates input[type=date] { flex: 1; min-width: 0; height: 44px; padding: 0 10px; font: inherit; font-size: 16px; color: var(--miu-ink); background: var(--miu-canvas); border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); }
+.dates input[type=date]:focus { outline: none; border-color: var(--miu-primary); box-shadow: var(--miu-focus); }
 .dates .sep { color: var(--miu-muted); }
-.chips { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
-.chip { padding: 7px 14px; border-radius: var(--miu-r-pill); border: 1px solid var(--miu-hairline); background: var(--miu-canvas); font: inherit; font-size: 13px; font-weight: 600; color: var(--miu-body); cursor: pointer; }
-.chip:active { background: var(--miu-surface-strong); }
-.stores { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
-.stores label { display: flex; align-items: center; gap: 8px; font-size: 15px; cursor: pointer; }
-.stores label.all { grid-column: span 2; font-weight: 600; padding-bottom: 10px; border-bottom: 1px solid var(--miu-hairline-soft); }
-.stores input { width: 18px; height: 18px; accent-color: var(--miu-primary); }
-.go { display: block; width: 100%; margin-top: 20px; padding: 15px; border: none; border-radius: var(--miu-r-lg); background: var(--miu-primary); color: #fff; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.chips { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+.stores { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.stores label { display: flex; align-items: center; gap: 10px; min-height: var(--miu-tap); font-size: 15px; cursor: pointer; }
+.stores label.all { grid-column: span 2; font-weight: 600; border-bottom: 1px solid var(--miu-hairline-soft); margin-bottom: 4px; }
+.stores input { width: 22px; height: 22px; accent-color: var(--miu-primary); }
+.go { display: block; width: 100%; margin-top: 16px; min-height: 48px; padding: 0 13px; border: none; border-radius: var(--miu-r-lg); background: var(--miu-primary); color: var(--miu-on-primary); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
 .go:disabled { opacity: 0.6; cursor: default; }
-.status { margin-top: 14px; font-size: 13.5px; line-height: 1.6; color: var(--miu-body); min-height: 22px; }
-.status.err { color: var(--miu-error); }
-.hint { margin-top: 20px; font-size: 12.5px; color: var(--miu-muted); line-height: 1.7; }
-.empty { text-align: center; padding: 96px 32px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
+.status { margin-top: 14px; font-size: 14px; line-height: 1.6; color: var(--miu-body); }
+.status:empty { display: none; }
+.status.err { padding: 12px 14px; border-radius: var(--miu-r-md); background: color-mix(in srgb, var(--miu-error) 9%, var(--miu-canvas)); color: var(--miu-error-text); border: 1px solid color-mix(in srgb, var(--miu-error) 28%, transparent); }
+.status.loading::before { content: ''; display: inline-block; width: 14px; height: 14px; margin-right: 8px; vertical-align: -2px; border: 2px solid var(--miu-hairline); border-top-color: var(--miu-primary); border-radius: 50%; animation: miu-spin .8s linear infinite; }
+.hint { margin-top: 20px; font-size: 13px; color: var(--miu-muted); line-height: 1.7; }
 </style>
-<script src="/miu-hub/shared/config.js?v=202611151148"></script>
+<script src="/miu-hub/shared/config.js?v=202611151334"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 </head>
 <body>
@@ -50,7 +49,7 @@ body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(-
   </div>
 </header>
 
-<div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
+<div class="wrap" id="root"><div class="miu-loading"><span class="miu-spinner"></span>불러오는 중…</div></div>
 
 <script>
 // 이 화면은 최영훈(사용자) · 김민지 · 황태훈 · 이강철 · 김성경(관리) 전용. 화면 게이트일 뿐이며(데이터 권한은 로그인 직원 공통, AGENTS.md 4.1) 서버 차단은 아니다.
@@ -286,7 +285,7 @@ function render(storeNames) {
         <input type="date" id="to" value="${yesterday}" max="${kstDate()}">
       </div>
       <div class="chips">
-        ${[7, 14, 30].map((n) => `<button type="button" class="chip" data-days="${n}">최근 ${n}일</button>`).join('')}
+        ${[7, 14, 30].map((n) => `<button type="button" class="miu-chip-btn chip" aria-pressed="false" data-days="${n}">최근 ${n}일</button>`).join('')}
       </div>
     </div>
     <div class="card">
@@ -305,12 +304,15 @@ function render(storeNames) {
   const sts = [...root.querySelectorAll('.st')];
   all.onchange = () => { if (all.checked) sts.forEach((c) => { c.checked = false; }); else all.checked = true; };
   sts.forEach((c) => { c.onchange = () => { all.checked = !sts.some((x) => x.checked); }; });
-  root.querySelectorAll('.chip').forEach((b) => {
-    b.onclick = () => { $('to').value = yesterday; $('from').value = addDays(yesterday, -(+b.dataset.days - 1)); };
+  const chips = [...root.querySelectorAll('.chip')];
+  const markChip = (on) => chips.forEach((c) => { c.classList.toggle('on', c === on); c.setAttribute('aria-pressed', c === on ? 'true' : 'false'); });
+  chips.forEach((b) => {
+    b.onclick = () => { $('to').value = yesterday; $('from').value = addDays(yesterday, -(+b.dataset.days - 1)); markChip(b); };
   });
+  ['from', 'to'].forEach((id) => $(id).addEventListener('input', () => markChip(null)));
 
   const status = $('status'), go = $('go');
-  const say = (msg, err = false) => { status.textContent = msg; status.classList.toggle('err', err); };
+  const say = (msg, err = false, busy = false) => { status.textContent = msg; status.classList.toggle('err', err); status.classList.toggle('loading', busy); };
 
   go.onclick = async () => {
     const from = $('from').value, to = $('to').value;
@@ -319,12 +321,12 @@ function render(storeNames) {
     const picked = all.checked ? null : sts.filter((c) => c.checked).map((c) => c.value);
     go.disabled = true;
     try {
-      say('판매 내역을 불러오는 중…');
-      const rows = await fetchSold(from, to, picked, (n) => say(`판매 내역을 불러오는 중… ${n.toLocaleString()}건`));
+      say('판매 내역을 불러오는 중…', false, true);
+      const rows = await fetchSold(from, to, picked, (n) => say(`판매 내역을 불러오는 중… ${n.toLocaleString()}건`, false, true));
       if (!rows.length) return say('이 기간에는 판매 내역이 없어요.', true);
-      say('카테고리를 확인하는 중…');
+      say('카테고리를 확인하는 중…', false, true);
       const catMap = await fetchCategories([...new Set(rows.map((r) => r.barcode).filter(Boolean))]);
-      say('엑셀을 만드는 중…');
+      say('엑셀을 만드는 중…', false, true);
       const agg = aggregate(rows, catMap);
       if (!agg.stores.size) return say('집계할 판매가 없어요. (환불·취소만 있는 기간)', true);
       const storeLabel = picked ? picked.join(', ') : '전체 매장';
@@ -344,13 +346,13 @@ function render(storeNames) {
 (async function init() {
   for (let i = 0; i < 50 && window.MIU_PROFILE === undefined; i++) await new Promise((r) => setTimeout(r, 100));
   if (!ALLOWED_NAMES.includes(window.MIU_PROFILE?.name)) {
-    root.innerHTML = '<div class="empty">이 기능은 사용할 수 없어요.</div>';
+    root.innerHTML = '<div class="miu-state compact"><div class="miu-state-icon"><i class="ph-bold ph-lock-simple"></i></div><div class="miu-state-title">이 기능은 사용할 수 없어요</div></div>';
     return;
   }
   try {
     render(await fetchStoreNames());
   } catch (e) {
-    root.innerHTML = '<div class="empty">불러오지 못했어요.</div>';
+    root.innerHTML = '<div class="miu-state compact"><div class="miu-state-icon"><i class="ph-bold ph-warning-circle"></i></div><div class="miu-state-title">불러오지 못했어요</div><button class="miu-btn miu-btn-primary" onclick="location.reload()">다시 시도</button></div>';
   }
 })();
 </script>

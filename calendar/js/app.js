@@ -122,7 +122,7 @@ async function renderCalendar(year, month) {
   currentMonth = month;
 
   const MONTH_KO = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
-  document.getElementById('cal-year').textContent = `${year}년`;
+  document.getElementById('cal-year').textContent = `${year}년 ${month}월`;
 
   // 월별 일러스트 교체
   const mm = String(month).padStart(2, '0');
@@ -186,7 +186,7 @@ async function renderCalendar(year, month) {
     dayEvents.slice(0, 3).forEach(ev => {
       const chip = document.createElement('div');
       chip.className = 'event-chip';
-      chip.style.background = typeColor(ev.event_type);
+      chip.style.setProperty('--c', typeColor(ev.event_type));
       chip.textContent = ev.title;
       cell.appendChild(chip);
     });
@@ -230,8 +230,8 @@ function renderDayEvents(dateStr, events) {
         <div class="day-event-type">${ev.event_type}</div>
       </div>
       <div class="day-event-actions">
-        <button class="btn-icon" onclick="requireAdmin(()=>openEventForm('${dateStr}','${ev.id}'))">✏️</button>
-        <button class="btn-icon" onclick="requireAdmin(()=>deleteEvent('${ev.id}','${dateStr}'))">🗑️</button>
+        <button class="btn-icon" onclick="requireAdmin(()=>openEventForm('${dateStr}','${ev.id}'))" aria-label="수정"><i class="ph-bold ph-pencil-simple"></i></button>
+        <button class="btn-icon" onclick="requireAdmin(()=>deleteEvent('${ev.id}','${dateStr}'))" aria-label="삭제"><i class="ph-bold ph-trash"></i></button>
       </div>
     </div>
   `).join('');

@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f6f8fa">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -13,28 +13,31 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151148">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
 :root{
-  --bg:#faf9f5;   /* miu-canvas */
-  --subtle:#f5f0e8;
-  --border:#e6dfd8;   /* miu-hairline */
-  --border-muted:#ebe6df;
-  --text:#141413;   /* miu-ink */
-  --muted:#6c6a64;
-  --dim:#8e8b82;
-  --blue:#3c4e75;   /* deep indigo (링크 대체) */
-  --green:#6b8e6b;   /* muted green */
-  --green-bg:#e8f5ec;
-  --red:#c64545;
-  --red-bg:#fbeaea;
-  --yellow:#d4a017;
-  --yellow-bg:#fff3e0;
+  --bg:var(--miu-canvas);
+  --subtle:var(--miu-surface-soft);
+  --border:var(--miu-hairline);
+  --border-muted:var(--miu-hairline-soft);
+  --text:var(--miu-ink);
+  --muted:var(--miu-muted);
+  --dim:var(--miu-muted-soft);
+  --blue:var(--miu-primary);
+  --green:var(--miu-success-text);
+  --green-bg:color-mix(in srgb,var(--miu-success) 10%,var(--miu-canvas));
+  --green-line:color-mix(in srgb,var(--miu-success) 40%,transparent);
+  --red:var(--miu-error-text);
+  --red-bg:color-mix(in srgb,var(--miu-error) 9%,var(--miu-canvas));
+  --red-line:color-mix(in srgb,var(--miu-error) 40%,transparent);
+  --yellow:var(--miu-warning-text);
+  --yellow-bg:color-mix(in srgb,var(--miu-warning) 16%,var(--miu-canvas));
+  --yellow-line:color-mix(in srgb,var(--miu-warning) 60%,transparent);
   --shadow:0 1px 0 rgba(20,20,19,0.04);
-  --sans:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  --mono:'Pretendard Variable','Pretendard',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --sans:var(--miu-sans);
+  --mono:var(--miu-sans);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{background:var(--bg);color:var(--text);min-height:100%;font-family:var(--sans)}
@@ -42,71 +45,71 @@ button,input{font:inherit}
 button{touch-action:manipulation}
 .app{max-width:480px;min-height:100dvh;margin:0 auto;padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px}
 .header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;background:var(--subtle);border:1px solid var(--border);border-radius:10px}
-.brand-name{font-size:15px;font-weight:700}.brand-sub{margin-top:3px;color:var(--muted);font:9px var(--mono);letter-spacing:1.2px}
-.status{flex:0 0 auto;padding:5px 9px;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--muted);font:700 10px var(--mono)}
-.home-link{flex:0 0 auto;padding:5px 9px;border:1px solid var(--border);border-radius:999px;background:#fff;color:var(--muted);font-size:11px;text-decoration:none}
+.brand-name{font-size:15px;font-weight:700}.brand-sub{margin-top:3px;color:var(--muted);font:12px var(--mono);letter-spacing:1.2px}
+.status{flex:0 0 auto;padding:5px 9px;border:1px solid var(--border);border-radius:999px;background:var(--miu-canvas);color:var(--muted);font:700 12px var(--mono)}
+.home-link{flex:0 0 auto;padding:12px 12px;border:1px solid var(--border);border-radius:999px;background:var(--miu-canvas);color:var(--muted);font-size:13px;text-decoration:none}
 .home-link:active{background:var(--subtle)}
-.status.online{color:var(--green);background:var(--green-bg);border-color:#4ac26b}.status.error{color:var(--red);background:var(--red-bg);border-color:#ff8182}
-.connection{display:none;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid #ff8182;border-radius:8px;background:var(--red-bg);color:var(--red);font-size:12px;line-height:1.4}
-.connection.show{display:flex}.retry-btn{flex:0 0 auto;padding:6px 9px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);font-size:11px;font-weight:600;cursor:pointer}
-.hanger-strip{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
-.hanger-badge{font-size:13px;font-weight:700;white-space:nowrap}.hanger-progress{color:var(--muted);font-size:11px;text-align:right}.hanger-progress strong{color:var(--text);font-weight:700}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{padding:12px;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
-.stat-label{color:var(--muted);font-size:9px;font-weight:600;letter-spacing:.8px}.stat-value{margin-top:5px;font-size:24px;font-weight:700}
-.scan-card{padding:16px;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
-.scan-title{margin-bottom:10px;font-size:13px;font-weight:700}.scan-input{width:100%;padding:15px 16px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);font:600 16px var(--mono);text-align:center;letter-spacing:1px;box-shadow:inset 0 1px 0 rgba(208,215,222,.2)}
-.scan-input:focus{border-color:#54aeff;outline:0;box-shadow:0 0 0 3px rgba(9,105,218,.18)}.scan-input:disabled{background:var(--subtle);color:var(--dim);cursor:not-allowed}
-.hint{margin-top:8px;color:var(--muted);font-size:11px;line-height:1.5;text-align:center}.hint strong{color:var(--text)}
-.hanger-actions{display:grid;grid-template-columns:.85fr 1.25fr 1.45fr;gap:8px}.hanger-action{min-height:50px;padding:10px 8px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--text);font-size:12px;font-weight:750;cursor:pointer}
-.hanger-action.reset{color:var(--red);border-color:#ff8182}.hanger-action.complete{background:var(--blue);border-color:var(--blue);color:#fff}.hanger-action:disabled{opacity:.45;cursor:not-allowed}
-.hanger-message{display:none;margin-top:-4px;padding:8px 10px;border-radius:7px;background:var(--green-bg);color:var(--green);font-size:11px;line-height:1.4}.hanger-message.show{display:block}.hanger-message.error{background:var(--red-bg);color:var(--red)}
-.list{flex:1;overflow:hidden;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
-.list-head{display:flex;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border-muted);background:var(--subtle);color:var(--muted);font-size:11px}
+.status.online{color:var(--green);background:var(--green-bg);border-color:var(--green-line)}.status.error{color:var(--red);background:var(--red-bg);border-color:var(--red-line)}
+.connection{display:none;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--red-line);border-radius:8px;background:var(--red-bg);color:var(--red);font-size:13px;line-height:1.4}
+.connection.show{display:flex}.retry-btn{flex:0 0 auto;min-height:40px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--miu-canvas);color:var(--text);font-size:13px;font-weight:600;cursor:pointer}
+.hanger-strip{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 14px;background:var(--miu-surface-card);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+.hanger-badge{font-size:13px;font-weight:700;white-space:nowrap}.hanger-progress{color:var(--muted);font-size:13px;text-align:right}.hanger-progress strong{color:var(--text);font-weight:700}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.stat{padding:12px;background:var(--miu-surface-card);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+.stat-label{color:var(--muted);font-size:12px;font-weight:600;letter-spacing:.8px}.stat-value{margin-top:5px;font-size:24px;font-weight:700;font-variant-numeric:tabular-nums}
+.scan-card{padding:16px;background:var(--miu-surface-card);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+.scan-title{margin-bottom:10px;font-size:13px;font-weight:700}.scan-input{width:100%;padding:15px 16px;border:1px solid var(--border);border-radius:6px;background:var(--miu-canvas);color:var(--text);font:600 16px var(--mono);text-align:center;letter-spacing:1px;box-shadow:inset 0 1px 0 rgba(208,215,222,.2)}
+.scan-input:focus{border-color:var(--miu-primary);outline:0;box-shadow:var(--miu-focus)}.scan-input:disabled{background:var(--subtle);color:var(--dim);cursor:not-allowed}
+.hint{margin-top:8px;color:var(--muted);font-size:13px;line-height:1.5;text-align:center}.hint strong{color:var(--text)}
+.hanger-actions{display:grid;grid-template-columns:1fr 1.4fr;gap:8px}.hanger-action{min-height:50px;padding:10px 8px;border:1px solid var(--border);border-radius:8px;background:var(--miu-canvas);color:var(--text);font-size:14px;font-weight:750;cursor:pointer}
+.hanger-action.reset{color:var(--miu-error);border:1px solid color-mix(in srgb,var(--miu-error) 45%,transparent);background:var(--miu-canvas)}.hanger-action.complete{background:var(--blue);border-color:var(--blue);color:#fff}.hanger-action:disabled{opacity:.45;cursor:not-allowed}.hanger-action.complete:disabled{opacity:1;background:var(--miu-primary-disabled);border-color:transparent;color:var(--miu-muted)}
+.hanger-message{display:none;margin-top:-4px;padding:8px 10px;border-radius:7px;background:var(--green-bg);color:var(--green);font-size:13px;line-height:1.4}.hanger-message.show{display:block}.hanger-message.error{background:var(--red-bg);color:var(--red)}
+.list{flex:1;overflow:hidden;background:var(--miu-surface-card);border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow)}
+.list-head{display:flex;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--border-muted);background:var(--subtle);color:var(--muted);font-size:13px}
 .row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border-muted)}.row:last-child{border-bottom:0}
 .row.resumable{cursor:pointer}.row.resumable:active{background:var(--subtle)}
-.row-delete{flex:0 0 auto;width:28px;height:28px;border:none;background:transparent;color:var(--muted);font-size:15px;line-height:1;cursor:pointer;border-radius:6px}
+.row-delete{flex:0 0 auto;width:40px;height:40px;border:none;background:transparent;color:var(--muted);font-size:18px;line-height:1;cursor:pointer;border-radius:6px}
 .row-delete:active{background:var(--red-bg);color:var(--red)}
-.code{font:600 12px var(--mono)}.time{margin-top:3px;color:var(--muted);font:10px var(--mono)}
-.tag{padding:3px 7px;border:1px solid var(--border);border-radius:999px;background:var(--subtle);color:var(--muted);font:700 9px var(--mono)}
-.tag.target{color:var(--yellow);background:var(--yellow-bg);border-color:#d4a72c}.tag.done{color:var(--green);background:var(--green-bg);border-color:#4ac26b}.tag.error{color:var(--red);background:var(--red-bg);border-color:#ff8182}
-.empty{padding:40px 20px;color:var(--muted);font-size:12px;text-align:center}.footer-note{padding:4px;color:var(--muted);font-size:10px;text-align:center}
-.result-export{padding-top:4px}.result-export-btn{width:100%;min-height:42px;padding:9px 12px;border:1px solid var(--blue);border-radius:8px;background:#fff;color:var(--blue);font-size:11px;font-weight:700;cursor:pointer}.result-export-btn:disabled{color:var(--dim);border-color:var(--border);opacity:.55;cursor:not-allowed}.result-export-status{display:none;margin-top:7px;color:var(--muted);font-size:10px;line-height:1.4;text-align:center}.result-export-status.show{display:block}.result-export-status.error{color:var(--red)}
-.full-reset{padding-top:4px}.full-reset-btn{width:100%;min-height:42px;padding:9px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--red);font-size:11px;font-weight:700;cursor:pointer}.full-reset-btn:disabled{color:var(--dim);opacity:.55;cursor:not-allowed}
+.code{font:600 14px var(--mono);font-variant-numeric:tabular-nums}.time{margin-top:3px;color:var(--muted);font:12px var(--mono);font-variant-numeric:tabular-nums}
+.tag{padding:3px 8px;border:1px solid var(--border);border-radius:999px;background:var(--subtle);color:var(--muted);font:700 12px var(--mono)}
+.tag.target{color:var(--yellow);background:var(--yellow-bg);border-color:var(--yellow-line)}.tag.done{color:var(--green);background:var(--green-bg);border-color:var(--green-line)}.tag.error{color:var(--red);background:var(--red-bg);border-color:var(--red-line)}
+.empty{padding:40px 20px;color:var(--muted);font-size:13px;text-align:center}.footer-note{padding:4px;color:var(--muted);font-size:12px;text-align:center}
+.result-export{padding-top:4px}.result-export-btn{width:100%;min-height:44px;padding:9px 12px;border:1px solid var(--blue);border-radius:8px;background:var(--miu-canvas);color:var(--blue);font-size:13px;font-weight:700;cursor:pointer}.result-export-btn:disabled{color:var(--dim);border-color:var(--border);opacity:.55;cursor:not-allowed}.result-export-status{display:none;margin-top:7px;color:var(--muted);font-size:12px;line-height:1.4;text-align:center}.result-export-status.show{display:block}.result-export-status.error{color:var(--red)}
+.full-reset{padding-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px}.full-reset-btn{width:100%;min-height:44px;padding:9px 12px;border:1px solid color-mix(in srgb,var(--miu-error) 45%,transparent);border-radius:8px;background:var(--miu-canvas);color:var(--miu-error);font-size:13px;font-weight:700;cursor:pointer}.full-reset-btn:disabled{opacity:.45;cursor:not-allowed}
 .mode-toggle{display:flex;gap:6px;padding:4px;background:var(--subtle);border:1px solid var(--border);border-radius:10px}
-.mode-btn{flex:1;padding:9px;border:none;border-radius:7px;background:transparent;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer}
-.mode-btn.active{background:#fff;color:var(--text);box-shadow:var(--shadow)}
+.mode-btn{flex:1;min-height:44px;padding:9px;border:none;border-radius:7px;background:transparent;color:var(--muted);font-size:14px;font-weight:700;cursor:pointer}
+.mode-btn.active{background:var(--miu-canvas);color:var(--text);box-shadow:var(--shadow)}
 .bulk-photo-trigger{display:none}.bulk-photo-trigger.show{display:block}
-.bulk-photo-btn{width:100%;min-height:46px;padding:10px 12px;border:1px solid var(--blue);border-radius:8px;background:#fff;color:var(--blue);font-size:13px;font-weight:750;cursor:pointer}
+.bulk-photo-btn{width:100%;min-height:46px;padding:10px 12px;border:1px solid var(--blue);border-radius:8px;background:var(--miu-canvas);color:var(--blue);font-size:13px;font-weight:750;cursor:pointer}
 .bulk-photo-btn:disabled{opacity:.45;cursor:not-allowed}
 .hanger-nav-group{display:flex;align-items:center;gap:6px}
-.hanger-nav{flex:0 0 auto;width:26px;height:26px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);font-size:13px;line-height:1;cursor:pointer}
+.hanger-nav{flex:0 0 auto;width:44px;height:44px;border:1px solid var(--border);border-radius:6px;background:var(--miu-canvas);color:var(--text);font-size:18px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
 .hanger-nav:disabled{opacity:.35;cursor:not-allowed}
-.viewing-banner{display:none;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border:1px solid #d4a72c;border-radius:8px;background:var(--yellow-bg);color:var(--yellow);font-size:12px;line-height:1.4}
+.viewing-banner{display:none;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border:1px solid var(--yellow-line);border-radius:8px;background:var(--yellow-bg);color:var(--yellow);font-size:13px;line-height:1.4}
 .viewing-banner.show{display:flex}
-.viewing-return-btn{flex:0 0 auto;padding:6px 9px;border:1px solid #d4a72c;border-radius:6px;background:#fff;color:var(--yellow);font-size:11px;font-weight:700;cursor:pointer}
-.row-brand{margin-top:2px;color:var(--muted);font-size:11px}
-.modal-bg{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(31,35,40,.4)}.modal-bg.show{display:flex}
-.modal{width:min(100%,350px);max-height:calc(100dvh - 44px);overflow-y:auto;padding:24px;background:#fff;border:1px solid var(--border);border-top:4px solid #bf8700;border-radius:12px;box-shadow:0 8px 24px rgba(140,149,159,.25);text-align:center}
-.warn{font-size:34px}.modal h2{margin:10px 0 6px;font-size:18px}.modal p{color:var(--muted);font-size:13px;line-height:1.55}
-.confirm-modal{border-top-color:var(--border)}.confirm-icon{font-size:28px}.confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px}.btn-danger{background:var(--red);color:#fff}.btn-warning{background:#1f883d;color:#fff}
-.target-code{margin:14px 0;padding:10px;border:1px solid #d4a72c;border-radius:8px;background:var(--yellow-bg);color:var(--yellow);font:700 15px var(--mono)}
+.viewing-return-btn{flex:0 0 auto;min-height:40px;padding:6px 12px;border:1px solid var(--yellow-line);border-radius:6px;background:var(--miu-canvas);color:var(--yellow);font-size:13px;font-weight:700;cursor:pointer}
+.row-brand{margin-top:2px;color:var(--muted);font-size:13px}
+.modal-bg{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(20,20,19,.5)}.modal-bg.show{display:flex}
+.modal{width:min(100%,350px);max-height:calc(100dvh - 44px);overflow-y:auto;padding:24px;background:var(--miu-canvas);border:1px solid var(--border);border-top:4px solid var(--miu-warning);border-radius:12px;box-shadow:0 8px 24px rgba(20,20,19,.18);text-align:center}
+.warn{font-size:34px;color:var(--yellow)}.modal h2{margin:10px 0 6px;font-size:18px}.modal p{color:var(--muted);font-size:14px;line-height:1.55}
+.confirm-modal{border-top-color:var(--border)}.confirm-icon{font-size:28px}.confirm-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px}.btn-danger{background:var(--red);color:#fff}.btn-warning{background:var(--miu-primary);color:#fff}
+.target-code{margin:14px 0;padding:10px;border:1px solid var(--yellow-line);border-radius:8px;background:var(--yellow-bg);color:var(--yellow);font:700 15px var(--mono)}
 .capture-section{margin-top:14px;text-align:left}
-.section-label{display:block;margin-bottom:6px;color:var(--muted);font-size:11px;font-weight:700}
-.brand-input{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:6px;background:#fff;color:var(--text);font:600 15px var(--sans)}
-.brand-input:focus{border-color:#54aeff;outline:0;box-shadow:0 0 0 3px rgba(9,105,218,.18)}
-.no-brand-btn{margin-top:8px;padding:8px 12px;border:1px solid var(--border);border-radius:6px;background:var(--subtle);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer}
-.no-brand-btn:active{background:#fff}
-.actions{display:flex;flex-direction:column;gap:8px;margin-top:16px}.btn{padding:13px 14px;border-radius:6px;border:1px solid rgba(31,35,40,.15);font-size:14px;font-weight:600;cursor:pointer}
-.btn:disabled{opacity:.55;cursor:not-allowed}.btn-primary{background:#1f883d;color:#fff;box-shadow:0 1px 0 rgba(31,35,40,.1)}.btn-primary:hover:not(:disabled){background:#1a7f37}.btn-secondary{background:var(--subtle);color:var(--text);border-color:var(--border)}
+.section-label{display:block;margin-bottom:6px;color:var(--muted);font-size:13px;font-weight:700}
+.brand-input{width:100%;min-height:48px;padding:12px 14px;border:1px solid var(--border);border-radius:6px;background:var(--miu-canvas);color:var(--text);font:600 15px var(--sans)}
+.brand-input:focus{border-color:var(--miu-primary);outline:0;box-shadow:var(--miu-focus)}
+.no-brand-btn{margin-top:8px;min-height:44px;padding:8px 14px;border:1px solid var(--border);border-radius:6px;background:var(--subtle);color:var(--muted);font-size:14px;font-weight:600;cursor:pointer}
+.no-brand-btn:active{background:var(--miu-canvas)}
+.actions{display:flex;flex-direction:column;gap:8px;margin-top:16px}.btn{min-height:48px;padding:13px 14px;border-radius:6px;border:1px solid var(--miu-hairline);font-size:14px;font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.55;cursor:not-allowed}.btn-primary:disabled{opacity:1;background:var(--miu-primary-disabled);color:var(--miu-muted)}.btn-primary{background:var(--miu-primary);color:#fff;box-shadow:0 1px 0 rgba(31,35,40,.1)}.btn-primary:hover:not(:disabled){background:var(--miu-primary-active)}.btn-secondary{background:var(--subtle);color:var(--text);border-color:var(--border)}
 .camera-input{display:none}.preview{display:none;margin-top:14px}.preview.show{display:block}.preview img{width:100%;max-height:220px;object-fit:cover;border:1px solid var(--border);border-radius:8px}
-.preview-actions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}.save-status{display:none;margin-top:14px;padding:9px;border-radius:6px;background:var(--subtle);color:var(--muted);font-size:12px;line-height:1.4}.save-status.show{display:block}.save-status.error{background:var(--red-bg);color:var(--red)}
+.preview-actions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:10px}.save-status{display:none;margin-top:14px;padding:9px;border-radius:6px;background:var(--subtle);color:var(--muted);font-size:13px;line-height:1.4}.save-status.show{display:block}.save-status.error{background:var(--red-bg);color:var(--red)}
 @media (prefers-reduced-motion:no-preference){.modal{animation:modal-in .14s ease-out}@keyframes modal-in{from{transform:translateY(8px);opacity:.7}to{transform:none;opacity:1}}}
 </style>
   <!-- auth-migration: 로그인 가드 -->
-  <script src="/miu-hub/shared/config.js?v=202611151148"></script>
+  <script src="/miu-hub/shared/config.js?v=202611151334"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
-  <script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
+  <script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
+  <script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
 </head>
 <body>
 <header class="miu-header">
@@ -116,7 +119,7 @@ button{touch-action:manipulation}
   <div class="miu-header-title">    <h1 class="miu-header-h1">브랜드 · 사진 스캐너</h1>
   </div>
   <div class="miu-header-actions">
-    <div class="status" id="connectionStatus" style="padding:5px 9px;border-radius:999px;font-size:10px;font-weight:600">연결 중</div>
+    <div class="status" id="connectionStatus" style="padding:5px 9px;border-radius:999px;font-size:12px;font-weight:600">연결 중</div>
   </div>
 </header>
 <main class="app">
@@ -133,22 +136,22 @@ button{touch-action:manipulation}
 
   <section class="hanger-strip" aria-label="현재 행거 진행 상황">
     <div class="hanger-nav-group">
-      <button class="hanger-nav" id="prevHangerBtn" type="button" aria-label="이전 행거" disabled>‹</button>
+      <button class="hanger-nav" id="prevHangerBtn" type="button" aria-label="이전 행거" disabled><i class="ph-bold ph-caret-left"></i></button>
       <div class="hanger-badge" id="hangerBadge">행거 준비 중</div>
-      <button class="hanger-nav" id="nextHangerBtn" type="button" aria-label="다음 행거" disabled>›</button>
+      <button class="hanger-nav" id="nextHangerBtn" type="button" aria-label="다음 행거" disabled><i class="ph-bold ph-caret-right"></i></button>
     </div>
     <div class="hanger-progress">현재 <strong><span id="currentHangerCount">0</span>건</strong> · 누적 <strong><span id="cumulativeCount">0</span>건</strong></div>
   </section>
 
   <div class="viewing-banner" id="viewingBanner">
     <span id="viewingBannerText">지난 행거를 보고 있습니다.</span>
-    <button class="viewing-return-btn" id="returnToActiveBtn" type="button">현재 행거로 →</button>
+    <button class="viewing-return-btn" id="returnToActiveBtn" type="button">현재 행거로 <i class="ph-bold ph-arrow-right"></i></button>
   </div>
 
   <section class="stats" aria-label="행거 작업 통계">
-    <div class="stat"><div class="stat-label">TOTAL</div><div class="stat-value" id="totalCount">0</div></div>
-    <div class="stat"><div class="stat-label">NEED</div><div class="stat-value" id="needCount">0</div></div>
-    <div class="stat"><div class="stat-label">DONE</div><div class="stat-value" id="doneCount">0</div></div>
+    <div class="stat"><div class="stat-label">전체</div><div class="stat-value" id="totalCount">0</div></div>
+    <div class="stat"><div class="stat-label">필요</div><div class="stat-value" id="needCount">0</div></div>
+    <div class="stat"><div class="stat-label">완료</div><div class="stat-value" id="doneCount">0</div></div>
   </section>
 
   <section class="scan-card">
@@ -158,18 +161,17 @@ button{touch-action:manipulation}
   </section>
 
   <section class="hanger-actions" aria-label="행거 작업 제어">
-    <button class="hanger-action" id="deleteScanBtn" type="button" disabled>↶ 삭제</button>
-    <button class="hanger-action reset" id="resetHangerBtn" type="button" disabled>현재 행거 초기화</button>
-    <button class="hanger-action complete" id="completeHangerBtn" type="button" disabled>행거 완료 →</button>
+    <button class="hanger-action" id="deleteScanBtn" type="button" disabled><i class="ph-bold ph-arrow-u-up-left"></i> 삭제</button>
+    <button class="hanger-action complete" id="completeHangerBtn" type="button" disabled>행거 완료 <i class="ph-bold ph-arrow-right"></i></button>
   </section>
   <div class="hanger-message" id="hangerMessage" aria-live="polite"></div>
 
   <section class="bulk-photo-trigger" id="bulkPhotoSection" aria-label="일괄 사진촬영">
-    <button class="bulk-photo-btn" id="bulkPhotoBtn" type="button" disabled>📷 일괄 사진촬영 (<span id="bulkPhotoNeedCount">0</span>건)</button>
+    <button class="bulk-photo-btn" id="bulkPhotoBtn" type="button" disabled><i class="ph-bold ph-camera"></i> 일괄 사진촬영 (<span id="bulkPhotoNeedCount">0</span>건)</button>
   </section>
 
   <section class="bulk-photo-trigger" id="bulkBrandSection" aria-label="일괄 브랜드입력">
-    <button class="bulk-photo-btn" id="bulkBrandBtn" type="button" disabled>🏷️ 일괄 브랜드입력 (<span id="bulkBrandNeedCount">0</span>건)</button>
+    <button class="bulk-photo-btn" id="bulkBrandBtn" type="button" disabled><i class="ph-bold ph-tag"></i> 일괄 브랜드입력 (<span id="bulkBrandNeedCount">0</span>건)</button>
   </section>
 
   <section class="list">
@@ -182,13 +184,14 @@ button{touch-action:manipulation}
   </section>
   <div class="footer-note" id="footerNote">독립 테스트 서버 연결 · 운영 DB는 조회만 함</div>
   <section class="full-reset" aria-label="전체 작업 초기화">
+    <button class="full-reset-btn" id="resetHangerBtn" type="button" disabled>현재 행거 초기화</button>
     <button class="full-reset-btn" id="fullResetBtn" type="button" disabled>전체 초기화</button>
   </section>
 </main>
 
 <div class="modal-bg" id="captureModal" role="dialog" aria-modal="true" aria-labelledby="captureTitle">
   <div class="modal">
-    <div class="warn" aria-hidden="true">⚠️</div>
+    <div class="warn" aria-hidden="true"><i class="ph-bold ph-warning"></i></div>
     <h2 id="captureTitle">입력이 필요합니다</h2>
     <p id="captureDesc">-</p>
     <div class="target-code" id="modalBarcode">-</div>
@@ -203,7 +206,7 @@ button{touch-action:manipulation}
     <div class="capture-section" id="photoSection">
       <label class="section-label">사진</label>
       <div id="beforePhoto">
-        <button class="btn btn-secondary" id="cameraBtn" type="button">📷 사진 촬영</button>
+        <button class="btn btn-secondary" id="cameraBtn" type="button"><i class="ph-bold ph-camera"></i> 사진 촬영</button>
       </div>
       <input id="cameraInput" class="camera-input" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment">
       <div class="preview" id="previewBox">
@@ -224,7 +227,7 @@ button{touch-action:manipulation}
 
 <div class="modal-bg" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
   <div class="modal confirm-modal">
-    <div class="confirm-icon" aria-hidden="true">↪</div>
+    <div class="confirm-icon" aria-hidden="true"><i class="ph-bold ph-arrow-u-up-right"></i></div>
     <h2 id="confirmTitle">확인</h2>
     <p id="confirmMessage"></p>
     <div class="confirm-actions">
@@ -243,14 +246,14 @@ button{touch-action:manipulation}
 
     <div class="capture-section">
       <label class="btn btn-secondary" id="bulkCaptureLabel" style="display:block;text-align:center">
-        <span id="bulkCaptureLabelText">📷 촬영</span>
+        <span id="bulkCaptureLabelText"><i class="ph-bold ph-camera"></i> 촬영</span>
         <input id="bulkCameraInput" class="camera-input" type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" capture="environment">
       </label>
     </div>
 
     <div class="save-status" id="bulkStatus" aria-live="polite"></div>
     <div class="actions">
-      <button class="btn btn-secondary" id="bulkSkipBtn" type="button">건너뜀 →</button>
+      <button class="btn btn-secondary" id="bulkSkipBtn" type="button">건너뜀 <i class="ph-bold ph-arrow-right"></i></button>
       <button class="btn btn-secondary" id="bulkCloseBtn" type="button">닫기</button>
     </div>
   </div>
@@ -270,8 +273,8 @@ button{touch-action:manipulation}
 
     <div class="save-status" id="bulkBrandStatus" aria-live="polite"></div>
     <div class="actions">
-      <button class="btn btn-primary" id="bulkBrandSaveBtn" type="button" disabled>저장하고 다음 →</button>
-      <button class="btn btn-secondary" id="bulkBrandSkipBtn" type="button">건너뜀 →</button>
+      <button class="btn btn-primary" id="bulkBrandSaveBtn" type="button" disabled>저장하고 다음 <i class="ph-bold ph-arrow-right"></i></button>
+      <button class="btn btn-secondary" id="bulkBrandSkipBtn" type="button">건너뜀 <i class="ph-bold ph-arrow-right"></i></button>
       <button class="btn btn-secondary" id="bulkBrandCloseBtn" type="button">닫기</button>
     </div>
   </div>
@@ -549,8 +552,8 @@ async function loadAppState(){
     await loadHangerState();
     hangerReady = true;
     scanInput.disabled = false;
-    scanInput.placeholder = 'SCAN BARCODE';
-    connectionStatus.textContent = 'ONLINE';
+    scanInput.placeholder = '바코드 스캔';
+    connectionStatus.textContent = '연결됨';
     connectionStatus.className = 'status online';
     $('scanHint').innerHTML = '스캔 시 운영 재고와 실시간 대조해 브랜드·사진 필요 여부를 판정합니다.';
     $('footerNote').textContent = '테스트 Supabase(기록) + 운영 Supabase(조회) 연결됨 · 운영 DB에는 쓰지 않음';
@@ -559,7 +562,7 @@ async function loadAppState(){
   }catch(error){
     console.error('Failed to load hanger state', error);
     activeHanger = null;
-    connectionStatus.textContent = 'ERROR';
+    connectionStatus.textContent = '오류';
     connectionStatus.className = 'status error';
     connectionErrorText.textContent = '행거 진행 상태를 불러오지 못했습니다. 네트워크를 확인한 뒤 다시 연결해주세요.';
     connectionError.classList.add('show');
@@ -1340,7 +1343,7 @@ function setBulkBusy(busy){
   bulkCameraInput.disabled = busy;
   bulkCaptureLabel.style.pointerEvents = busy ? 'none' : '';
   bulkCaptureLabel.style.opacity = busy ? '.55' : '';
-  bulkCaptureLabelText.textContent = busy ? '⏳ 저장 중…' : '📷 촬영';
+  bulkCaptureLabelText.innerHTML = busy ? '저장 중…' : '<i class="ph-bold ph-camera"></i> 촬영';
 }
 
 function setBulkStatus(message,isError){ bulkStatus.textContent=message;bulkStatus.className=`save-status${message?' show':''}${isError?' error':''}`; }
@@ -1440,7 +1443,7 @@ function setBulkBrandBusy(busy){
   bulkBrandCloseBtn.disabled = busy;
   bulkBrandInput.disabled = busy;
   bulkNoBrandBtn.disabled = busy;
-  bulkBrandSaveBtn.textContent = busy ? '저장 중…' : '저장하고 다음 →';
+  bulkBrandSaveBtn.innerHTML = busy ? '저장 중…' : '저장하고 다음 <i class="ph-bold ph-arrow-right"></i>';
   updateBulkBrandSaveState();
 }
 
@@ -1811,7 +1814,7 @@ function render(){
       const status = scanStatusLabel(item);
       const editable = isEditable(item);
       const brandHtml = item.brand ? `<div class="row-brand">${escapeHtml(item.brand)}</div>` : '';
-      const deleteHtml = browsing ? '' : `<button class="row-delete" type="button" data-delete-id="${item.id}" aria-label="스캔 삭제">✕</button>`;
+      const deleteHtml = browsing ? '' : `<button class="row-delete" type="button" data-delete-id="${item.id}" aria-label="스캔 삭제"><i class="ph-bold ph-x"></i></button>`;
       return `<div class="row${editable?' resumable':''}"${editable?` data-log-id="${item.id}"`:''}><div><div class="code">${escapeHtml(item.barcode)}</div>${brandHtml}<div class="time">${item.time}</div></div><div class="tag ${status.cls}">${status.label}</div>${deleteHtml}</div>`;
     }).join('');
   }

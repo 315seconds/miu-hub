@@ -55,5 +55,12 @@
     return '"' + s.replace(/"/g, '""') + '"';
   };
 
-  window.ST = { esc, fmt, KIND, RES, rpc, whoami, activeSession, md, kstTime, kstDateTime, csvCell };
+  // 전체 화면 실패 표시: .miu-state.compact(아이콘+제목+설명+주 버튼). retry가 없으면 새로고침한다. 원문 예외는 설명 줄에 작게.
+  const errBox = (e, retry) => {
+    const id = 'st-retry-' + Math.random().toString(36).slice(2, 8);
+    setTimeout(() => { const b = document.getElementById(id); if (b) b.onclick = retry || (() => location.reload()); }, 0);
+    return `<div class="miu-state compact" role="alert"><i class="ph-bold ph-warning-circle miu-state-icon"></i><div class="miu-state-title">불러오지 못했어요</div><div class="miu-state-desc" style="font-size:13px;word-break:break-all">${esc((e && e.message) || '잠시 뒤 다시 시도해 주세요.')}</div><button type="button" id="${id}" class="miu-btn miu-btn-primary"><i class="ph-bold ph-arrow-clockwise"></i> 다시 시도</button></div>`;
+  };
+
+  window.ST = { errBox, esc, fmt, KIND, RES, rpc, whoami, activeSession, md, kstTime, kstDateTime, csvCell };
 })();

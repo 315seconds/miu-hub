@@ -2,12 +2,12 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>사입 통계 — 마켓인유</title>
 <meta name="theme-color" content="#faf9f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151148">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
 body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
@@ -15,27 +15,22 @@ body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(-
 .card { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 16px; margin-top: 14px; }
 .card h2 { font-size: 12px; font-weight: 700; color: var(--miu-muted); letter-spacing: .3px; margin-bottom: 10px; }
 .ctl { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.ctl input[type=date], .fld input, .fld select, .fld textarea { height: 42px; padding: 0 10px; font: inherit; font-size: 15px; color: var(--miu-ink); background: var(--miu-canvas); border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); min-width: 0; }
-.toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--miu-body); }
-.toggle input { width: 17px; height: 17px; accent-color: var(--miu-primary); }
-.btn { padding: 10px 16px; border: none; border-radius: var(--miu-r-pill); background: var(--miu-primary); color: #fff; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-.btn:disabled { opacity: .6; }
-.btn.ghost { background: var(--miu-canvas); color: var(--miu-body); border: 1px solid var(--miu-hairline); }
-.tabs { display: flex; gap: 4px; margin-top: 14px; padding: 3px; background: var(--miu-surface-card); border-radius: var(--miu-r-pill); }
-.tabs button { flex: 1; padding: 9px 4px; border: none; border-radius: var(--miu-r-pill); background: transparent; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--miu-muted); cursor: pointer; }
-.tabs button.on { background: var(--miu-canvas); color: var(--miu-ink); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.ctl input[type=date], .fld input, .fld select, .fld textarea { height: 44px; padding: 0 10px; font: inherit; font-size: 16px; color: var(--miu-ink); background: var(--miu-canvas); border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); min-width: 0; }
+.toggle { display: inline-flex; align-items: center; gap: 8px; min-height: var(--miu-tap); font-size: 14px; color: var(--miu-body); cursor: pointer; }
+.toggle input { width: 22px; height: 22px; accent-color: var(--miu-primary); }
+.miu-tabs { margin-top: 14px; }
+.miu-tabs .miu-tab { flex: 1 0 auto; }
 .status { margin-top: 12px; font-size: 13.5px; line-height: 1.6; color: var(--miu-body); }
 .status.err { color: var(--miu-error); }
-.note { margin-top: 12px; padding: 11px 14px; border-radius: var(--miu-r-md); font-size: 13px; line-height: 1.55; background: color-mix(in srgb, var(--miu-warning) 16%, transparent); color: #6b5210; }
 .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
 .stat { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 14px 14px 12px; }
-.stat .l { font-size: 11.5px; color: var(--miu-muted); font-weight: 600; }
-.stat .v { font-family: var(--miu-serif); font-size: 22px; font-weight: 500; letter-spacing: -.5px; margin-top: 3px; }
-.stat .d { font-size: 12px; margin-top: 2px; color: var(--miu-muted); min-height: 16px; }
+.stat .l { font-size: 13px; color: var(--miu-muted); font-weight: 600; }
+.stat .v { font-family: var(--miu-sans); font-size: 22px; font-weight: 700; letter-spacing: -.5px; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.stat .d { font-size: 13px; margin-top: 2px; color: var(--miu-muted); min-height: 16px; }
 .sec { margin-top: 26px; }
 .sec-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 8px; }
 .sec-head .t { font-family: var(--miu-serif); font-size: 19px; font-weight: 500; letter-spacing: -.4px; }
-.sec-head .s { font-size: 12.5px; color: var(--miu-muted); }
+.sec-head .s { font-size: 13px; color: var(--miu-muted); }
 .list { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); overflow: hidden; }
 .item { border-bottom: 1px solid var(--miu-hairline-soft); }
 .item:last-child { border-bottom: none; }
@@ -46,29 +41,35 @@ body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(-
 .l2 { display: flex; justify-content: space-between; gap: 8px; margin-top: 5px; font-size: 13px; color: var(--miu-body); }
 .l2 .r { text-align: right; white-space: nowrap; }
 .l2 b { color: var(--miu-ink); font-weight: 600; }
-.badge { display: inline-block; margin-left: 5px; padding: 1px 7px; border-radius: var(--miu-r-pill); font-size: 11px; font-weight: 600; background: var(--miu-canvas); color: var(--miu-muted); border: 1px solid var(--miu-hairline); vertical-align: 1px; }
-.badge.warn { color: #8a6410; border-color: #e0c37a; background: color-mix(in srgb, var(--miu-warning) 16%, transparent); }
+.badge { display: inline-block; margin-left: 5px; padding: 1px 7px; border-radius: var(--miu-r-pill); font-size: 12px; font-weight: 600; background: var(--miu-canvas); color: var(--miu-muted); border: 1px solid var(--miu-hairline); vertical-align: 1px; }
+.badge.warn { color: var(--miu-warning-text); border-color: color-mix(in srgb, var(--miu-warning) 55%, transparent); background: color-mix(in srgb, var(--miu-warning) 16%, transparent); }
 .detail { display: none; padding: 2px 14px 14px; }
 .item.open .detail { display: block; }
 .kv { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
-.kv div { font-size: 12px; color: var(--miu-muted); }
+.kv div { font-size: 13px; color: var(--miu-muted); }
 .kv b { display: block; margin-top: 1px; font-size: 14px; font-weight: 600; color: var(--miu-ink); }
-.mx-wrap { overflow-x: auto; margin-top: 12px; border-radius: var(--miu-r-lg); background: var(--miu-surface-card); -webkit-overflow-scrolling: touch; }
-table.mx { border-collapse: collapse; font-size: 12.5px; min-width: 100%; }
+/* 가로로 넘치는 표: 가장자리 그림자(스크롤 힌트). 끝까지 밀면 그 쪽 그림자가 사라진다 */
+.mx-wrap { overflow-x: auto; margin-top: 12px; border-radius: var(--miu-r-lg); background:
+  linear-gradient(to right, var(--miu-surface-card) 30%, transparent) left center / 40px 100% no-repeat local,
+  linear-gradient(to left, var(--miu-surface-card) 30%, transparent) right center / 40px 100% no-repeat local,
+  linear-gradient(to right, rgba(20,20,19,.16), transparent) left center / 14px 100% no-repeat scroll,
+  linear-gradient(to left, rgba(20,20,19,.16), transparent) right center / 14px 100% no-repeat scroll,
+  var(--miu-surface-card); -webkit-overflow-scrolling: touch; }
+table.mx { border-collapse: collapse; font-size: 13px; min-width: 100%; font-variant-numeric: tabular-nums; }
 .mx th, .mx td { padding: 8px 9px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--miu-hairline-soft); }
-.mx th { font-weight: 700; color: var(--miu-body-strong); background: var(--miu-surface-card); }
+.mx th { font-weight: 700; color: var(--miu-body-strong); }
 .mx th:first-child, .mx td:first-child { text-align: left; position: sticky; left: 0; background: var(--miu-surface-card); font-weight: 600; }
 .mx tr.tot td { font-weight: 700; border-top: 1px solid var(--miu-hairline); }
 .fld { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
-.fld label { font-size: 12px; color: var(--miu-muted); font-weight: 600; }
+.fld label { font-size: 13px; color: var(--miu-muted); font-weight: 600; }
 .fld textarea { height: 64px; padding: 8px 10px; }
-.msel { padding: 0 10px; font: inherit; font-size: 14px; border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); background: var(--miu-canvas); color: var(--miu-ink); }
+.msel { height: 44px; padding: 0 10px; font: inherit; font-size: 16px; border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); background: var(--miu-canvas); color: var(--miu-ink); }
 .fld .row { display: flex; gap: 8px; align-items: center; }
 .fld .row > * { flex: 1; }
 .form-actions { display: flex; gap: 8px; margin-top: 14px; }
-.empty { text-align: center; padding: 96px 32px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
-.hint { margin-top: 20px; font-size: 12.5px; color: var(--miu-muted); line-height: 1.7; }
-.up { color: #2e6b3a; } .down { color: #b3412f; }
+.empty { text-align: center; padding: 40px 24px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
+.hint { margin-top: 20px; font-size: 13px; color: var(--miu-muted); line-height: 1.7; }
+.up { color: var(--miu-success-text); } .down { color: var(--miu-error-text); }
 details.help { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); margin-top: 14px; }
 details.help > summary { list-style: none; cursor: pointer; padding: 15px 16px; font-size: 15px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
 details.help > summary::-webkit-details-marker { display: none; }
@@ -79,15 +80,13 @@ details.help[open] > summary::after { content: '−'; }
 .sub { margin: 14px 0 8px; font-family: var(--miu-serif); font-size: 15px; color: var(--miu-muted); }
 .chips { display: flex; gap: 8px; margin-top: 14px; overflow-x: auto; padding-bottom: 2px; -webkit-overflow-scrolling: touch; }
 .chips::-webkit-scrollbar { display: none; }
-.chip { padding: 8px 14px; border-radius: var(--miu-r-pill); border: 1px solid var(--miu-hairline); background: var(--miu-canvas); font: inherit; font-size: 13.5px; font-weight: 600; color: var(--miu-body); cursor: pointer; white-space: nowrap; }
-.chip.on { background: var(--miu-primary); border-color: var(--miu-primary); color: #fff; }
 .bar { height: 6px; margin-top: 8px; border-radius: 3px; background: var(--miu-canvas); overflow: hidden; }
 .bar i { display: block; height: 100%; background: var(--miu-primary); opacity: .85; border-radius: 3px; }
 </style>
-<script src="/miu-hub/shared/config.js?v=202611151148"></script>
+<script src="/miu-hub/shared/config.js?v=202611151334"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 </head>
 <body>
@@ -102,7 +101,7 @@ details.help[open] > summary::after { content: '−'; }
   </div>
 </header>
 
-<div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
+<div class="wrap" id="root"><div class="miu-loading"><span class="miu-spinner"></span>불러오는 중…</div></div>
 
 <script>
 // 조회는 로그인 직원 누구나. 차시 만들기 · 원가 입력/수정 · 스냅샷 저장은 김민지 · 황태훈만(화면은 버튼을 숨길 뿐이고, 서버 RLS · RPC가 같은 두 사람의 id만 허용한다).
@@ -196,7 +195,7 @@ async function rpc(name, args) {
 }
 
 async function load() {
-  $('status').className = 'status'; $('status').textContent = '불러오는 중…';
+  $('status').className = 'status'; $('status').innerHTML = '<div class="miu-loading" style="padding:12px"><span class="miu-spinner"></span>불러오는 중…</div>';
   try {
     const [stats, rec] = await Promise.all([rpc('purchase_batch_stats', { p_as_of: S.asOf }), rpc('purchase_batch_recovery', {})]);
     S.stats = stats.map(normStat);
@@ -206,8 +205,8 @@ async function load() {
     renderView();
     for (const b of S.stats) if (S.open.has(b.src + '|' + b.round)) loadCats(b.id);   // 펼쳐 둔 회차의 카테고리는 기준일이 바뀌면 다시 받는다
   } catch (e) {
-    $('status').className = 'status err';
-    $('status').textContent = '불러오지 못했어요: ' + (e.message || e);
+    $('status').className = 'status';
+    showErr('불러오지 못했어요: ' + (e.message || e), 'load()');
   }
 }
 
@@ -236,7 +235,7 @@ function renderSum() {
     ${rows.map((r) => `<tr><td>${esc(r.name)}${r.a.noCost ? '<span class="badge warn">원가 미입력</span>' : ''}</td>${SUM_COLS.map((c) => `<td>${c[1](r.a)}</td>`).join('')}</tr>`).join('')}
     <tr class="tot"><td>합계</td>${SUM_COLS.map((c) => `<td>${c[1](total)}</td>`).join('')}</tr>
     </tbody></table></div></div>`;
-  if (!S.incDisposed) h += `<div class="note">폐기된 물건은 입고수량·프라이싱 합에서 빠져 있어요(원가는 입고 원가에 그대로). 엑셀과 맞춰 보려면 위에서 “폐기 포함”을 켜세요.</div>`;
+  if (!S.incDisposed) h += `<div class="miu-alert warn" style="margin-top:12px"><i class="ph-bold ph-info"></i><div>폐기된 물건은 입고수량·프라이싱 합에서 빠져 있어요(원가는 입고 원가에 그대로). 엑셀과 맞춰 보려면 위에서 “폐기 포함”을 켜세요.</div></div>`;
   return h + helpHtml();
 }
 
@@ -298,9 +297,9 @@ function batchDetail(b) {
       <div class="fld"><label>입고일 (시작 ~ 끝) · 이 차시의 의류·잡화 모두에 적용</label><div class="row"><input type="date" id="ed-from" value="${ed.from || ''}"><input type="date" id="ed-to" value="${ed.to || ''}"></div></div>
       <div class="fld"><label><span class="toggle"><input type="checkbox" id="ed-vat" ${ed.vat ? 'checked' : ''}> 사입 총액에 부가세 포함</span></label></div>
       <div class="fld"><label><span class="toggle"><input type="checkbox" id="ed-closed" ${ed.status === 'closed' ? 'checked' : ''}> 종료(입고 화면 선택 목록에서 제외)</span></label></div>
-      <div class="form-actions"><button class="btn" data-save="${b.id}">저장</button><button class="btn ghost" data-cancel="1">취소</button></div>`;
+      <div class="form-actions"><button class="miu-btn miu-btn-primary" data-save="${b.id}">저장</button><button class="miu-btn miu-btn-secondary" data-cancel="1">취소</button></div>`;
   } else if (canEdit()) {
-    h += `<div class="form-actions"><button class="btn ghost" data-edit="${b.id}">${esc(b.kind)} 원가·정보 수정</button></div>`;
+    h += `<div class="form-actions"><button class="miu-btn miu-btn-secondary" data-edit="${b.id}">${esc(b.kind)} 원가·정보 수정</button></div>`;
   }
   return h;
 }
@@ -320,7 +319,7 @@ const boxHtml = (id) => catHtml(S.cats.get(id)) + mixHtml(S.mix.get(id));
 
 // 카테고리 표. 도착해도 화면 전체를 다시 그리지 않고 이 칸만 바꾼다(입력 중인 수정 폼이 사라지지 않게).
 function catHtml(cats) {
-  if (!cats) return '<div class="status">카테고리 불러오는 중…</div>';
+  if (!cats) return '<div class="miu-loading" style="padding:16px"><span class="miu-spinner"></span>카테고리 불러오는 중…</div>';
   if (!cats.length) return '';
   const inn = (c) => (S.incDisposed ? c.qty_in + c.qty_disposed : c.qty_in);
   const t = { in: sum(cats, inn), sold: sum(cats, (c) => c.sold_qty), sales: sum(cats, (c) => Number(c.sales_amount)) };
@@ -342,7 +341,7 @@ async function loadCats(id) {
 }
 
 function renderBatch() {
-  let h = canEdit() ? `<div class="form-actions" style="margin-top:14px"><button class="btn" data-newbatch="1">＋ 새 차시</button></div>` : '';
+  let h = canEdit() ? `<div class="form-actions" style="margin-top:14px"><button class="miu-btn miu-btn-primary" data-newbatch="1"><i class="ph-bold ph-plus"></i> 새 차시</button></div>` : '';
   if (S.form && canEdit()) h += newBatchForm();
   for (const [src, list] of bySource()) {
     const a = agg(list), rs = roundsOf(list);
@@ -377,13 +376,13 @@ function newBatchForm() {
     <div class="fld"><label>잡화 사입 총액(원, 잡화가 없으면 비워 두세요)</label><input type="number" inputmode="numeric" id="nb-cost2" value="${f.cost2}"></div>
     <div class="fld"><label><span class="toggle"><input type="checkbox" id="nb-vat" ${f.vat ? 'checked' : ''}> 사입 총액에 부가세 포함${src && src.vat_included === false ? ' (이 출처는 간이사업자)' : ''}</span></label></div>
     <div class="hint" style="margin-top:8px">의류와 잡화는 입고할 때 물건 카테고리로 자동으로 나뉘어요(봉투·위탁 제외). 에코옥션·야후옥션처럼 여러 출처가 한 차시로 합쳐 들어오면 대표 출처(예: 에코옥션)로 만드세요. 물건별 출처는 입고할 때 고른 출처로 차시 안에서 따로 집계돼요.</div>
-    <div class="form-actions"><button class="btn" data-createbatch="1">만들기</button><button class="btn ghost" data-cancelform="1">취소</button></div></div>`;
+    <div class="form-actions"><button class="miu-btn miu-btn-primary" data-createbatch="1">만들기</button><button class="miu-btn miu-btn-secondary" data-cancelform="1">취소</button></div></div>`;
 }
 
 // ── 화면: 출처 ──────────────────────────────────────────────
 function lineChart(pts, fmt) {
   if (pts.length < 2) return '<div class="status">스냅샷이 2개 이상 쌓이면 추이가 그려져요.</div>';
-  const W = 640, H = 150, P = 28;
+  const W = 640, H = 170, P = 34;
   const xs = pts.map((p) => new Date(p.x + 'T00:00:00Z').getTime()), ys = pts.map((p) => p.y);
   const x0 = Math.min(...xs), x1 = Math.max(...xs), lo = Math.min(...ys), hi = Math.max(...ys), span = hi - lo || 1;
   const X = (t) => P + ((t - x0) / (x1 - x0 || 1)) * (W - 2 * P), Y = (v) => H - P - ((v - lo) / span) * (H - 2 * P);
@@ -392,8 +391,8 @@ function lineChart(pts, fmt) {
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="추이">
     <path d="${path}" fill="none" stroke="var(--miu-primary)" stroke-width="2.5" stroke-linejoin="round"/>
     <circle cx="${X(xs[xs.length - 1]).toFixed(1)}" cy="${Y(last.y).toFixed(1)}" r="4" fill="var(--miu-primary)"/>
-    <text x="${P}" y="14" font-size="11" fill="var(--miu-muted)">${fmt(hi)}</text>
-    <text x="${P}" y="${H - 8}" font-size="11" fill="var(--miu-muted)">${fmt(lo)} · ${md(pts[0].x)} ~ ${md(last.x)}</text>
+    <text x="${P}" y="24" font-size="22" fill="var(--miu-muted)">${fmt(hi)}</text>
+    <text x="${P}" y="${H - 8}" font-size="22" fill="var(--miu-muted)">${fmt(lo)} · ${md(pts[0].x)} ~ ${md(last.x)}</text>
   </svg>`;
 }
 
@@ -405,12 +404,12 @@ function renderSrc() {
   if (!codes.includes(S.srcSel)) S.srcSel = codes[0];
   const sel = S.stats.filter((b) => b.src === S.srcSel);
   const a = agg(sel), rs = roundsOf(sel);
-  let h = `<div class="chips">${codes.map((c) => `<button class="chip${c === S.srcSel ? ' on' : ''}" data-src="${esc(c)}">${esc(srcName(c))}</button>`).join('')}</div>`;
+  let h = `<div class="chips">${codes.map((c) => `<button class="miu-chip-btn${c === S.srcSel ? ' on' : ''}" data-src="${esc(c)}">${esc(srcName(c))}</button>`).join('')}</div>`;
   h += statCards(a, rs.length);
   const snaps = (S.snaps || []).filter((s) => s.source_code === S.srcSel).sort((x, y) => x.as_of.localeCompare(y.as_of));
   const roi = snaps.filter((s) => s.cost_in > 0).map((s) => ({ x: s.as_of, y: s.sales / s.cost_in }));
   h += `<div class="sec"><div class="sec-head"><span class="t">회수율 추이</span><span class="s">주간 보고 스냅샷 기준</span></div>
-    <div class="card" style="margin-top:0">${S.snaps ? lineChart(roi, rx) : '<div class="status">불러오는 중…</div>'}</div></div>`;
+    <div class="card" style="margin-top:0">${S.snaps ? lineChart(roi, rx) : '<div class="miu-loading"><span class="miu-spinner"></span>불러오는 중…</div>'}</div></div>`;
   const maxRoi = Math.max(1, ...rs.map((r) => agg(r.batches).roi || 0));
   h += `<div class="sec"><div class="sec-head"><span class="t">차시별</span><span class="s">${rs.length}개 · 최근 입고 순</span></div><div class="list">
     ${rs.map((r) => {
@@ -442,21 +441,21 @@ async function loadSnaps() {
   snapLoading = true;
   const { data, error } = await window.sb.from('purchase_snapshots').select('*').order('as_of', { ascending: false }).range(0, 999);
   snapLoading = false;
-  if (error) { S.snaps = []; $('status').className = 'status err'; $('status').textContent = '스냅샷을 불러오지 못했어요: ' + error.message; }
+  if (error) { S.snaps = []; showErr('스냅샷을 불러오지 못했어요: ' + error.message, 'S.snaps=null;renderView()'); }
   else S.snaps = data;
   renderView();
 }
 
 function renderReport() {
-  if (!S.snaps) { loadSnaps(); return '<div class="status">불러오는 중…</div>'; }
+  if (!S.snaps) { loadSnaps(); return '<div class="miu-loading"><span class="miu-spinner"></span>불러오는 중…</div>'; }
   const srcs = SRC_ORDER.filter((c) => S.snaps.some((s) => s.source_code === c));
   const dates = [...new Set(S.snaps.map((s) => s.as_of))].sort().reverse();
   const key = new Map(S.snaps.map((s) => [s.as_of + '|' + s.source_code, s]));
   const [, get, fmt] = SNAP_METRICS[snapMetric];
   const today = kstDate();
   let h = `<div class="card"><h2>주간 보고 스냅샷</h2>
-    <div class="ctl"><select id="snap-metric" class="msel" style="height:40px">${Object.entries(SNAP_METRICS).map(([k, v]) => `<option value="${k}"${k === snapMetric ? ' selected' : ''}>${v[0]}</option>`).join('')}</select>
-    ${canEdit() ? `<button class="btn" data-snapsave="1">오늘(${md(today)}) 스냅샷 저장</button>` : ''}<button class="btn ghost" data-export="1">엑셀 내보내기</button></div>
+    <div class="ctl"><select id="snap-metric" class="msel">${Object.entries(SNAP_METRICS).map(([k, v]) => `<option value="${k}"${k === snapMetric ? ' selected' : ''}>${v[0]}</option>`).join('')}</select>
+    ${canEdit() ? `<button class="miu-btn miu-btn-primary" data-snapsave="1">오늘(${md(today)}) 스냅샷 저장</button>` : ''}<button class="miu-btn miu-btn-secondary" data-export="1">엑셀 내보내기</button></div>
     <div class="hint" style="margin-top:10px">월요일 아침 보고용: 보고일 라벨로 저장하고 집계는 전날(일요일)까지의 판매예요. 매주 월요일 자동 저장은 서버 작업으로 따로 연결돼요.</div></div>`;
   if (!dates.length) return h + '<div class="empty">저장된 스냅샷이 없어요.</div>';
   h += `<div class="mx-wrap"><table class="mx"><thead><tr><th>보고일</th>${srcs.map((c) => `<th>${esc(srcName(c))}</th>`).join('')}</tr></thead><tbody>
@@ -467,18 +466,18 @@ function renderReport() {
 
 // ── 화면: 점검 ──────────────────────────────────────────────
 async function loadChecks() {
-  try { S.checks = await rpc('purchase_data_checks', {}); } catch (e) { S.checks = []; $('status').className = 'status err'; $('status').textContent = '점검 결과를 불러오지 못했어요: ' + (e.message || e); }
+  try { S.checks = await rpc('purchase_data_checks', {}); } catch (e) { S.checks = []; showErr('점검 결과를 불러오지 못했어요: ' + (e.message || e), 'S.checks=null;renderView()'); }
   renderView();
 }
 function renderCheck() {
-  if (!S.checks) { loadChecks(); return '<div class="status">불러오는 중…</div>'; }
+  if (!S.checks) { loadChecks(); return '<div class="miu-loading"><span class="miu-spinner"></span>불러오는 중…</div>'; }
   const g = (k) => S.checks.filter((c) => c.kind === k);
   const block = (title, sub, rows, line) => `<div class="sec"><div class="sec-head"><span class="t">${title}</span><span class="s">${rows.length}건${rows.length >= 300 ? '+' : ''} · ${sub}</span></div>
     ${rows.length ? `<div class="list">${rows.map((r) => `<div class="item"><div class="item-head" style="cursor:default">${line(r)}</div></div>`).join('')}</div>` : '<div class="status">없음</div>'}</div>`;
   const nc = (r) => { const b = S.stats.find((x) => x.code === r.detail); return b ? `${esc(srcName(b.src))} ${esc(roundLabel(b.round))}${b.kind === '잡화' ? ' 잡화' : ''}` : esc(r.detail); };
   return block('원가 미입력 차시', '원가를 넣어야 회수율이 계산돼요', g('no_cost'), (r) => `<b>${nc(r)}</b>`)
     + block('차시 미배정 사입 물건', '사입 출처인데 어느 차시에도 없는 물건', g('unassigned'), (r) => `<div class="l1"><span class="n">${esc(r.barcode)}</span></div><div class="l2"><span>${esc(r.detail)}</span></div>`)
-    + block('재고에 없는 바코드의 판매', '바코드 오입력 의심(2026-05 이후, 사입 접두어만). 정정 전까지 통계에서 빠져요', g('orphan_sale'), (r) => `<div class="l1"><span class="n">${esc(r.barcode)}</span><a href="/miu-hub/correction/?barcode=${encodeURIComponent(r.barcode)}" style="font-size:13px;font-weight:600;color:var(--miu-primary)">정정하기</a></div><div class="l2"><span>${esc(r.detail)}</span></div>`);
+    + block('재고에 없는 바코드의 판매', '바코드 오입력 의심(2026-05 이후, 사입 접두어만). 정정 전까지 통계에서 빠져요', g('orphan_sale'), (r) => `<div class="l1"><span class="n">${esc(r.barcode)}</span><a href="/miu-hub/correction/?barcode=${encodeURIComponent(r.barcode)}" style="display:inline-flex;align-items:center;min-height:var(--miu-tap);font-size:14px;font-weight:600;color:var(--miu-primary)">정정하기</a></div><div class="l2"><span>${esc(r.detail)}</span></div>`);
 }
 
 // ── 엑셀 ────────────────────────────────────────────────────
@@ -525,7 +524,11 @@ async function exportXlsx() {
 }
 
 // ── 쓰기 ────────────────────────────────────────────────────
-const err = (e) => { $('status').className = 'status err'; $('status').textContent = '실패: ' + (e.message || e); };
+const showErr = (msg, retry) => {
+  $('status').className = 'status';
+  $('status').innerHTML = `<div class="miu-alert" role="alert"><i class="ph-bold ph-warning-circle"></i><div>${esc(msg)}${retry ? `<div style="margin-top:8px"><button class="miu-btn miu-btn-sm miu-btn-secondary" onclick="${retry}">다시 시도</button></div>` : ''}</div></div>`;
+};
+const err = (e) => showErr('실패: ' + (e.message || e));
 
 // 입고일·부가세·종료는 같은 회차의 의류·잡화 차시 모두에, 사입 총액은 이 차시에만 적용한다.
 async function saveBatch(id) {
@@ -570,9 +573,9 @@ function renderView() {
 
 function mount() {
   root.innerHTML = `<div class="card"><h2>기준</h2>
-    <div class="ctl"><input type="date" id="asof" value="${S.asOf}"><label class="toggle"><input type="checkbox" id="incdisp"> 폐기 포함</label><button class="btn" id="go">조회</button></div>
+    <div class="ctl"><input type="date" id="asof" value="${S.asOf}"><label class="toggle"><input type="checkbox" id="incdisp"> 폐기 포함</label><button class="miu-btn miu-btn-primary" id="go">조회</button></div>
     <div class="status" id="status"></div></div>
-    <div class="tabs" id="tabs">${TABS.map(([k, l]) => `<button data-tab="${k}"${k === S.tab ? ' class="on"' : ''}>${l}</button>`).join('')}</div>
+    <div class="miu-tabs" id="tabs">${TABS.map(([k, l]) => `<button class="miu-tab${k === S.tab ? ' on' : ''}" data-tab="${k}">${l}</button>`).join('')}</div>
     <div id="view"></div>`;
   $('go').onclick = () => { S.asOf = $('asof').value; load(); };
   $('incdisp').onchange = (e) => { S.incDisposed = e.target.checked; renderView(); };
@@ -631,14 +634,14 @@ function mount() {
 (async function init() {
   for (let i = 0; i < 50 && window.MIU_PROFILE === undefined; i++) await new Promise((r) => setTimeout(r, 100));
   if (!window.MIU_PROFILE) {   // 프로필을 못 불러온 경우(로그인 직원이면 보통 있음)
-    root.innerHTML = '<div class="empty">불러오지 못했어요. 새로고침해 주세요.</div>';
+    root.innerHTML = '<div class="miu-state compact"><div class="miu-state-icon"><i class="ph-bold ph-warning-circle"></i></div><div class="miu-state-title">불러오지 못했어요</div><button class="miu-btn miu-btn-primary" onclick="location.reload()">다시 시도</button></div>';
     return;
   }
   try {
     const { data, error } = await window.sb.from('sources').select('id,name,code,vat_included').eq('is_purchase', true);
     if (error) throw error;
     S.sources = (data || []).sort((a, b) => srcOrd(a.code) - srcOrd(b.code));
-  } catch (e) { root.innerHTML = '<div class="empty">불러오지 못했어요.</div>'; return; }
+  } catch (e) { root.innerHTML = '<div class="miu-state compact"><div class="miu-state-icon"><i class="ph-bold ph-warning-circle"></i></div><div class="miu-state-title">불러오지 못했어요</div><button class="miu-btn miu-btn-primary" onclick="location.reload()">다시 시도</button></div>'; return; }
   S.asOf = addDays(kstDate(), -1);
   mount();
   load();

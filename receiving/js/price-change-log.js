@@ -26,7 +26,7 @@ document.querySelectorAll(".log-filter-btn").forEach(btn => {
       document.getElementById("date-from").value = today;
       document.getElementById("date-to").value = today;
       document.getElementById("log-list").innerHTML =
-        '<div class="log-empty"><div class="log-empty-icon">📅</div><div>날짜를 설정 후 조회하세요</div></div>';
+        '<div class="log-empty"><div class="log-empty-icon"><i class="ph-bold ph-calendar-blank"></i></div><div>날짜를 설정 후 조회하세요</div></div>';
     } else {
       el.classList.remove("open");
       loadLog();
@@ -40,7 +40,7 @@ let allLoadedRows = [];
 
 async function loadLog() {
   const listEl = document.getElementById("log-list");
-  listEl.innerHTML = '<div class="log-loading">불러오는 중...</div>';
+  listEl.innerHTML = '<div class="miu-state compact"><span class="miu-spinner"></span><div class="miu-state-desc" style="margin:8px 0 0">불러오는 중...</div></div>';
   const { from, to } = getRange();
   if (!from || !to) return;
   try {
@@ -78,11 +78,40 @@ async function loadLog() {
     }));
     renderLog(groups, failedRows || []);
   } catch (e) {
-    listEl.innerHTML = `<div class="log-empty"><div class="log-empty-icon">⚠️</div><div>오류: ${escapeHtml(e.message)}</div></div>`;
+    listEl.innerHTML = `<div class="miu-state compact">
+      <div class="miu-state-icon"><i class="ph-bold ph-warning-circle"></i></div>
+      <div class="miu-state-title">불러오지 못했어요</div>
+      <div class="miu-state-desc">${escapeHtml(e.message)}</div>
+      <button type="button" class="btn btn-primary" id="log-retry-btn">다시 시도</button>
+    </div>`;
+    document.getElementById("log-retry-btn").addEventListener("click", loadLog);
   }
 }
 
 const sessionItemsById = {};
+
+const FAIL_PREVIEW = 3;
+
+function failRowHtml(r) {
+  const kst = new Date(new Date(r.changed_at).getTime() + 9 * 60 * 60 * 1000).toISOString();
+  return `<div class="item-row" style="border-top:1px solid color-mix(in srgb, var(--miu-error) 25%, transparent); padding-top:6px; margin-top:6px; flex-wrap:wrap">
+    <span style="font-family:var(--font-mono); color:var(--miu-error-text); font-weight:700; font-size:13px; flex-shrink:0; min-width:88px">${escapeHtml(r.barcode)}</span>
+    <span style="flex:1"></span>
+    <span class="price-old">${r.old_price ? "₩" + r.old_price.toLocaleString() : "—"}</span>
+    <span class="price-arrow">→</span>
+    <span style="color:var(--miu-ink); font-weight:700; font-variant-numeric:tabular-nums">₩${r.new_price.toLocaleString()}</span>
+    <span style="flex-basis:100%; color:var(--miu-muted); font-size:13px">${kst.slice(0,10)} ${kst.slice(11,16)} · ${escapeHtml(r.changed_by || "미기재")}</span>
+  </div>`;
+}
+
+function bindFailMore() {
+  const btn = document.getElementById("fail-more-btn");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    document.getElementById("fail-more").hidden = false;
+    btn.remove();
+  });
+}
 
 function renderLog(groups, failedRows = []) {
   const listEl = document.getElementById("log-list");
@@ -90,26 +119,21 @@ function renderLog(groups, failedRows = []) {
 
   if (failedRows.length > 0) {
     html += `
-      <div style="background:#2d1515; border:1px solid #ef4444; border-radius:10px; padding:14px; margin-bottom:16px">
-        <div style="color:#ef4444; font-weight:700; font-size:14px; margin-bottom:10px">
-          ⚠️ Excel 처리 실패 ${failedRows.length}건 — 수동 확인 필요
+      <div class="miu-alert" style="display:block; padding:14px; margin-bottom:16px">
+        <div style="color:var(--miu-error-text); font-weight:700; font-size:14px; margin-bottom:10px">
+          <i class="ph-bold ph-warning"></i> Excel 처리 실패 ${failedRows.length}건 — 수동 확인 필요
         </div>
-        ${failedRows.map(r => {
-          const kst = new Date(new Date(r.changed_at).getTime() + 9 * 60 * 60 * 1000).toISOString();
-          return `<div class="item-row" style="border-top:1px solid #3d1a1a; padding-top:6px; margin-top:6px">
-            <span style="font-family:monospace; color:#f87171; font-weight:700; flex-shrink:0; width:72px">${escapeHtml(r.barcode)}</span>
-            <span style="flex:1; color:#94a3b8; font-size:12px">${kst.slice(0,10)} ${kst.slice(11,16)} · ${escapeHtml(r.changed_by || "미기재")}</span>
-            <span class="price-old">${r.old_price ? "₩" + r.old_price.toLocaleString() : "—"}</span>
-            <span class="price-arrow">→</span>
-            <span style="color:#fbbf24; font-weight:700">₩${r.new_price.toLocaleString()}</span>
-          </div>`;
-        }).join("")}
+        ${failedRows.slice(0, FAIL_PREVIEW).map(failRowHtml).join("")}
+        ${failedRows.length > FAIL_PREVIEW ? `
+        <div id="fail-more" hidden>${failedRows.slice(FAIL_PREVIEW).map(failRowHtml).join("")}</div>
+        <button type="button" class="btn btn-outline btn-sm" id="fail-more-btn" style="margin-top:10px">나머지 ${failedRows.length - FAIL_PREVIEW}건 보기</button>` : ""}
       </div>`;
   }
 
   if (!groups.length) {
-    html += '<div class="log-empty"><div class="log-empty-icon">📭</div><div>해당 기간에 수정 이력이 없습니다</div></div>';
+    html += '<div class="log-empty"><div class="log-empty-icon"><i class="ph-bold ph-tray"></i></div><div>해당 기간에 수정 이력이 없습니다</div></div>';
     listEl.innerHTML = html;
+    bindFailMore();
     return;
   }
   groups.forEach(g => {
@@ -123,30 +147,31 @@ function renderLog(groups, failedRows = []) {
       html += `
         <div class="change-card">
           <div class="change-header" data-id="${id}">
-            <span class="change-chevron" id="chv-${id}">▶</span>
+            <span class="change-chevron" id="chv-${id}"><i class="ph-bold ph-caret-right"></i></span>
             <div style="flex:1; min-width:0">
               <div style="font-size:14px; font-weight:700; color:var(--fg-primary)">
                 ${escapeHtml(s.changed_by || "담당자 미기재")}
-                <span style="font-size:12px; color:#64748b; font-weight:400; margin-left:6px">${escapeHtml(s.time)}</span>
+                <span style="font-size:13px; color:var(--miu-muted); font-weight:400; margin-left:6px">${escapeHtml(s.time)}</span>
               </div>
             </div>
             <span class="summary-pill">${s.items.length}건</span>
-            <button class="btn btn-outline btn-sm session-xlsx-btn" data-id="${id}" style="margin-left:8px; flex-shrink:0">⬇ 엑셀</button>
+            <button class="btn btn-outline btn-sm session-xlsx-btn" data-id="${id}" style="margin-left:8px; flex-shrink:0; min-height:44px"><i class="ph-bold ph-download-simple"></i> 엑셀</button>
           </div>
           <div class="change-body" id="body-${id}">
             ${s.items.map(item => `
               <div class="item-row">
-                <span style="font-family:monospace; color:#60a5fa; font-weight:700; flex-shrink:0; width:72px">${escapeHtml(item.barcode)}</span>
-                <span style="flex:1; color:#94a3b8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:12px">${escapeHtml(item.product_name || "")}</span>
+                <span style="font-family:var(--font-mono); color:var(--miu-primary); font-weight:700; font-size:13px; flex-shrink:0; min-width:88px">${escapeHtml(item.barcode)}</span>
+                <span style="flex:1; color:var(--miu-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:13px; min-width:0">${escapeHtml(item.product_name || "")}</span>
                 <span class="price-old">${item.old_price ? "₩" + item.old_price.toLocaleString() : "—"}</span>
                 <span class="price-arrow">→</span>
-                <span style="color:#fbbf24; font-weight:700">₩${item.new_price.toLocaleString()}</span>
+                <span style="color:var(--miu-ink); font-weight:700; font-variant-numeric:tabular-nums">₩${item.new_price.toLocaleString()}</span>
               </div>`).join("")}
           </div>
         </div>`;
     });
   });
   listEl.innerHTML = html;
+  bindFailMore();
   document.querySelectorAll(".change-header").forEach(h =>
     h.addEventListener("click", () => {
       const id = h.dataset.id;
@@ -163,8 +188,8 @@ function renderLog(groups, failedRows = []) {
 }
 
 async function downloadSessionExcel(btn, items) {
-  const original = btn.textContent;
-  btn.disabled = true; btn.textContent = "⏳";
+  const original = btn.innerHTML;
+  btn.disabled = true; btn.textContent = "…";
   try {
     const barcodes = [...new Set(items.map(r => r.barcode))];
     const { data: invRows, error } = await sb.from("inventory_items").select("barcode, category").in("barcode", barcodes);
@@ -185,15 +210,15 @@ async function downloadSessionExcel(btn, items) {
   } catch (e) {
     showError("엑셀 다운로드 실패: " + e.message);
   } finally {
-    btn.disabled = false; btn.textContent = original;
+    btn.disabled = false; btn.innerHTML = original;
   }
 }
 
 async function downloadAllExcel() {
   if (!allLoadedRows.length) { showError("다운로드할 데이터가 없습니다"); return; }
   const btn = document.getElementById("download-all-btn");
-  const original = btn.textContent;
-  btn.disabled = true; btn.textContent = "⏳";
+  const original = btn.innerHTML;
+  btn.disabled = true; btn.textContent = "…";
   try {
     const barcodes = [...new Set(allLoadedRows.map(r => r.barcode))];
     const categoryOf = {};
@@ -221,7 +246,7 @@ async function downloadAllExcel() {
   } catch (e) {
     showError("엑셀 다운로드 실패: " + e.message);
   } finally {
-    btn.disabled = false; btn.textContent = original;
+    btn.disabled = false; btn.innerHTML = original;
   }
 }
 

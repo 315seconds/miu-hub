@@ -26,7 +26,7 @@ async function load() {
     const total = hangers.reduce((s, h) => s + (h.inventory_items || []).length, 0);
     render({ session: sess, hangers, total });
   } catch (e) {
-    showError("세션 로드 실패: " + e.message);
+    showError("세션 로드 실패: " + e.message, load);
   }
 }
 
@@ -47,7 +47,7 @@ function render({ session: sess, hangers, total }) {
       </div>
       ${sess.start_barcode_num ? `
       <div class="mt8 muted">
-        바코드: <strong style="color:var(--brand-primary)" class="mono">
+        바코드: <strong style="color:var(--miu-ink)" class="mono">
           ${escapeHtml(sess.barcode_prefix)}${sess.start_barcode_num}
           ~ ${escapeHtml(sess.barcode_prefix)}${String(parseInt(sess.start_barcode_num, 10) + total - 1).padStart(String(sess.start_barcode_num).length, "0")}
         </strong> (총 ${total}벌)
@@ -83,7 +83,7 @@ function render({ session: sess, hangers, total }) {
           <label>차시</label>
           <select id="batch-select"></select>
         </div>
-        <button id="add-hanger-btn" class="btn btn-success btn-block">행거 추가 →</button>
+        <button id="add-hanger-btn" class="btn btn-primary btn-block">행거 추가 →</button>
       </div>`;
   }
 
@@ -95,19 +95,20 @@ function render({ session: sess, hangers, total }) {
       const cats = [...new Set(items.map(it => it.category).filter(Boolean))];
       return `
         <div class="card">
-          <div class="flex" style="align-items:center; margin-bottom:8px">
-            <span style="font-size:17px; font-weight:700; margin-right:8px">행거 ${escapeHtml(h.hanger_number)}</span>
+          <div class="hanger-head">
+            <span style="font-size:17px; font-weight:700">행거 ${escapeHtml(h.hanger_number)}</span>
             <span style="font-weight:600; color:var(--fg-secondary)">${cats.length ? escapeHtml(cats.join(" · ")) : '<span class="muted">카테고리 미정</span>'}</span>
-            ${h.source ? `<span style="margin-left:8px;padding:2px 8px;font-size:11px;border-radius:6px;background:var(--miu-surface-soft);color:var(--miu-body)">${escapeHtml(h.source)}</span>` : ""}
-            ${h.purchase_batch_id ? `<span style="margin-left:6px;padding:2px 8px;font-size:11px;border-radius:6px;background:var(--miu-surface-soft);color:var(--miu-body)">${escapeHtml(batchTag(h))}</span>` : ""}
-            ${sess.location === "온라인" ? '<span class="tag-online" style="margin-left:8px">온라인</span>' : ""}
+            ${h.source ? `<span class="chip-s">${escapeHtml(h.source)}</span>` : ""}
+            ${h.purchase_batch_id ? `<span class="chip-s">${escapeHtml(batchTag(h))}</span>` : ""}
+            ${sess.location === "온라인" ? '<span class="tag-online">온라인</span>' : ""}
             <span class="muted text-sm" style="margin-left:auto">${items.length}벌</span>
             ${sess.status === "pending" && isMine ? `
-              <a href="hanger.html?id=${encodeURIComponent(h.id)}" class="btn btn-outline btn-sm" style="margin-left:8px">편집</a>
-              <button class="del-hanger-btn btn btn-sm" data-id="${escapeHtml(h.id)}" data-num="${escapeHtml(h.hanger_number)}"
-                style="margin-left:6px; background:none; border:1px solid #ef4444; border-radius:6px; color:#ef4444; font-size:12px; padding:4px 8px; cursor:pointer">삭제</button>
+              <span class="hanger-actions" style="margin-left:0">
+                <a href="hanger.html?id=${encodeURIComponent(h.id)}" class="btn btn-outline btn-sm">편집</a>
+                <button class="del-hanger-btn btn btn-sm miu-btn-danger" data-id="${escapeHtml(h.id)}" data-num="${escapeHtml(h.hanger_number)}">삭제</button>
+              </span>
             ` : sess.status === "pending" ? `
-              <span class="muted text-xs" style="margin-left:8px">🔒 ${escapeHtml(h.submitted_by)}만 편집 가능</span>
+              <span class="muted text-xs"><i class="ph-bold ph-lock"></i> ${escapeHtml(h.submitted_by)}만 편집 가능</span>
             ` : ""}
           </div>
           ${items.length > 0 ? `
@@ -122,7 +123,7 @@ function render({ session: sess, hangers, total }) {
                 </div>
               </div>`).join("")}
           </div>` : '<div class="text-sm muted">아이템 없음</div>'}
-          ${h.submitted_at ? `<div class="text-xs muted mt8">✓ 제출됨${h.submitted_by ? " · " + escapeHtml(h.submitted_by) : ""}</div>` : ""}
+          ${h.submitted_at ? `<div class="text-xs muted mt8"><i class="ph-bold ph-check"></i> 제출됨${h.submitted_by ? " · " + escapeHtml(h.submitted_by) : ""}</div>` : ""}
         </div>`;
     }).join("");
   } else {

@@ -11,9 +11,24 @@ function getParam(name) {
   return new URLSearchParams(location.search).get(name) || "";
 }
 
-function showError(msg) {
+function showError(msg, retry) {
   const el = document.getElementById("error-msg");
-  if (el) { el.textContent = msg; el.style.display = "block"; }
+  if (el) {
+    el.textContent = "";
+    const t = document.createElement("span");
+    t.className = "error-msg-text";
+    t.textContent = msg;
+    el.appendChild(t);
+    if (typeof retry === "function") {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "btn btn-outline btn-sm";
+      b.textContent = "다시 시도";
+      b.addEventListener("click", () => { clearError(); retry(); });
+      el.appendChild(b);
+    }
+    el.style.display = "flex";
+  }
   else if (typeof appAlert === "function") appAlert(msg); else alert(msg);
 }
 

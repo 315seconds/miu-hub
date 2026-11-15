@@ -2,18 +2,18 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>가격 수정</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-  <link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
-  <link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151148">
+  <link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
+  <link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
-  <link rel="stylesheet" href="css/style.css?v=202611151148">
+  <link rel="stylesheet" href="css/style.css?v=202611151334">
   <!-- auth-migration: 로그인 가드 -->
-  <script src="/miu-hub/shared/config.js?v=202611151148"></script>
+  <script src="/miu-hub/shared/config.js?v=202611151334"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
-  <script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
+  <script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
+  <script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
 </head>
 <body>
   <div class="page-wrap">
@@ -31,8 +31,8 @@
       <!-- 1단계: 바코드 입력 -->
       <div id="step1">
         <div class="tab-bar">
-          <button class="tab-btn active" data-tab="scan">📷 리더기 스캔</button>
-          <button class="tab-btn" data-tab="manual">✏️ 직접 입력</button>
+          <button class="tab-btn active" data-tab="scan"><i class="ph-bold ph-barcode"></i> 리더기 스캔</button>
+          <button class="tab-btn" data-tab="manual"><i class="ph-bold ph-pencil-simple"></i> 직접 입력</button>
         </div>
 
         <div class="tab-panel active" id="panel-scan">
@@ -55,18 +55,20 @@
           </div>
         </div>
 
-        <div class="scan-box" id="scan-box" style="margin-top:10px">
+        <div class="scan-head">
+          <span class="count-badge"><span id="count">0</span>개</span>
+          <button class="btn btn-sm miu-btn-danger btn-clear" id="clear-btn" hidden>전체 삭제</button>
+        </div>
+        <div class="scan-box" id="scan-box">
           <div id="scan-empty" class="scan-empty">바코드를 추가하면 여기에 표시됩니다</div>
           <div id="scan-list"></div>
         </div>
 
-        <div class="flex" style="align-items:center; gap:12px">
-          <span class="count-badge"><span id="count">0</span>개</span>
-          <button class="btn btn-warn flex-1" id="lookup-btn" disabled>💰 가격 수정하기</button>
-          <button class="btn btn-outline btn-sm" id="clear-btn">전체 삭제</button>
+        <div>
+          <input type="text" id="changed-by" readonly placeholder="담당자는 로그인한 계정 이름으로 자동 기록돼요">
         </div>
-        <div class="mt8">
-          <input type="text" id="changed-by" placeholder="담당자 이름 (선택)">
+        <div class="miu-action-bar">
+          <button class="btn btn-primary flex-1" id="lookup-btn" disabled><i class="ph-bold ph-currency-krw"></i> 가격 수정하기</button>
         </div>
       </div>
 
@@ -76,9 +78,9 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-client.js?v=202611151148"></script>
-  <script src="js/api.js?v=202611151148"></script>
-  <script src="js/shared.js?v=202611151148"></script>
-  <script src="js/price-change.js?v=202611151148"></script>
+  <script src="js/supabase-client.js?v=202611151334"></script>
+  <script src="js/api.js?v=202611151334"></script>
+  <script src="js/shared.js?v=202611151334"></script>
+  <script src="js/price-change.js?v=202611151334"></script>
 </body>
 </html>

@@ -59,6 +59,7 @@ function renderList() {
   const count = scanned.length;
   document.getElementById("count").textContent = count;
   document.getElementById("print-btn").disabled = count === 0;
+  document.getElementById("clear-btn").hidden = count === 0;
   document.getElementById("scan-box").classList.toggle("active", count > 0);
   if (count === 0) { list.innerHTML = ""; empty.style.display = "block"; return; }
   empty.style.display = "none";

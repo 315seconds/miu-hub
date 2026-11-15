@@ -2,34 +2,36 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>입고 관리 · 마켓인유</title>
 
-  <link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
-  <link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151148">
+  <link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
+  <link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
   <!-- auth-migration: 로그인 가드 -->
-  <script src="/miu-hub/shared/config.js?v=202611151148"></script>
+  <script src="/miu-hub/shared/config.js?v=202611151334"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
-  <script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
+  <script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
+  <script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
 
   <style>
     /* receiving/index 전용 미세 조정 */
+    .miu-section { padding: 0 16px; }
     .stats-2 {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 8px;
     }
     .stats-2 .miu-stat { padding: 14px 12px; }
-    .stats-2 .miu-stat-label { font-size: 10px; }
+    .stats-2 a.miu-stat { display: block; text-decoration: none; color: inherit; }
+    .stats-2 a.miu-stat:active { background: var(--miu-surface-strong); }
     .stats-2 .miu-stat-value { font-size: 24px; }
     /* 대기중 강조 */
-    .stat-pending-active { color: var(--miu-warning); }
+    .stat-pending-active { color: var(--miu-warning-text); }
     .stat-value-muted { color: var(--miu-muted); }
     /* 월 누적 비교 (이번 달 vs 지난달 vs 지지난달, 같은 입고일 수까지) */
-    .cmp-sub { font-size: 11px; color: var(--miu-muted); margin: 4px 0 2px; }
+    .cmp-sub { font-size: var(--miu-fs-small); color: var(--miu-muted); margin: 4px 0 2px; }
     .cmp-row {
       display: grid;
       grid-template-columns: 60px 1fr 72px;
@@ -37,15 +39,15 @@
       gap: 10px;
       margin-top: 12px;
     }
-    .cmp-label { font-size: 12px; font-weight: 600; color: var(--miu-body); line-height: 1.25; }
-    .cmp-label small { display: block; font-size: 10px; font-weight: 400; color: var(--miu-muted-soft); }
+    .cmp-label { font-size: var(--miu-fs-small); font-weight: 600; color: var(--miu-body); line-height: 1.25; }
+    .cmp-label small { display: block; font-size: var(--miu-fs-micro); font-weight: 400; color: var(--miu-muted); }
     .cmp-bar { height: 10px; border-radius: 5px; background: var(--miu-surface-strong); overflow: hidden; }
     .cmp-fill { height: 100%; border-radius: 5px; background: var(--miu-muted-soft); }
     .cmp-row.cur .cmp-fill { background: var(--miu-ink); }
-    .cmp-val { text-align: right; font-family: var(--miu-serif); font-size: 18px; line-height: 1.1; color: var(--miu-ink); }
-    .cmp-delta { display: block; margin-top: 2px; font-family: var(--miu-sans); font-size: 11px; font-weight: 600; color: var(--miu-muted); }
-    .cmp-delta.up { color: var(--miu-success); }
-    .cmp-delta.down { color: var(--miu-error); }
+    .cmp-val { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 18px; line-height: 1.1; color: var(--miu-ink); }
+    .cmp-delta { display: block; margin-top: 2px; font-family: var(--miu-sans); font-size: var(--miu-fs-micro); font-weight: 600; color: var(--miu-muted); }
+    .cmp-delta.up { color: var(--miu-success-text); }
+    .cmp-delta.down { color: var(--miu-error-text); }
   </style>
 </head>
 <body class="miu-app">
@@ -57,7 +59,7 @@
     <div class="miu-header-title">      <h1 class="miu-header-h1">입고 관리</h1>
     </div>
     <div class="miu-header-actions" id="today-label"
-         style="font-size:12px;color:var(--miu-muted);padding-right:4px"></div>
+         style="font-size:var(--miu-fs-small);color:var(--miu-muted);padding-right:4px"></div>
   </header>
 
   <div class="miu-app-body" style="padding-bottom:40px">
@@ -69,10 +71,10 @@
           <div class="miu-stat-label">오늘 입고</div>
           <div class="miu-stat-value stat-value-muted" id="stat-today">—</div>
         </div>
-        <div class="miu-stat">
+        <a href="approve.html" class="miu-stat">
           <div class="miu-stat-label">승인 대기 세션</div>
           <div class="miu-stat-value stat-value-muted" id="stat-pending">—</div>
-        </div>
+        </a>
       </div>
       <div class="miu-stat" id="month-cmp" style="margin-top:8px" hidden>
         <div class="miu-stat-label" style="margin-bottom:0">월 누적 입고 비교</div>
@@ -89,20 +91,20 @@
         <span class="miu-section-divider"></span>
       </div>
       <div class="miu-tile-grid">
-        <a href="session-list.html" class="miu-tile miu-tile-wide" style="--tile-accent:#4a6b8a">
+        <a href="session-list.html" class="miu-tile miu-tile-wide">
           <div class="miu-tile-icon"><i class="ph-bold ph-package"></i></div>
           <div class="miu-tile-body">
             <div class="miu-tile-title">
               신규입고
               <span id="pending-badge" class="miu-chip warn"
-                    style="display:none;margin-left:6px;font-size:10px;vertical-align:middle"></span>
+                    style="display:none;margin-left:6px;vertical-align:middle"></span>
             </div>
             <div class="miu-tile-desc">행거별 상품 등록 및 세션 참여</div>
           </div>
           <span class="miu-tile-arrow"><i class="ph-bold ph-caret-right"></i></span>
         </a>
 
-        <a href="approve.html" class="miu-tile miu-tile-wide" style="--tile-accent:#6b8e6b">
+        <a href="approve.html" class="miu-tile miu-tile-wide">
           <div class="miu-tile-icon"><i class="ph-bold ph-check-circle"></i></div>
           <div class="miu-tile-body">
             <div class="miu-tile-title">입고 승인</div>
@@ -121,7 +123,7 @@
         <span class="miu-section-divider"></span>
       </div>
       <div class="miu-tile-grid">
-        <a href="logs.html" class="miu-tile miu-tile-wide" style="--tile-accent:#3c4e75">
+        <a href="logs.html" class="miu-tile miu-tile-wide">
           <div class="miu-tile-icon"><i class="ph-bold ph-clipboard-text"></i></div>
           <div class="miu-tile-body">
             <div class="miu-tile-title">입고 로그</div>
@@ -140,7 +142,7 @@
         <span class="miu-section-divider"></span>
       </div>
       <div class="miu-tile-grid">
-        <a href="labels.html?daily=1" class="miu-tile miu-tile-wide" style="--tile-accent:#6c6a64">
+        <a href="labels.html?daily=1" class="miu-tile miu-tile-wide">
           <div class="miu-tile-icon"><i class="ph-bold ph-printer"></i></div>
           <div class="miu-tile-body">
             <div class="miu-tile-title">오늘 입고 일괄출력</div>
@@ -154,9 +156,9 @@
   </div>
 
   <!-- 기존 receiving JS 스택 유지 (통계 로드 + bottom-nav 자동 삽입) -->
-  <script src="js/supabase-client.js?v=202611151148"></script>
-  <script src="js/api.js?v=202611151148"></script>
-  <script src="js/shared.js?v=202611151148"></script>
+  <script src="js/supabase-client.js?v=202611151334"></script>
+  <script src="js/api.js?v=202611151334"></script>
+  <script src="js/shared.js?v=202611151334"></script>
   <script>
     document.getElementById('today-label').textContent = getTodayLabel();
 

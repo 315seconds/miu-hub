@@ -7,18 +7,18 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="물류 이동">
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#FFF8EE">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#faf9f5">
 <title>물류 이동</title>
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151148">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <!-- auth-migration: 마켓인유 통합 로그인 가드 -->
-<script src="/miu-hub/shared/config.js?v=202611151148"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
+<script src="/miu-hub/shared/config.js?v=202611151334"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
 <style>
 /* ════════════════════════════════════════════════════
    MIU MOVE · PLAYBLOCK
@@ -26,44 +26,50 @@
    Instrument Serif display + Inter UI + Mono data
    ════════════════════════════════════════════════════ */
 :root{
-  /* miu 통합 팔레트로 재매핑 */
-  --cream:      #faf9f5;   /* miu-canvas */
-  --cream-2:    #f5f0e8;   /* miu-surface-soft */
-  --cream-3:    #efe9de;   /* miu-surface-card */
-  --ink:        #141413;   /* miu-ink */
-  --ink-2:      #3d3d3a;
-  --ink-3:      #6c6a64;
-  --ink-4:      #8e8b82;
-  --paper:      #faf9f5;
+  /* miu 토큰으로 매핑. 기능별 색 구분은 없애고 포인트는 테라코타 하나 */
+  --cream:      var(--miu-canvas);
+  --cream-2:    var(--miu-surface-soft);
+  --cream-3:    var(--miu-surface-card);
+  --ink:        var(--miu-ink);
+  --ink-2:      var(--miu-body);
+  --ink-3:      var(--miu-muted);
+  --ink-4:      var(--miu-muted-soft);
+  --paper:      var(--miu-canvas);
 
-  /* 카테고리 액센트 (톤다운 warm 팔레트) */
-  --purple:     #7c6da8;
-  --purple-2:   #a094c1;
-  --purple-dk:  #5a4d80;
-  --yellow:     #d4a017;
-  --yellow-2:   #e8b94a;
-  --yellow-dk:  #8a6b0f;
-  --mint:       #6b8e6b;
-  --mint-2:     #8ba98b;
-  --mint-dk:    #4a6b4a;
-  --coral:      #cc785c;   /* miu-primary */
-  --coral-2:    #d99887;
-  --coral-dk:   #a9583e;
-  --sky:        #4a6b8a;
-  --sky-2:      #7b96b3;
-  --sky-dk:     #34506a;
+  --purple:     var(--miu-primary);
+  --purple-2:   var(--miu-primary-soft);
+  --purple-dk:  var(--miu-primary-active);
+  --yellow:     var(--miu-warning);
+  --yellow-2:   var(--miu-warning);
+  --yellow-dk:  var(--miu-warning-text);
+  --mint:       var(--miu-success);
+  --mint-2:     var(--miu-success);
+  --mint-dk:    var(--miu-success-text);
+  --coral:      var(--miu-primary);
+  --coral-2:    var(--miu-primary-soft);
+  --coral-dk:   var(--miu-primary-active);
+  --sky:        var(--miu-primary);
+  --sky-2:      var(--miu-primary-soft);
+  --sky-dk:     var(--miu-primary-active);
 
-  /* 배경 wash용 극연한 톤 */
-  --purple-bg:  #f0edf5;
-  --yellow-bg:  #f5eede;
-  --mint-bg:    #ecf1eb;
-  --coral-bg:   #f5e5db;
-  --sky-bg:     #eaeff5;
+  --purple-bg:  color-mix(in srgb,var(--miu-primary) 8%,var(--miu-canvas));
+  --yellow-bg:  color-mix(in srgb,var(--miu-warning) 16%,var(--miu-canvas));
+  --mint-bg:    color-mix(in srgb,var(--miu-success) 10%,var(--miu-canvas));
+  --coral-bg:   color-mix(in srgb,var(--miu-primary) 10%,var(--miu-canvas));
+  --sky-bg:     color-mix(in srgb,var(--miu-primary) 6%,var(--miu-canvas));
 
-  /* semantic */
-  --ok:         #5db872;
-  --warn:       #d4a017;
-  --err:        #c64545;
+  /* semantic (상태 표시 전용) */
+  --ok:         var(--miu-success);
+  --warn:       var(--miu-warning);
+  --err:        var(--miu-error);
+
+  /* JS 템플릿이 쓰는 별칭 */
+  --danger:     var(--miu-error-text);
+  --text:       var(--miu-ink);
+  --text2:      var(--miu-body);
+  --text3:      var(--miu-muted);
+  --accent:     var(--miu-primary);
+  --success:    var(--miu-success-text);
 
   --r:    12px;
   --r-sm: 8px;
@@ -79,7 +85,7 @@
   --shadow-soft: 0 1px 2px rgba(20,20,19,0.05);
   --shadow-pop:  0 4px 12px rgba(20,20,19,0.08);
   --shadow-deep: 0 8px 24px rgba(20,20,19,0.12);
-  --rim: 0 0 0 1px rgba(230,223,216,0.6) inset;   /* miu-hairline 계열 */
+  --rim: 0 0 0 1px var(--miu-hairline) inset;
 }
 
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -101,12 +107,12 @@ body{
 /* ── TOPBAR (miu-header 톤) ── */
 .topbar{
   display:flex;align-items:center;gap:12px;
-  padding:16px 20px;background:var(--cream);
-  border-bottom:1px solid #e6dfd8;
+  height:var(--miu-header-h);padding:0 20px;background:var(--cream);
+  border-bottom:1px solid var(--miu-hairline);
   position:sticky;top:0;z-index:10;
 }
 .topbar-back{
-  width:40px;height:40px;border-radius:var(--r-sm);
+  width:44px;height:44px;border-radius:var(--r-sm);
   background:transparent;border:none;
   display:flex;align-items:center;justify-content:center;
   cursor:pointer;flex-shrink:0;transition:background .12s;
@@ -116,10 +122,10 @@ body{
 .topbar-back:active{background:var(--cream-3)}
 .topbar-back svg{width:18px;height:18px;fill:none;stroke:var(--ink);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
 .topbar-title{font-family:var(--font-display);font-size:22px;font-weight:500;letter-spacing:-.5px;flex:1;line-height:1.2}
-.topbar-sub{font-family:var(--font-ui);font-size:10px;color:var(--coral);margin-top:2px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700}
-.topbar-action{
+.topbar-sub{font-family:var(--font-ui);font-size:12px;color:var(--coral);margin-top:2px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700}
+.topbar-action{min-height:44px;display:inline-flex;align-items:center;
   font-family:var(--font-ui);font-size:13px;font-weight:600;
-  color:var(--paper);cursor:pointer;padding:8px 14px;
+  color:#fff;cursor:pointer;padding:8px 14px;
   white-space:nowrap;
   background:var(--coral);border-radius:var(--r-sm);border:none;
   transition:background .15s;
@@ -136,7 +142,7 @@ h1.page-title{
 }
 h1.page-title em{font-style:italic;color:var(--coral);font-weight:500}
 h2.section-title{
-  font-family:var(--font-ui);font-size:11px;font-weight:600;
+  font-family:var(--font-ui);font-size:12px;font-weight:600;
   color:var(--ink-3);text-transform:uppercase;letter-spacing:.8px;
   margin-bottom:12px;margin-top:28px;
   display:flex;align-items:center;gap:8px;
@@ -159,13 +165,13 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
 .card-body{padding:18px}
 .card-row{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px dashed var(--cream-3)}
 .card-row:last-child{border-bottom:none}
-.card-row-label{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em}
+.card-row-label{font-family:var(--font-mono);font-size:12px;color:var(--ink-3);text-transform:uppercase;letter-spacing:.06em}
 .card-row-value{font-size:14px;font-weight:600;color:var(--ink)}
 
 /* ── BUTTONS ── */
 .btn{
   display:flex;align-items:center;justify-content:center;gap:8px;
-  width:100%;padding:14px 20px;
+  width:100%;padding:14px 20px;min-height:48px;
   border-radius:var(--r);border:none;
   font-family:var(--font-ui);font-size:15px;font-weight:600;
   letter-spacing:-.1px;cursor:pointer;
@@ -174,20 +180,21 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
 }
 .btn:active{transform:scale(.98)}
 .btn-primary{background:var(--coral);color:#fff}
-.btn-primary:hover{background:var(--coral-dk)}
-.btn-secondary{background:var(--cream);color:var(--ink);border:1px solid #e6dfd8}
+.btn-primary:hover{background:var(--miu-primary-active)}
+.btn-secondary{background:var(--cream);color:var(--ink);border:1px solid var(--miu-hairline)}
 .btn-secondary:hover{background:var(--cream-2)}
 .btn-danger{background:var(--err);color:#fff}
 .btn-danger:hover{filter:brightness(.92)}
 .btn-ghost{background:transparent;color:var(--ink-3)}
 .btn-ghost:hover{background:var(--cream-2);color:var(--ink)}
-.btn-sm{padding:8px 14px;font-size:13px;width:auto;border-radius:var(--r-sm)}
+.btn-sm{padding:8px 14px;min-height:40px;font-size:14px;width:auto;border-radius:var(--r-sm)}
 .lookup-tabs{display:flex;gap:4px;margin-bottom:18px;background:var(--cream-3);border-radius:var(--r-sm);padding:3px}
-.lookup-tab{flex:1;padding:8px;border:none;border-radius:calc(var(--r-sm) - 3px);background:transparent;font-family:var(--font-ui);font-size:13px;font-weight:600;color:var(--ink-3);cursor:pointer;transition:all .15s}
+.lookup-tab{flex:1;min-height:44px;padding:8px;border:none;border-radius:calc(var(--r-sm) - 3px);background:transparent;font-family:var(--font-ui);font-size:14px;font-weight:600;color:var(--ink-3);cursor:pointer;transition:all .15s}
 .lookup-tab.active{background:var(--paper);color:var(--coral)}
-.btn-icon{width:42px;height:42px;padding:0;border-radius:var(--r-pill)}
+.btn-icon{width:44px;height:44px;padding:0;border-radius:var(--r-pill)}
 .btn+.btn{margin-top:10px}
-.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;filter:grayscale(.4)}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.btn-primary:disabled{opacity:1;background:var(--miu-primary-disabled);color:var(--miu-muted)}
 
 /* ══════════════════════════════════════════
    HOME — playful dispatch board
@@ -203,9 +210,7 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
 .home-mark-logo .blob{
   width:22px;height:22px;border-radius:50%;
   background:
-    radial-gradient(circle at 30% 30%, #fff 0%, transparent 50%),
-    linear-gradient(135deg,var(--yellow) 0%, var(--coral) 100%);
-  box-shadow:0 2px 4px rgba(255,154,138,.4);
+    var(--miu-primary);
   animation:wobble 3s ease-in-out infinite;
 }
 @keyframes wobble{
@@ -213,7 +218,7 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
   50%{transform:rotate(8deg) scale(1.05)}
 }
 .home-mark-meta{
-  font-family:var(--font-mono);font-size:10px;color:var(--ink-3);
+  font-family:var(--font-mono);font-size:12px;color:var(--ink-3);
   text-transform:uppercase;letter-spacing:.1em;text-align:right;
 }
 .home-mark-meta strong{color:var(--ink);font-weight:700}
@@ -228,12 +233,12 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
 }
 .home-subtitle{
   margin-top:16px;display:flex;align-items:center;gap:10px;
-  font-family:var(--font-ui);font-size:11px;color:var(--ink-3);
+  font-family:var(--font-ui);font-size:12px;color:var(--ink-3);
   text-transform:uppercase;letter-spacing:1.5px;font-weight:600;
 }
 .home-subtitle .pill{
   background:var(--coral);color:#fff;padding:3px 10px;
-  border-radius:var(--r-pill);font-weight:700;letter-spacing:1px;font-size:10px;
+  border-radius:var(--r-pill);font-weight:700;letter-spacing:1px;font-size:12px;
 }
 
 /* home grid */
@@ -247,13 +252,13 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
   transition:transform .12s, background .15s;
   display:flex;flex-direction:column;gap:12px;
   min-height:150px;position:relative;overflow:hidden;
-  border-left:3px solid var(--tile-accent,var(--coral));
+  border-left:none;
 }
 .home-tile:active{transform:scale(.98);background:var(--cream-2)}
 
 .home-tile-icon{
   width:36px;height:36px;display:flex;align-items:center;justify-content:center;
-  font-size:26px;color:var(--tile-accent,var(--ink));
+  font-size:26px;color:var(--miu-primary);
 }
 .home-tile-icon svg{width:100%;height:100%;display:block}
 
@@ -263,20 +268,20 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
   margin-top:auto;
 }
 .home-tile-sub{
-  font-family:var(--font-ui);font-size:12px;color:var(--ink-2);
+  font-family:var(--font-ui);font-size:13px;color:var(--ink-2);
   margin-top:4px;line-height:1.5;
 }
 
 /* accent tile — full width */
 .home-tile.accent{
   grid-column:1 / -1;min-height:auto;
-  background:var(--coral);
+  background:var(--miu-primary);
   color:#fff;flex-direction:row;align-items:center;gap:16px;padding:22px 20px;
   border-left:none;
 }
 .home-tile.accent .home-tile-icon{width:44px;height:44px;font-size:32px;color:#fff;flex-shrink:0}
 .home-tile.accent .home-tile-label{color:#fff;font-family:var(--font-display);font-size:22px;font-weight:500;letter-spacing:-.4px;margin:0}
-.home-tile.accent .home-tile-sub{color:rgba(255,255,255,.85);font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:600}
+.home-tile.accent .home-tile-sub{color:rgba(255,255,255,.95);font-size:12px;letter-spacing:1px;text-transform:uppercase;font-weight:600}
 .home-tile.accent:active{transform:scale(.98);background:var(--coral-dk)}
 
 .home-sessions-wrap{padding:14px 20px 0}
@@ -290,30 +295,31 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
 }
 .form-input{
   width:100%;background:var(--paper);
-  border:1px solid #e6dfd8;border-radius:var(--r-sm);
-  color:var(--ink);font-family:var(--font-ui);font-size:15px;font-weight:500;
-  padding:12px 14px;outline:none;transition:border-color .15s, box-shadow .15s;
+  border:1px solid var(--miu-hairline);border-radius:var(--r-sm);
+  color:var(--ink);font-family:var(--font-ui);font-size:16px;font-weight:500;
+  padding:12px 14px;min-height:48px;outline:none;transition:border-color .15s, box-shadow .15s;
 }
-.form-input:focus{border-color:var(--coral);box-shadow:0 0 0 3px rgba(204,120,92,.15)}
+.form-input:focus{border-color:var(--miu-primary);box-shadow:var(--miu-focus)}
 .form-input::placeholder{color:var(--ink-4)}
 .form-select{
   appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237B5CFF' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236c6a64' stroke-width='3'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 16px center;
   padding-right:40px;cursor:pointer;
 }
 
 /* ── BADGES ── */
 .badge{
-  display:inline-flex;align-items:center;gap:5px;
+  flex-shrink:0;display:inline-flex;align-items:center;gap:5px;
   padding:4px 10px;border-radius:var(--r-pill);
-  font-family:var(--font-ui);font-size:11px;font-weight:700;
+  font-family:var(--font-ui);font-size:12px;font-weight:700;
   white-space:nowrap;letter-spacing:.02em;
 }
-.badge-pending{color:#8A6A00;background:var(--yellow)}
-.badge-approved{color:#fff;background:var(--ok)}
-.badge-correction{color:#fff;background:var(--purple)}
-.badge-danger{color:#fff;background:var(--err)}
+.badge-pending{color:var(--miu-warning-text);background:color-mix(in srgb,var(--miu-warning) 22%,var(--miu-canvas))}
+.badge-approved{color:var(--miu-success-text);background:color-mix(in srgb,var(--miu-success) 14%,var(--miu-canvas))}
+.badge-correction{color:var(--miu-primary-active);background:color-mix(in srgb,var(--miu-primary) 12%,var(--miu-canvas))}
+.badge-danger{color:var(--miu-error-text);background:color-mix(in srgb,var(--miu-error) 12%,var(--miu-canvas))}
+.badge-muted{color:var(--miu-muted);background:var(--miu-surface-card)}
 .badge-dot::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;display:inline-block}
 
 /* ── SESSION CARDS ── */
@@ -328,26 +334,26 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
 .session-card:active{transform:translateY(0) scale(.99)}
 .session-card::before{
   content:'';position:absolute;left:0;top:14px;bottom:14px;width:4px;
-  background:linear-gradient(180deg,var(--purple-2),var(--purple));
+  background:var(--miu-primary);
   border-radius:0 4px 4px 0;
 }
 .session-route{
-  font-family:var(--font-display);font-size:24px;font-weight:400;
-  margin-bottom:8px;letter-spacing:-.015em;line-height:1.1;
-  display:flex;align-items:center;gap:8px;color:var(--ink);
+  font-family:var(--font-ui);font-size:17px;font-weight:700;
+  margin-bottom:0;letter-spacing:-.2px;line-height:1.3;
+  display:flex;align-items:center;gap:8px;color:var(--ink);flex:1;min-width:0;flex-wrap:wrap;
 }
 .session-route-arrow{color:var(--purple);font-family:var(--font-ui);font-size:16px;font-weight:400}
 .session-meta{
-  font-family:var(--font-mono);font-size:11px;color:var(--ink-3);
+  font-family:var(--font-ui);font-variant-numeric:tabular-nums;font-size:13px;color:var(--ink-3);
   display:flex;align-items:center;gap:8px;flex-wrap:wrap;
 }
 .session-meta-dot{width:3px;height:3px;border-radius:50%;background:var(--ink-4);display:inline-block}
 .session-members{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px}
 .member-chip{
   background:var(--cream-2);color:var(--ink-2);
-  border-radius:var(--r-pill);padding:4px 12px;font-size:11px;font-weight:600;
+  border-radius:var(--r-pill);padding:4px 12px;font-size:12px;font-weight:600;
 }
-.member-chip.me{background:linear-gradient(135deg,var(--yellow-2),var(--yellow));color:var(--ink);font-weight:700;box-shadow:0 2px 6px rgba(255,216,94,.4)}
+.member-chip.me{background:var(--miu-primary);color:#fff;font-weight:700}
 
 /* ══════════════════════════════════════════
    SCAN SCREEN — bright playful mode
@@ -358,7 +364,7 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
   background:var(--paper);border-radius:var(--r);
   box-shadow:var(--shadow-soft),var(--rim);
   display:grid;grid-template-columns:1fr auto;gap:14px;
-  position:sticky;top:70px;z-index:5;
+  position:sticky;top:var(--miu-header-h);z-index:9;
 }
 .scan-counters{display:flex;gap:10px}
 .scan-counter-cell{
@@ -368,18 +374,18 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
 .scan-counter-cell:nth-child(2){background:var(--mint-bg)}
 .scan-counter-cell:nth-child(3){background:var(--coral-bg)}
 .scan-count{
-  font-family:var(--font-display);font-size:34px;font-weight:400;
+  font-family:var(--font-ui);font-variant-numeric:tabular-nums;font-size:34px;font-weight:400;
   color:var(--purple);line-height:.95;letter-spacing:-.02em;
 }
 .scan-counter-cell:nth-child(2) .scan-count{color:var(--mint-dk)}
 .scan-counter-cell:nth-child(3) .scan-count{color:var(--coral-dk)}
 .scan-count-label{
-  font-family:var(--font-mono);font-size:9px;font-weight:600;
+  font-family:var(--font-mono);font-size:12px;font-weight:600;
   color:var(--ink-3);margin-top:4px;
   text-transform:uppercase;letter-spacing:.1em;
 }
 .scan-meta-right{display:flex;flex-direction:column;gap:6px;align-items:flex-end;justify-content:space-between}
-.scan-route{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);text-align:right;text-transform:uppercase;letter-spacing:.06em}
+.scan-route{font-family:var(--font-mono);font-size:13px;color:var(--ink-3);text-align:right;text-transform:uppercase;letter-spacing:.06em}
 .scan-route strong{color:var(--ink);font-weight:700}
 
 .scan-input-area{padding:14px;margin:14px}
@@ -397,8 +403,7 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
 .scan-input-field::placeholder{color:var(--ink-4);font-weight:500}
 .scan-pulse{
   width:36px;height:36px;border-radius:50%;flex-shrink:0;
-  background:radial-gradient(circle at 30% 30%,#fff 0%, transparent 45%), linear-gradient(135deg, var(--yellow) 0%, var(--coral) 100%);
-  box-shadow:0 4px 12px rgba(255,154,138,.5), 0 1px 0 rgba(255,255,255,.4) inset;
+  background:var(--miu-primary);
   animation:pulse 1.4s ease-in-out infinite;
 }
 @keyframes pulse{
@@ -416,17 +421,17 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
 }
 @keyframes slideIn{from{opacity:0;transform:translateY(-6px) scale(.97)}to{opacity:1;transform:none}}
 .scan-item-num{
-  font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--purple);
+  font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--purple);
   width:28px;text-align:center;flex-shrink:0;
   background:var(--purple-bg);padding:4px 0;border-radius:var(--r-pill);
 }
 .scan-item-info{flex:1;min-width:0}
 .scan-item-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
-.scan-item-barcode{font-family:var(--font-mono);font-size:11px;color:var(--ink-3);margin-top:2px;letter-spacing:.04em}
-.scan-item-meta{font-size:10px;color:var(--ink-3);font-family:var(--font-mono)}
-.scan-item-by{font-family:var(--font-mono);font-size:10px;color:var(--ink-4);flex-shrink:0;text-transform:uppercase;letter-spacing:.06em}
+.scan-item-barcode{font-family:var(--font-mono);font-size:13px;color:var(--ink-3);margin-top:2px;letter-spacing:.04em}
+.scan-item-meta{font-size:13px;color:var(--ink-3);font-family:var(--font-mono)}
+.scan-item-by{font-family:var(--font-mono);font-size:12px;color:var(--ink-4);flex-shrink:0;text-transform:uppercase;letter-spacing:.06em}
 .scan-item-remove{
-  width:30px;height:30px;border-radius:50%;
+  width:44px;height:44px;border-radius:50%;
   background:var(--cream-2);border:none;color:var(--ink-3);cursor:pointer;
   display:flex;align-items:center;justify-content:center;flex-shrink:0;
   transition:all .15s;font-size:14px;
@@ -444,15 +449,15 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
   position:absolute;left:-6px;top:0;
 }
 .history-item:first-child .history-line::before{
-  background:radial-gradient(circle at 30% 30%, #fff, transparent 55%), var(--purple);
+  background:var(--purple);
   border-color:var(--purple);box-shadow:0 0 0 4px var(--purple-bg);
 }
 .history-info{flex:1;min-width:0}
 .history-route{font-family:var(--font-display);font-size:18px;font-weight:400;margin-bottom:3px;letter-spacing:-.015em}
-.history-date{font-family:var(--font-mono);font-size:10px;color:var(--ink-3);letter-spacing:.04em}
-.history-who{font-size:11px;color:var(--ink-3);margin-top:4px}
+.history-date{font-family:var(--font-mono);font-size:13px;color:var(--ink-3);letter-spacing:.04em}
+.history-who{font-size:13px;color:var(--ink-3);margin-top:4px}
 .correction-tag{
-  font-family:var(--font-ui);font-size:10px;font-weight:700;color:#fff;
+  font-family:var(--font-ui);font-size:12px;font-weight:700;color:#fff;
   background:var(--purple);padding:2px 8px;border-radius:var(--r-pill);
   margin-left:6px;
 }
@@ -466,10 +471,10 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
 }
 .location-name{font-size:15px;font-weight:600}
 .location-inactive{color:var(--ink-4);text-decoration:line-through}
-.loc-actions{display:flex;gap:6px}
+.loc-actions{display:flex;gap:8px}
 .loc-btn{
-  padding:6px 12px;border-radius:var(--r-pill);
-  font-family:var(--font-ui);font-size:11px;font-weight:700;
+  min-height:40px;padding:6px 14px;border-radius:var(--r-pill);
+  font-family:var(--font-ui);font-size:13px;font-weight:700;
   border:none;background:var(--cream-2);color:var(--ink-2);cursor:pointer;
   transition:all .15s;
 }
@@ -478,23 +483,23 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
 
 /* ── TOAST ── */
 .toast{
-  position:fixed;bottom:24px;left:50%;
-  transform:translateX(-50%) translateY(100px);
+  position:fixed;bottom:24px;left:50%;visibility:hidden;opacity:0;pointer-events:none;
+  transform:translateX(-50%) translateY(200px);
   background:var(--ink);color:var(--cream);
   border-radius:var(--r-pill);padding:14px 22px;
   font-family:var(--font-ui);font-size:13px;font-weight:600;
-  z-index:1000;transition:transform .28s cubic-bezier(.34,1.56,.64,1);
+  z-index:1000;transition:transform .28s cubic-bezier(.34,1.56,.64,1),opacity .2s,visibility 0s .28s;
   white-space:nowrap;max-width:calc(100vw - 40px);text-align:center;
   box-shadow:var(--shadow-deep);
 }
-.toast.show{transform:translateX(-50%) translateY(0)}
-.toast.success{background:var(--ok);color:#fff}
+.toast.show{transform:translateX(-50%) translateY(0);visibility:visible;opacity:1;transition-delay:0s}
+.toast.success{background:var(--miu-success);color:#fff}
 .toast.error{background:var(--err);color:#fff}
 
 /* ── MODAL ── */
 .modal-overlay{
   display:none;position:fixed;inset:0;
-  background:rgba(42,34,54,.48);backdrop-filter:blur(6px);
+  background:rgba(20,20,19,.5);backdrop-filter:blur(6px);
   z-index:100;align-items:flex-end;padding:0;
 }
 .modal-overlay.show{display:flex}
@@ -504,7 +509,7 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
   width:100%;max-width:480px;margin:0 auto;
   padding:28px 22px 34px;
   animation:slideUp .32s cubic-bezier(.34,1.56,.64,1);position:relative;
-  box-shadow:0 -20px 60px rgba(42,34,54,.25);
+  box-shadow:0 -20px 60px rgba(20,20,19,.2);
 }
 .modal-box::before{
   content:'';position:absolute;top:12px;left:50%;transform:translateX(-50%);
@@ -520,7 +525,7 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
 .slack-box{
   background:var(--ink);color:var(--cream);
   border-radius:var(--r);padding:18px;
-  font-family:var(--font-mono);font-size:11px;line-height:1.8;
+  font-family:var(--font-mono);font-size:12px;line-height:1.8;
   white-space:pre-wrap;word-break:break-all;
   max-height:44vh;overflow-y:auto;
   box-shadow:var(--shadow-soft);
@@ -533,15 +538,15 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
 }
 .log-filter-btn{
   background:var(--paper);border:none;border-radius:var(--r-pill);
-  color:var(--ink-2);font-family:var(--font-ui);font-size:12px;font-weight:700;
-  padding:9px 16px;cursor:pointer;white-space:nowrap;
+  color:var(--ink-2);font-family:var(--font-ui);font-size:14px;font-weight:700;
+  padding:0 16px;min-height:40px;cursor:pointer;white-space:nowrap;
   transition:all .18s;flex-shrink:0;
   box-shadow:var(--shadow-soft),var(--rim);
 }
 .log-filter-btn:hover{transform:translateY(-1px)}
 .log-filter-btn.active{
-  background:linear-gradient(180deg,var(--purple-2),var(--purple));color:#fff;
-  box-shadow:0 8px 18px -4px rgba(123,92,255,.5),var(--rim);
+  background:var(--miu-primary);color:#fff;
+  box-shadow:var(--rim);
 }
 .log-date-group{
   padding:14px 20px 8px;
@@ -553,7 +558,7 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
   margin:4px 18px 10px;
   background:linear-gradient(135deg,var(--mint-bg),var(--sky-bg));
   border-radius:var(--r-sm);padding:14px 16px;
-  border-left:3px solid var(--mint-dk);
+  border-left:3px solid var(--miu-success);
 }
 .log-day-summary-total{
   font-family:var(--font-ui);font-size:13px;font-weight:700;
@@ -567,17 +572,17 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
   margin-bottom:4px;
 }
 .log-sum-route-label{
-  font-family:var(--font-ui);font-size:12px;font-weight:700;color:var(--ink-2);
+  font-family:var(--font-ui);font-size:13px;font-weight:700;color:var(--ink-2);
 }
 .log-sum-route-count{
-  font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--mint-dk);
+  font-family:var(--font-mono);font-size:13px;font-weight:700;color:var(--mint-dk);
 }
 .log-sum-cat-row{
   display:flex;flex-wrap:wrap;gap:5px;
 }
 .log-sum-cat{
-  font-family:var(--font-mono);font-size:11px;color:var(--ink-3);
-  background:rgba(255,255,255,.65);border-radius:var(--r-pill);
+  font-family:var(--font-mono);font-size:12px;color:var(--ink-3);
+  background:color-mix(in srgb,var(--miu-canvas) 70%,transparent);border-radius:var(--r-pill);
   padding:2px 8px;white-space:nowrap;
 }
 .log-sum-cat b{
@@ -597,13 +602,13 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
 .log-session-chevron.open{transform:rotate(90deg)}
 .log-barcode-list{padding:0 16px 14px;background:var(--cream-2);display:none;border-radius:0 0 var(--r-sm) var(--r-sm);margin-top:-4px}
 .log-barcode-list.open{display:block}
-.log-barcode-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--cream-3);font-family:var(--font-mono);font-size:11px}
+.log-barcode-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--cream-3);font-family:var(--font-mono);font-size:13px}
 .log-barcode-row:last-child{border-bottom:none}
 
 .sql-box{
   background:var(--ink);color:var(--cream);
   border-radius:var(--r-sm);padding:14px;
-  font-family:var(--font-mono);font-size:10px;
+  font-family:var(--font-mono);font-size:12px;
   white-space:pre;overflow-x:auto;line-height:1.7;margin-top:10px;
 }
 
@@ -613,7 +618,7 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
   background:var(--paper);border-radius:var(--r);margin:8px 0;
   box-shadow:var(--shadow-soft),var(--rim);
 }
-.empty-icon{font-size:48px;margin-bottom:14px;display:block;filter:drop-shadow(0 6px 10px rgba(42,34,54,.15))}
+.empty-icon{font-size:48px;margin-bottom:14px;display:block;color:var(--miu-primary)}
 .empty-text{font-family:var(--font-display);font-size:20px;font-weight:400;line-height:1.35;color:var(--ink-2);letter-spacing:-.01em}
 
 /* ── DIVIDER ── */
@@ -630,8 +635,8 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
 /* ── STATS / CALLOUT ── */
 .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
 .stat-cell{padding:14px 10px;background:var(--paper);border-radius:var(--r-sm);text-align:center;box-shadow:var(--shadow-soft),var(--rim)}
-.stat-cell-val{font-family:var(--font-display);font-size:28px;font-weight:400;color:var(--purple);line-height:1;letter-spacing:-.02em}
-.stat-cell-lbl{font-family:var(--font-mono);font-size:9px;color:var(--ink-3);margin-top:6px;text-transform:uppercase;letter-spacing:.08em}
+.stat-cell-val{font-family:var(--font-ui);font-weight:700;font-variant-numeric:tabular-nums;font-size:28px;font-weight:400;color:var(--purple);line-height:1;letter-spacing:-.02em}
+.stat-cell-lbl{font-family:var(--font-mono);font-size:12px;color:var(--ink-3);margin-top:6px;text-transform:uppercase;letter-spacing:.08em}
 
 .callout{
   padding:14px 16px;border-radius:var(--r-sm);
@@ -641,17 +646,18 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
   box-shadow:var(--shadow-soft),var(--rim);
 }
 .callout::before{
-  content:'💡';flex-shrink:0;font-size:20px;line-height:1;
+  font-family:'Phosphor-Bold';content:'\e2dc';flex-shrink:0;font-size:20px;line-height:1;color:var(--miu-primary);
 }
-.callout.warn::before{content:'⚠️'}
-.callout.err{background:var(--coral-bg);color:var(--coral-dk)}
-.callout.err::before{content:'🚨'}
+.callout.warn::before{content:'\e4e0';color:var(--miu-warning-text)}
+.callout.err{background:color-mix(in srgb,var(--miu-error) 9%,var(--miu-canvas));color:var(--miu-error-text)}
+.callout.err::before{content:'\e9b8';color:var(--miu-error-text)}
 .callout.ok{background:var(--mint-bg);color:var(--mint-dk)}
-.callout.ok::before{content:'✨'}
+.callout.ok::before{content:'\e6a2';color:var(--miu-success-text)}
 
 .detail-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px}
 .detail-stats>div{padding:14px 10px;background:var(--paper);border-radius:var(--r-sm);box-shadow:var(--shadow-soft),var(--rim)}
 
+.ph-ic{font-size:1.1em;vertical-align:-.12em}
 .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
 </style>
 </head>
@@ -751,15 +757,15 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
     <div class="miu-section" style="margin-top:20px">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
         <div class="miu-stat" style="padding:14px 12px">
-          <div class="miu-stat-label" style="font-size:10px">오늘 예상 이동</div>
+          <div class="miu-stat-label" style="font-size:12px">오늘 예상 이동</div>
           <div class="miu-stat-value" id="stat-today-move" style="color:var(--miu-muted);font-size:24px">—</div>
         </div>
         <div class="miu-stat" style="padding:14px 12px">
-          <div class="miu-stat-label" style="font-size:10px">승인 대기 세션</div>
+          <div class="miu-stat-label" style="font-size:12px">승인 대기 세션</div>
           <div class="miu-stat-value" id="stat-pending-move" style="color:var(--miu-muted);font-size:24px">—</div>
         </div>
         <div class="miu-stat" style="padding:14px 12px">
-          <div class="miu-stat-label" style="font-size:10px">이번 주</div>
+          <div class="miu-stat-label" style="font-size:12px">이번 주</div>
           <div class="miu-stat-value" id="stat-week-move" style="color:var(--miu-muted);font-size:24px">—</div>
         </div>
       </div>
@@ -773,7 +779,7 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
         <span class="miu-section-divider"></span>
       </div>
       <div class="miu-tile-grid">
-        <a href="javascript:void(0)" onclick="startScanFlow()" class="miu-tile miu-tile-wide" style="--tile-accent:var(--miu-primary)">
+        <a href="javascript:void(0)" onclick="startScanFlow()" class="miu-tile miu-tile-wide" >
           <div class="miu-tile-icon"><i class="ph-bold ph-scan"></i></div>
           <div class="miu-tile-body">
             <div class="miu-tile-title">바코드 스캔</div>
@@ -781,7 +787,7 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
           </div>
           <span class="miu-tile-arrow"><i class="ph-bold ph-caret-right"></i></span>
         </a>
-        <a href="javascript:void(0)" onclick="showScreen('s-bulk')" class="miu-tile miu-tile-wide" style="--tile-accent:#7c6da8">
+        <a href="javascript:void(0)" onclick="showScreen('s-bulk')" class="miu-tile miu-tile-wide">
           <div class="miu-tile-icon"><i class="ph-bold ph-stack"></i></div>
           <div class="miu-tile-body">
             <div class="miu-tile-title">대량 이동</div>
@@ -800,7 +806,7 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
         <span class="miu-section-divider"></span>
       </div>
       <div class="miu-tile-grid">
-        <a href="javascript:void(0)" onclick="showScreen('s-log')" class="miu-tile miu-tile-wide" style="--tile-accent:#3c4e75">
+        <a href="javascript:void(0)" onclick="showScreen('s-log')" class="miu-tile miu-tile-wide" >
           <div class="miu-tile-icon"><i class="ph-bold ph-clipboard-text"></i></div>
           <div class="miu-tile-body">
             <div class="miu-tile-title">이동 로그</div>
@@ -960,14 +966,14 @@ p.page-desc{font-size:15px;color:var(--ink-2);line-height:1.55;margin-bottom:24p
     </div>
     <div class="scan-meta-right">
       <div class="scan-route" id="scan-route-display"></div>
-      <div style="font-family:var(--font-mono);font-size:9px;color:var(--ink-4);text-transform:uppercase;letter-spacing:.06em" id="scan-session-members"></div>
+      <div style="font-family:var(--font-mono);font-size:12px;color:var(--ink-4);text-transform:uppercase;letter-spacing:.06em" id="scan-session-members"></div>
       <div style="display:flex;gap:6px;margin-top:4px">
-        <button onclick="setScanFilter('all')" id="filter-btn-all" class="loc-btn" style="font-size:10px;padding:4px 10px;background:var(--purple);color:#fff">전체</button>
-        <button onclick="setScanFilter('mine')" id="filter-btn-mine" class="loc-btn" style="font-size:10px;padding:4px 10px">내 것만</button>
+        <button onclick="setScanFilter('all')" id="filter-btn-all" class="loc-btn" style="font-size:13px;padding:4px 14px;min-height:40px;background:var(--purple);color:#fff">전체</button>
+        <button onclick="setScanFilter('mine')" id="filter-btn-mine" class="loc-btn" style="font-size:13px;padding:4px 14px;min-height:40px">내 것만</button>
       </div>
       <div style="display:flex;gap:6px;margin-top:4px">
-        <button onclick="completeHanger()" class="loc-btn" style="flex:1">✓ 행거 완료</button>
-        <button onclick="deleteCurrentHanger()" class="loc-btn" style="flex:1;color:var(--err)">✕ 행거 삭제</button>
+        <button onclick="completeHanger()" class="loc-btn" style="flex:1"><i class="ph-bold ph-check ph-ic"></i> 행거 완료</button>
+        <button onclick="deleteCurrentHanger()" class="loc-btn" style="flex:1;color:var(--err)"><i class="ph-bold ph-trash ph-ic"></i> 행거 삭제</button>
       </div>
     </div>
   </div>
@@ -1344,7 +1350,7 @@ async function loadMoveStats() {
     const el = document.getElementById(id);
     if (!el) return;
     el.textContent = val;
-    el.style.color = warn ? 'var(--miu-warning)' : 'var(--miu-ink)';
+    el.style.color = warn ? 'var(--miu-warning-text)' : 'var(--miu-ink)';
   };
 
   if (pendingRes.status === 'fulfilled' && !pendingRes.value.error) {
@@ -1395,16 +1401,16 @@ async function loadHomeSessions() {
     const all = [...(pendingRes.data || []), ...(approvedRes.data || [])];
     const el = document.getElementById('home-sessions');
     if (all.length === 0) {
-      el.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">진행 중인 세션이 없어요</div></div>';
+      el.innerHTML = '<div class="empty"><div class="empty-icon"><i class="ph-bold ph-tray ph-ic"></i></div><div class="empty-text">진행 중인 세션이 없어요</div></div>';
       return;
     }
     el.innerHTML = all.map(s => `<div class="session-card" onclick="homeSessionClick('${s.id}','${s.status}')">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
       <div class="session-route">${s.from_location} <span class="session-route-arrow">→</span> ${s.to_location}</div>
-      <span class="badge badge-${{pending:'pending',approved:'approved',correction:'correction'}[s.status]||'pending'} badge-dot">${{pending:'대기중',approved:'완료',correction:'정정완료'}[s.status]||s.status}</span>
+      <span class="badge badge-${{pending:'pending',approved:'approved',correction:'correction',processed:'approved',expired:'muted'}[s.status]||'muted'} badge-dot">${{pending:'대기중',approved:'완료',correction:'정정완료',processed:'반영완료',expired:'만료'}[s.status]||s.status}</span>
     </div>
     <div class="session-meta">
-      <span style="font-family:var(--font-mono);font-size:11px">${s.session_items?.[0]?.count??0}벌</span>
+      <span style="font-variant-numeric:tabular-nums">${s.session_items?.[0]?.count??0}벌</span>
       <span class="session-meta-dot"></span>
       <span>${formatDate(s.session_date)} ${formatTime(s.created_at)}</span>
       <span class="session-meta-dot"></span>
@@ -1415,16 +1421,16 @@ async function loadHomeSessions() {
 }
 
 function sessionCardHTML(s, clickable = true) {
-  const badgeMap = { pending: 'pending', approved: 'approved', correction: 'correction' };
-  const badgeLbl = { pending: '대기중', approved: '완료', correction: '정정완료' };
+  const badgeMap = { pending: 'pending', approved: 'approved', correction: 'correction', processed: 'approved', expired: 'muted' };
+  const badgeLbl = { pending: '대기중', approved: '완료', correction: '정정완료', processed: '반영완료', expired: '만료' };
   const count = s.session_items?.[0]?.count??0;
   return `<div class="session-card">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
       <div class="session-route">${s.from_location} <span class="session-route-arrow">→</span> ${s.to_location}</div>
-      <span class="badge badge-${badgeMap[s.status] || 'pending'} badge-dot">${badgeLbl[s.status] || s.status}</span>
+      <span class="badge badge-${badgeMap[s.status] || 'muted'} badge-dot">${badgeLbl[s.status] || s.status}</span>
     </div>
     <div class="session-meta">
-      <span style="font-family:var(--font-mono);font-size:11px">${count}벌</span>
+      <span style="font-variant-numeric:tabular-nums">${count}벌</span>
       <span class="session-meta-dot"></span>
       <span>${formatTime(s.created_at)}</span>
       <span class="session-meta-dot"></span>
@@ -1535,7 +1541,7 @@ async function bulkSubmit() {
     const listEl = document.getElementById('bulk-confirm-list');
     let html = '';
     if (validItems.length > 0) {
-      html += `<div style="font-size:11px;font-weight:700;color:var(--ok);padding:8px 0 6px;letter-spacing:.04em">✅ 정상 ${validItems.length}벌</div>`;
+      html += `<div style="font-size:13px;font-weight:700;color:var(--ok);padding:8px 0 6px;letter-spacing:.04em"><i class="ph-bold ph-check-circle ph-ic"></i> 정상 ${validItems.length}벌</div>`;
       validItems.forEach(i => {
         html += `<div class="card-row" style="padding:10px 14px">
           <span style="font-family:var(--font-mono);font-size:12px;color:var(--ink-2)">${i.barcode}</span>
@@ -1544,7 +1550,7 @@ async function bulkSubmit() {
       });
     }
     if (errorItems.length > 0) {
-      html += `<div style="font-size:11px;font-weight:700;color:var(--err);padding:12px 0 6px;letter-spacing:.04em">⚠ 오류 (엑셀에 없음) ${errorItems.length}개</div>`;
+      html += `<div style="font-size:13px;font-weight:700;color:var(--err);padding:12px 0 6px;letter-spacing:.04em"><i class="ph-bold ph-warning ph-ic"></i> 오류 (엑셀에 없음) ${errorItems.length}개</div>`;
       errorItems.forEach(bc => {
         html += `<div class="card-row" style="padding:10px 14px;opacity:.6">
           <span style="font-family:var(--font-mono);font-size:12px;color:var(--err)">${bc}</span>
@@ -1907,19 +1913,19 @@ function addItemToUI(item, prepend = true) {
   const prevLocMatch = !item.is_error && item.current_location && app.scanTo &&
     String(item.current_location).trim() === String(app.scanTo).trim();
   const prevLocHTML = item.is_error ? '' : `
-      <div class="scan-item-prevloc" style="font-size:11px;margin-top:2px;${prevLocMatch ? 'color:var(--err);font-weight:700' : 'color:var(--ink-3)'}">
-        ${prevLocMatch ? '⚠ ' : ''}직전위치: ${item.current_location ? item.current_location : '직전위치값 없음'}${prevLocMatch ? ' (도착지와 동일)' : ''}
+      <div class="scan-item-prevloc" style="font-size:13px;margin-top:2px;${prevLocMatch ? 'color:var(--err);font-weight:700' : 'color:var(--ink-3)'}">
+        ${prevLocMatch ? '<i class="ph-bold ph-warning ph-ic"></i> ' : ''}직전위치: ${item.current_location ? item.current_location : '직전위치값 없음'}${prevLocMatch ? ' (도착지와 동일)' : ''}
       </div>`;
 
   div.innerHTML = `
     <div class="scan-item-num"></div>
     <div class="scan-item-info">
-      <div class="scan-item-name">${item.is_error ? `⚠ ${item.barcode}` : (item.product_name || item.barcode)}</div>
+      <div class="scan-item-name">${item.is_error ? `<i class="ph-bold ph-warning ph-ic"></i> ${item.barcode}` : (item.product_name || item.barcode)}</div>
       <div class="scan-item-barcode">${item.barcode}${item.category ? ` · ${item.category}` : ''}${item.price ? ` · ${item.price}` : ''}</div>
-      ${item.is_error ? `<div style="font-size:11px;color:var(--danger)">${item.error_msg}</div>` : prevLocHTML}
+      ${item.is_error ? `<div style="font-size:13px;color:var(--danger)">${item.error_msg}</div>` : prevLocHTML}
     </div>
     <div class="scan-item-by">${item.scanned_by}</div>
-    ${item.scanned_by === app.scanUser ? `<button class="scan-item-remove" onclick="removeItem('${item.id}')">✕</button>` : ''}
+    ${item.scanned_by === app.scanUser ? `<button class="scan-item-remove" onclick="removeItem('${item.id}')"><i class="ph-bold ph-x ph-ic"></i></button>` : ''}
   `;
 
   if (prepend && list.firstChild) {
@@ -1944,7 +1950,7 @@ function completeHanger() {
   app.hangerCount = 0;
   app.currentHangerItemIds = [];
   updateScanCount();
-  showToast(`행거 완료 ✓  ${count}벌 확인`, 'success');
+  showToast(`행거 완료 ${count}벌 확인`, 'success');
 }
 
 async function deleteCurrentHanger() {
@@ -2009,7 +2015,7 @@ async function updateSessionMemberCount() {
         if (d.is_submitted) memberMap[d.scanned_by].submitted = true;
       });
       const text = Object.entries(memberMap)
-        .map(([name, info]) => `${name}${info.submitted ? ' ✅' : ''}`)
+        .map(([name, info]) => `${name}${info.submitted ? ' (제출)' : ''}`)
         .join('  ·  ');
       document.getElementById('scan-session-members').textContent = text;
     }
@@ -2119,7 +2125,7 @@ function setLogFilter(type, btn) {
     document.getElementById('log-date-from').value = today;
     document.getElementById('log-date-to').value   = today;
     document.getElementById('log-list').innerHTML =
-      '<div class="empty"><div class="empty-icon">📅</div><div class="empty-text">날짜를 설정해 주세요</div></div>';
+      '<div class="empty"><div class="empty-icon"><i class="ph-bold ph-calendar-blank ph-ic"></i></div><div class="empty-text">날짜를 설정해 주세요</div></div>';
     document.getElementById('log-sub').textContent = '';
   } else {
     customEl.style.display = 'none';
@@ -2162,7 +2168,7 @@ async function loadLog() {
       .order('created_at', { ascending: false });
 
     if (!sessions || sessions.length === 0) {
-      listEl.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">해당 기간에 이동 내역이 없어요</div></div>';
+      listEl.innerHTML = '<div class="empty"><div class="empty-icon"><i class="ph-bold ph-tray ph-ic"></i></div><div class="empty-text">해당 기간에 이동 내역이 없어요</div></div>';
       return;
     }
 
@@ -2206,8 +2212,8 @@ async function loadLog() {
       grouped[s.session_date].push(s);
     });
 
-    const badgeLbl = { pending:'대기중', approved:'완료', correction:'정정완료' };
-    const badgeCls = { pending:'pending', approved:'approved', correction:'correction' };
+    const badgeLbl = { pending:'대기중', approved:'완료', correction:'정정완료', processed:'반영완료', expired:'만료' };
+    const badgeCls = { pending:'pending', approved:'approved', correction:'correction', processed:'approved', expired:'muted' };
 
     let html = '';
     Object.entries(grouped).forEach(([date, list]) => {
@@ -2228,7 +2234,7 @@ async function loadLog() {
             <div class="log-sum-cat-row">${fmtCats(r.catMap)}</div>
           </div>`).join('');
         html += `<div class="log-day-summary">
-          <div class="log-day-summary-total">📦 총 ${ds.total}벌 이동완료</div>
+          <div class="log-day-summary-total"><i class="ph-bold ph-package ph-ic"></i> 총 ${ds.total}벌 이동완료</div>
           ${routeRows}
         </div>`;
       }
@@ -2247,7 +2253,7 @@ async function loadLog() {
               </div>
             </div>
             <span class="badge badge-${badgeCls[s.status]||'pending'} badge-dot" style="flex-shrink:0">${badgeLbl[s.status]||s.status}</span>
-            <button onclick="event.stopPropagation(); downloadSessionExcel('${s.id}')" style="background:var(--mint-bg);border:1px solid var(--mint-dk);border-radius:6px;color:var(--mint-dk);font-family:inherit;font-size:11px;font-weight:700;padding:4px 8px;cursor:pointer;flex-shrink:0">⬇</button>
+            <button onclick="event.stopPropagation(); downloadSessionExcel('${s.id}')" aria-label="엑셀 다운로드" style="background:var(--cream-2);border:1px solid var(--miu-hairline);border-radius:8px;color:var(--ink);font-family:inherit;font-size:16px;font-weight:700;width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0"><i class="ph-bold ph-download-simple"></i></button>
           </div>
           <div class="log-barcode-list" id="lbl-${s.id}">
             <div class="loading" style="padding:16px 0"><div class="spinner"></div><span style="margin-left:8px;font-size:13px">불러오는 중...</span></div>
@@ -2257,7 +2263,7 @@ async function loadLog() {
     });
 
     listEl.innerHTML = html;
-  } catch(e) { listEl.innerHTML = `<div style="padding:20px;color:var(--danger);font-size:14px">오류: ${e.message}</div>`; }
+  } catch(e) { listEl.innerHTML = errBox(e.message, 'loadLog'); }
 }
 
 async function toggleLogSession(sessionId) {
@@ -2290,7 +2296,7 @@ async function toggleLogSession(sessionId) {
     renderLogItems(sessionId, items || []);
   } catch(e) {
     document.getElementById(`lbl-${sessionId}`).innerHTML =
-      `<div style="padding:12px 0;color:var(--danger);font-size:13px">오류: ${e.message}</div>`;
+      errBox(e.message);
   }
 }
 
@@ -2301,25 +2307,25 @@ function renderLogItems(sessionId, items) {
 
   const row = (item, i) => `
     <div class="log-barcode-row">
-      <span style="font-family:var(--font-mono);font-size:11px;color:var(--text3);width:22px;flex-shrink:0">${i+1}</span>
+      <span style="font-family:var(--font-mono);font-size:13px;color:var(--text3);width:22px;flex-shrink:0">${i+1}</span>
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.product_name||item.barcode}</div>
-        <div style="font-family:var(--font-mono);font-size:11px;color:var(--text2)">${item.barcode}${item.category?` · ${item.category}`:''}${item.price?` · ${item.price}`:''}</div>
+        <div style="font-family:var(--font-mono);font-size:13px;color:var(--text2)">${item.barcode}${item.category?` · ${item.category}`:''}${item.price?` · ${item.price}`:''}</div>
       </div>
-      <span style="font-size:11px;color:var(--text3);flex-shrink:0">${item.scanned_by}</span>
+      <span style="font-size:13px;color:var(--text3);flex-shrink:0">${item.scanned_by}</span>
     </div>`;
 
   let html = '';
   if (submitted.length) {
-    html += `<div style="font-size:11px;font-weight:700;color:var(--success);padding:10px 0 4px">✅ 제출완료 ${submitted.length}벌</div>`;
+    html += `<div style="font-size:13px;font-weight:700;color:var(--success);padding:10px 0 4px"><i class="ph-bold ph-check-circle ph-ic"></i> 제출완료 ${submitted.length}벌</div>`;
     html += submitted.map((item, i) => row(item, i)).join('');
   }
   if (inProgress.length) {
-    html += `<div style="font-size:11px;font-weight:700;color:var(--accent);padding:10px 0 4px">🔄 진행중 ${inProgress.length}벌</div>`;
+    html += `<div style="font-size:13px;font-weight:700;color:var(--accent);padding:10px 0 4px"><i class="ph-bold ph-arrows-clockwise ph-ic"></i> 진행중 ${inProgress.length}벌</div>`;
     html += inProgress.map((item, i) => row(item, i)).join('');
   }
   if (errors.length) {
-    html += `<div style="font-size:11px;font-weight:700;color:var(--danger);padding:10px 0 4px">⚠ 오류 ${errors.length}건</div>`;
+    html += `<div style="font-size:13px;font-weight:700;color:var(--danger);padding:10px 0 4px"><i class="ph-bold ph-warning ph-ic"></i> 오류 ${errors.length}건</div>`;
     html += errors.map((item, i) => row(item, i)).join('');
   }
   if (!html) html = '<div style="padding:12px 0;color:var(--text3);font-size:13px">항목이 없어요</div>';
@@ -2376,7 +2382,7 @@ async function downloadLogExcel() {
         s.session_date,
         s.from_location,
         s.to_location,
-        { pending:'대기중', approved:'완료', correction:'정정완료' }[s.status] || s.status,
+        { pending:'대기중', approved:'완료', correction:'정정완료', processed:'반영완료', expired:'만료' }[s.status] || s.status,
         si.filter(i => i.is_submitted && !i.is_error).length,
         si.filter(i => !i.is_submitted && !i.is_error).length,
         si.filter(i => i.is_error).length,
@@ -2398,7 +2404,7 @@ async function downloadLogExcel() {
         s.session_date,
         s.from_location,
         s.to_location,
-        { pending:'대기중', approved:'완료', correction:'정정완료' }[s.status] || s.status,
+        { pending:'대기중', approved:'완료', correction:'정정완료', processed:'반영완료', expired:'만료' }[s.status] || s.status,
         item.barcode,
         item.product_name || '',
         item.category || '',
@@ -2488,12 +2494,12 @@ async function doLookupMulti() {
       if (sold) {
         locationHtml = `<span style="color:var(--ok);font-weight:700">판매됨</span>`;
       } else if (location) {
-        locationHtml = `<span style="color:var(--purple);font-weight:700">${location}${isPending ? ' <span style="color:var(--accent);font-size:11px">(대기중)</span>' : ''}</span>`;
+        locationHtml = `<span style="color:var(--purple);font-weight:700">${location}${isPending ? ' <span style="color:var(--accent);font-size:13px">(대기중)</span>' : ''}</span>`;
       } else {
         locationHtml = `<span style="color:var(--ink-3)">기록 없음</span>`;
       }
       const soldBadge = sold
-        ? `<span style="font-size:11px;color:var(--ok)">${sold.sold_date || ''} ${sold.store || ''}</span>`
+        ? `<span style="font-size:13px;color:var(--ok)">${sold.sold_date || ''} ${sold.store || ''}</span>`
         : '';
       return `<div class="card-row" style="flex-direction:column;align-items:flex-start;gap:4px;padding:12px 16px">
         <div style="display:flex;justify-content:space-between;align-items:center;width:100%">
@@ -2514,7 +2520,7 @@ async function doLookupMulti() {
       <div class="card">${rows}</div>
     `;
   } catch(e) {
-    resultEl.innerHTML = `<div style="color:var(--danger);padding:16px;font-size:14px">오류: ${e.message}</div>`;
+    resultEl.innerHTML = errBox(e.message, 'doLookupMulti');
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<span>최종 위치 조회 →</span>';
@@ -2569,7 +2575,7 @@ async function doLookup() {
       } catch(e) {}
 
       if (!ingestInfo && !soldInfo) {
-        el.innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">기록이 없어요<br>${barcode}</div></div>`;
+        el.innerHTML = `<div class="empty"><div class="empty-icon"><i class="ph-bold ph-magnifying-glass ph-ic"></i></div><div class="empty-text">기록이 없어요<br>${barcode}</div></div>`;
         return;
       }
 
@@ -2580,7 +2586,7 @@ async function doLookup() {
           ${soldInfo?.product_name ? `<div class="card-row"><span class="card-row-label">상품명</span><span class="card-row-value">${soldInfo.product_name}</span></div>` : ''}
           <div class="card-row"><span class="card-row-label">현재 위치</span><span class="card-row-value" style="color:${soldInfo ? 'var(--ok)' : 'var(--purple)'}">${currentLoc}</span></div>
           ${soldInfo ? `
-            <div class="card-row"><span class="card-row-label">판매 상태</span><span class="card-row-value" style="color:var(--ok);font-weight:800">✅ 판매 완료</span></div>
+            <div class="card-row"><span class="card-row-label">판매 상태</span><span class="card-row-value" style="color:var(--ok);font-weight:800"><i class="ph-bold ph-check-circle ph-ic"></i> 판매 완료</span></div>
             <div class="card-row"><span class="card-row-label">판매일</span><span class="card-row-value">${soldInfo.sold_date || '-'}</span></div>
             <div class="card-row"><span class="card-row-label">판매 매장</span><span class="card-row-value">${soldInfo.store || '-'}</span></div>
           ` : `<div class="card-row"><span class="card-row-label">판매 상태</span><span class="card-row-value" style="color:var(--ink-3)">재고 중</span></div>`}
@@ -2590,7 +2596,7 @@ async function doLookup() {
           ${ingestInfo ? `<div class="history-item">
             <div class="history-line"></div>
             <div class="history-info">
-              <div class="history-route">📦 최초 입고</div>
+              <div class="history-route"><i class="ph-bold ph-package ph-ic"></i> 최초 입고</div>
               <div class="history-date">${formatDate(ingestInfo.session_date)}</div>
               <div class="history-who">${ingestInfo.by || '-'} 입고</div>
             </div>
@@ -2598,7 +2604,7 @@ async function doLookup() {
           ${soldInfo ? `<div class="history-item">
             <div class="history-line"></div>
             <div class="history-info">
-              <div class="history-route" style="color:var(--ok);font-weight:700">🛍 판매 완료</div>
+              <div class="history-route" style="color:var(--ok);font-weight:700"><i class="ph-bold ph-shopping-bag ph-ic"></i> 판매 완료</div>
               <div class="history-date">${soldInfo.sold_date || ''} · ${soldInfo.store || ''}</div>
             </div>
           </div>` : ''}
@@ -2628,7 +2634,7 @@ async function doLookup() {
     } catch(e) { /* sold_items 테이블 없으면 무시 */ }
 
     const soldBadge = isSold
-      ? `<div class="card-row"><span class="card-row-label">판매 상태</span><span class="card-row-value" style="color:var(--ok);font-weight:800">✅ 판매 완료</span></div>
+      ? `<div class="card-row"><span class="card-row-label">판매 상태</span><span class="card-row-value" style="color:var(--ok);font-weight:800"><i class="ph-bold ph-check-circle ph-ic"></i> 판매 완료</span></div>
          <div class="card-row"><span class="card-row-label">판매일</span><span class="card-row-value">${soldInfo?.sold_date || '-'}</span></div>
          <div class="card-row"><span class="card-row-label">판매 매장</span><span class="card-row-value">${soldInfo?.store || '-'}</span></div>`
       : `<div class="card-row"><span class="card-row-label">판매 상태</span><span class="card-row-value" style="color:var(--ink-3)">재고 중</span></div>`;
@@ -2646,7 +2652,7 @@ async function doLookup() {
         ${ingestInfo ? `<div class="history-item">
           <div class="history-line"></div>
           <div class="history-info">
-            <div class="history-route">📦 최초 입고</div>
+            <div class="history-route"><i class="ph-bold ph-package ph-ic"></i> 최초 입고</div>
             <div class="history-date">${formatDate(ingestInfo.session_date)}</div>
             <div class="history-who">${ingestInfo.by || '-'} 입고</div>
           </div>
@@ -2666,13 +2672,13 @@ async function doLookup() {
         ${isSold ? `<div class="history-item">
           <div class="history-line"></div>
           <div class="history-info">
-            <div class="history-route" style="color:var(--ok);font-weight:700">🛍 판매 완료</div>
+            <div class="history-route" style="color:var(--ok);font-weight:700"><i class="ph-bold ph-shopping-bag ph-ic"></i> 판매 완료</div>
             <div class="history-date">${soldInfo?.sold_date || ''} · ${soldInfo?.store || ''}</div>
           </div>
         </div>` : ''}
       </div></div>
     `;
-  } catch(e) { el.innerHTML = `<div style="color:var(--danger);padding:16px;font-size:14px">오류: ${e.message}</div>`; }
+  } catch(e) { el.innerHTML = errBox(e.message, 'doLookup'); }
 }
 
 // ══════════════════════════════════════════
@@ -2707,6 +2713,10 @@ function showToast(msg, type = '') {
 // ══════════════════════════════════════════
 //  UTILITIES
 // ══════════════════════════════════════════
+function errBox(msg, retry) {
+  const esc = (t) => String(t ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  return `<div class="miu-alert" role="alert" style="flex-direction:column;margin:12px 0"><div style="display:flex;gap:10px"><i class="ph-bold ph-warning-circle" style="font-size:20px;flex:none"></i><div><strong>불러오지 못했어요.</strong><div style="font-size:13px;margin-top:2px;word-break:break-all">${esc(msg)}</div></div></div>${retry ? `<button type="button" class="miu-btn miu-btn-secondary" onclick="${retry}()" style="margin-top:10px;align-self:flex-start"><i class="ph-bold ph-arrow-clockwise"></i> 다시 시도</button>` : ''}</div>`;
+}
 function pad(n) { return String(n).padStart(2, '0'); }
 function toDateStr(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
 function formatDate(s) {

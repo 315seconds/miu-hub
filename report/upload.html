@@ -2,23 +2,23 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>새 리포트 · 마켓인유</title>
 
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151148">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
-<script src="/miu-hub/shared/config.js?v=202611151148"></script>
+<script src="/miu-hub/shared/config.js?v=202611151334"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
 <!-- Phase 3: xlsx 파싱 + 집계 + 저장 -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="js/xlsx-parse.js?v=202611151148"></script>
-<script src="js/join.js?v=202611151148"></script>
-<script src="js/analyze.js?v=202611151148"></script>
-<script src="js/save-report.js?v=202611151148"></script>
+<script src="js/xlsx-parse.js?v=202611151334"></script>
+<script src="js/join.js?v=202611151334"></script>
+<script src="js/analyze.js?v=202611151334"></script>
+<script src="js/save-report.js?v=202611151334"></script>
 
 <style>
   .type-choice {
@@ -47,8 +47,6 @@
     color: var(--miu-primary);
     margin-bottom: 8px;
   }
-  .type-card.type-main .type-card-icon { color: #4a6b8a; }
-  .type-card.type-main.active { border-color: #4a6b8a; }
   .type-card-title {
     font-family: var(--miu-serif);
     font-size: 16px;
@@ -57,7 +55,7 @@
     margin-bottom: 4px;
   }
   .type-card-desc {
-    font-size: 12px;
+    font-size: 13px;
     color: var(--miu-muted);
     line-height: 1.4;
   }
@@ -92,7 +90,7 @@
     color: var(--miu-ink);
   }
   .upload-card-hint {
-    font-size: 11px;
+    font-size: 13px;
     color: var(--miu-muted);
     margin-left: 34px;
     margin-bottom: 8px;
@@ -103,20 +101,24 @@
 
   /* 파일 선택 라벨 */
   .file-label {
-    display: block;
-    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--miu-tap);
+    padding: 10px 16px;
     background: var(--miu-canvas);
     border: 1.5px dashed var(--miu-hairline);
     border-radius: var(--miu-r-md);
     cursor: pointer;
     transition: border-color .15s, background .15s;
     text-align: center;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--miu-muted);
     font-family: var(--miu-sans);
   }
   .file-label:hover { border-color: var(--miu-primary); color: var(--miu-primary); }
   .file-label.has-file {
+    justify-content: flex-start;
     border-style: solid;
     border-color: var(--miu-success);
     background: color-mix(in srgb, var(--miu-success) 6%, transparent);
@@ -134,12 +136,13 @@
     margin-bottom: 8px;
   }
   .kiosk-label {
-    font-family: var(--miu-serif);
-    font-size: 13px;
+    font-family: var(--miu-sans);
+    font-weight: 600;
+    font-size: 14px;
     color: var(--miu-muted);
     text-align: center;
   }
-  .kiosk-row .file-label { padding: 10px 12px; font-size: 12px; }
+  .kiosk-row .file-label { padding: 8px 10px; font-size: 14px; }
 
   .kiosk-count-row {
     display: flex; align-items: center; gap: 10px;
@@ -147,17 +150,9 @@
     margin-bottom: 14px;
   }
   .kiosk-count-row label {
-    font-size: 12px; color: var(--miu-muted);
+    font-size: 13px; color: var(--miu-muted);
   }
-  .kiosk-count-row select {
-    height: 32px; padding: 0 10px;
-    background: var(--miu-canvas);
-    border: 1px solid var(--miu-hairline);
-    border-radius: var(--miu-r-sm);
-    font-family: var(--miu-sans);
-    font-size: 13px;
-    color: var(--miu-ink);
-  }
+  .kiosk-count-row select { width: auto; min-width: 110px; }
 
   /* 두 달 입고 옵션 */
   .radio-group {
@@ -166,16 +161,17 @@
     display: flex; flex-direction: column; gap: 6px;
   }
   .radio-option {
-    display: flex; align-items: center; gap: 8px;
+    display: flex; align-items: center; gap: 10px;
+    min-height: var(--miu-tap);
     padding: 8px 12px;
     background: var(--miu-canvas);
     border: 1px solid var(--miu-hairline);
     border-radius: var(--miu-r-sm);
     cursor: pointer;
-    font-size: 13px;
+    font-size: 14px;
     color: var(--miu-body);
   }
-  .radio-option input { accent-color: var(--miu-primary); }
+  .radio-option input { width: 20px; height: 20px; accent-color: var(--miu-primary); }
   .radio-option:has(input:checked) {
     border-color: var(--miu-primary);
     background: color-mix(in srgb, var(--miu-primary) 5%, transparent);
@@ -190,50 +186,41 @@
   .field-row label {
     display: block;
     font-family: var(--miu-sans);
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--miu-body-strong);
     margin-bottom: 6px;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.2px;
   }
-  .field-row input,
-  .field-row select {
+  .field-row input {
     width: 100%;
     height: 44px;
     padding: 0 14px;
     background: var(--miu-canvas);
-    border: 1px solid var(--miu-hairline);
+    border: 1px solid var(--miu-field-border);
     border-radius: var(--miu-r-md);
     font-family: var(--miu-sans);
-    font-size: 15px;
+    font-size: 16px;
     color: var(--miu-ink);
   }
   .field-row input:focus,
   .field-row select:focus {
     outline: none;
     border-color: var(--miu-primary);
-    box-shadow: 0 0 0 3px rgba(204,120,92,0.15);
-  }
-
-  .action-bar {
-    position: sticky;
-    bottom: 0;
-    padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
-    background: var(--miu-canvas);
-    border-top: 1px solid var(--miu-hairline);
+    box-shadow: var(--miu-focus);
   }
 
   #global-msg {
     margin: 10px 20px 0;
     padding: 10px 14px;
     border-radius: var(--miu-r-md);
-    font-size: 13px;
+    font-size: 14px;
     display: none;
   }
   #global-msg.err {
     display: block;
     background: color-mix(in srgb, var(--miu-error) 10%, transparent);
-    color: var(--miu-error);
+    color: var(--miu-error-text);
   }
   #global-msg.info {
     display: block;
@@ -292,7 +279,7 @@
       <!-- 성수본점 전용: 월 선택 -->
       <div class="field-row" id="month-field">
         <label for="month-select">정산 월</label>
-        <select id="month-select"></select>
+        <select id="month-select" class="miu-select"></select>
       </div>
 
       <!-- 팝업 전용: 시작일/종료일 -->
@@ -332,7 +319,7 @@
 
         <div class="kiosk-count-row">
           <label>키오스크 수</label>
-          <select id="kiosk-count">
+          <select id="kiosk-count" class="miu-select">
             <option value="1">1대</option>
             <option value="2" selected>2대</option>
             <option value="3">3대</option>
@@ -349,16 +336,16 @@
       <div class="upload-card">
         <div class="upload-card-head">
           <span class="upload-num" id="num-cash">B</span>
-          <span class="upload-card-title">현금매출 <span style="font-weight:400;font-size:12px;color:var(--miu-muted)">(선택)</span></span>
+          <span class="upload-card-title">현금매출 <span style="font-weight:400;font-size:13px;color:var(--miu-muted)">(선택)</span></span>
         </div>
         <div class="upload-card-hint">해당 기간·지점의 현금/계좌 매출을 구글 시트에서 자동 합산합니다</div>
         <div style="margin-left:34px;display:flex;flex-direction:column;gap:8px">
-          <button type="button" class="miu-btn miu-btn-secondary" id="fetch-cash-btn" style="font-size:13px;height:36px">
+          <button type="button" class="miu-btn miu-btn-secondary" id="fetch-cash-btn" style="font-size:14px;height:44px">
             <i class="ph-bold ph-table"></i> 시트에서 불러오기
           </button>
-          <div id="cash-fetch-msg" style="font-size:12px;color:var(--miu-muted);display:none"></div>
+          <div id="cash-fetch-msg" style="font-size:13px;color:var(--miu-muted);display:none"></div>
           <input type="number" id="cash-input" placeholder="직접 입력도 가능 (원)" min="0" step="1000"
-            style="height:40px;padding:0 12px;background:var(--miu-canvas);border:1px solid var(--miu-hairline);border-radius:var(--miu-r-md);font-size:14px;color:var(--miu-ink);font-family:var(--miu-sans)">
+            style="height:44px;padding:0 12px;background:var(--miu-canvas);border:1px solid var(--miu-hairline);border-radius:var(--miu-r-md);font-size:16px;color:var(--miu-ink);font-family:var(--miu-sans)">
         </div>
       </div>
 
@@ -406,7 +393,8 @@
   </div>
 
   <!-- 하단 액션 -->
-  <div class="action-bar">
+  <div class="miu-action-bar" style="flex-wrap:wrap">
+    <div id="remaining-msg" style="flex:0 0 100%;font-size:13px;color:var(--miu-muted)"></div>
     <button class="miu-btn miu-btn-primary" id="generate-btn" disabled>
       <i class="ph-bold ph-magic-wand"></i> 리포트 생성
     </button>
@@ -613,7 +601,7 @@ $('fetch-cash-btn').addEventListener('click', async () => {
   const endDate = $('end-date').value;
 
   if (!storeLabel || !startDate || !endDate) {
-    msg.style.cssText = 'display:block;font-size:12px;color:var(--miu-error)';
+    msg.style.cssText = 'display:block;font-size:13px;color:var(--miu-error-text)';
     msg.textContent = '먼저 지점명과 기간을 입력해주세요.';
     return;
   }
@@ -626,11 +614,11 @@ $('fetch-cash-btn').addEventListener('click', async () => {
   try {
     const { total, count } = await fetchCashSalesFromSheet(storeLabel, startDate, endDate);
     $('cash-input').value = total;
-    msg.style.cssText = 'display:block;font-size:12px;color:var(--miu-muted)';
+    msg.style.cssText = 'display:block;font-size:13px;color:var(--miu-muted)';
     msg.textContent = count > 0 ? `${count}건 · ${total.toLocaleString()}원 합산됨` : `해당 기간 "${storeLabel}" 현금매출 없음`;
     if (total > 0) $('num-cash').classList.add('done');
   } catch (e) {
-    msg.style.cssText = 'display:block;font-size:12px;color:var(--miu-error)';
+    msg.style.cssText = 'display:block;font-size:13px;color:var(--miu-error-text)';
     msg.textContent = e.message || '불러오기 실패';
   } finally {
     btn.disabled = false;
@@ -679,6 +667,18 @@ function revalidate() {
   const ok = store && startD && endD && allKioskFiles && ingoOK && startD <= endD;
 
   $('generate-btn').disabled = !ok;
+
+  // 못 누르는 이유(검증 결과는 그대로, 안내 문구만)
+  const left = [];
+  if (isPopup && !store) left.push('지점명');
+  if (!startD || !endD) left.push('기간'); else if (startD > endD) left.push('기간 순서');
+  const miss = kiosks.reduce((n, k) => n + (k.receipt ? 0 : 1) + (k.card ? 0 : 1), 0);
+  if (miss) left.push(`키오스크 파일 ${miss}개`);
+  if (!ingoMain) left.push('입고 파일');
+  if (ingoMode === 'double' && !ingoPrev) left.push('이전 달 입고 파일');
+  const rm = $('remaining-msg');
+  rm.textContent = left.length ? `남은 것: ${left.join(' · ')}` : '';
+  rm.style.display = left.length ? '' : 'none';
 
   // 진행 상황 넘버링
   const kioskDone = allKioskFiles;

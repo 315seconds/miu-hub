@@ -2,19 +2,19 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>라벨 출력 · 마켓인유</title>
 
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151148">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="js/BrowserPrint.min.js?v=202611151148" onerror="console.warn('BrowserPrint SDK 없음')"></script>
-<script src="js/BrowserPrint-Zebra.min.js?v=202611151148" onerror="console.warn('BrowserPrint-Zebra SDK 없음')"></script>
-<script src="js/supabase-client.js?v=202611151148"></script>
+<script src="js/BrowserPrint.min.js?v=202611151334" onerror="console.warn('BrowserPrint SDK 없음')"></script>
+<script src="js/BrowserPrint-Zebra.min.js?v=202611151334" onerror="console.warn('BrowserPrint-Zebra SDK 없음')"></script>
+<script src="js/supabase-client.js?v=202611151334"></script>
 <script>
 function appAlert(msg) {
   return new Promise(resolve => {
@@ -30,10 +30,10 @@ function appAlert(msg) {
 </script>
 
 <!-- auth-migration: 로그인 가드 -->
-<script src="/miu-hub/shared/config.js?v=202611151148"></script>
+<script src="/miu-hub/shared/config.js?v=202611151334"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
 
 <style>
 /* ── 툴바 (미유 톤) ── */
@@ -41,17 +41,18 @@ function appAlert(msg) {
   display: flex; align-items: center; gap: 10px;
   padding: 12px 16px; flex-wrap: wrap;
   background: var(--miu-canvas); border-bottom: 1px solid var(--miu-hairline);
-  position: sticky; top: 0; z-index: 10;
+  position: sticky; top: var(--miu-header-h); z-index: 9;
 }
 .labels-sub {
-  font-size: 12px; color: var(--miu-muted);
-  padding: 0 16px 12px; background: var(--miu-canvas);
+  font-size: var(--miu-fs-small); color: var(--miu-muted);
+  padding: 8px 16px; background: var(--miu-canvas);
   border-bottom: 1px solid var(--miu-hairline);
-  position: sticky; top: 57px; z-index: 9;
 }
+.labels-sub:empty { display: none; }
 .tb-btn {
-  border-radius: 8px; padding: 8px 14px; font-size: 13px;
+  border-radius: 8px; padding: 0 14px; min-height: var(--miu-tap); font-size: 14px;
   font-weight: 600; cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   border: 1px solid var(--miu-hairline); background: var(--miu-canvas);
   color: var(--miu-ink); font-family: inherit;
 }
@@ -59,29 +60,31 @@ function appAlert(msg) {
 .tb-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .tb-btn.tb-btn--team { color: var(--miu-muted); }
 .tb-btn.tb-btn--team.active {
-  background: var(--miu-primary); color: #fff; border-color: var(--miu-primary);
+  background: var(--miu-surface-card); color: var(--miu-ink); border-color: var(--miu-ink);
 }
 .tb-btn.tb-btn--primary {
-  background: var(--miu-primary); color: #fff; border-color: var(--miu-primary);
+  background: var(--miu-primary); color: var(--miu-on-primary); border-color: var(--miu-primary);
 }
 .tb-btn.tb-btn--primary:hover:not(:disabled) { filter: brightness(0.95); }
+.tb-btn.tb-btn--primary:disabled { background: var(--miu-primary-disabled); color: var(--miu-muted); border-color: transparent; opacity: 1; }
 .tb-spacer { flex: 1; }
 
 .daily-controls { display: none; align-items: center; gap: 8px; flex-wrap: wrap; }
 .daily-controls input[type="date"] {
   background: var(--miu-canvas); color: var(--miu-ink);
   border: 1px solid var(--miu-hairline); border-radius: 8px;
-  padding: 7px 10px; font-size: 13px; font-family: inherit;
+  padding: 0 10px; min-height: var(--miu-tap); font-size: 16px; font-family: inherit;
 }
 .daily-toggle {
-  display: flex; align-items: center; gap: 4px;
-  font-size: 12px; color: var(--miu-muted); white-space: nowrap;
+  display: flex; align-items: center; gap: 8px; min-height: var(--miu-tap);
+  font-size: var(--miu-fs-small); color: var(--miu-muted); white-space: nowrap;
 }
+.daily-toggle input[type="checkbox"] { width: 20px; height: 20px; accent-color: var(--miu-primary); }
 
 .not-found-box {
   display: none;
-  background: #fef2f2; color: #991b1b;
-  border: 1px solid #fca5a5; border-radius: 10px;
+  background: color-mix(in srgb, var(--miu-error) 9%, var(--miu-canvas)); color: var(--miu-error-text);
+  border: 1px solid color-mix(in srgb, var(--miu-error) 28%, transparent); border-radius: 10px;
   padding: 12px 16px; margin: 12px 16px 0;
 }
 .not-found-box strong { display: block; margin-bottom: 6px; font-weight: 700; }
@@ -189,13 +192,13 @@ function appAlert(msg) {
 <div class="labels-sub" id="header-sub"></div>
 
 <div class="not-found-box" id="not-found-box">
-  <strong id="not-found-title">⚠ DB에서 찾지 못한 바코드</strong>
+  <strong id="not-found-title">DB에서 찾지 못한 바코드</strong>
   <div class="not-found-list" id="not-found-list"></div>
 </div>
 
 <div class="label-grid" id="label-grid"></div>
 
-<script src="js/api.js?v=202611151148"></script>
-<script src="js/labels.js?v=202611151148"></script>
+<script src="js/api.js?v=202611151334"></script>
+<script src="js/labels.js?v=202611151334"></script>
 </body>
 </html>

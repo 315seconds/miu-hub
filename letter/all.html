@@ -2,49 +2,51 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>지난주 판매 전체 — 마켓인유</title>
 <meta name="theme-color" content="#faf9f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151148">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
 :root {
-  --fast-bg: #FFE8DD;  --fast-fg: #a9583e;
-  --mid-bg:  #E8F5EC;  --mid-fg:  #2e6b3a;
+  --fast-bg: #FFE8DD;  --fast-fg: var(--miu-primary-active);
+  --mid-bg:  color-mix(in srgb, var(--miu-success) 14%, var(--miu-canvas));  --mid-fg:  var(--miu-success-text);
   --slow-bg: var(--miu-surface-soft);  --slow-fg: var(--miu-muted);
 }
 body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
 .wrap { max-width: 560px; margin: 0 auto; padding-bottom: 48px; }
 
-.toolbar { position: sticky; top: 73px; z-index: 50; background: var(--miu-canvas); border-bottom: 1px solid var(--miu-hairline-soft); padding: 12px 20px; }
+.toolbar { position: sticky; top: var(--miu-header-h); z-index: 9; background: var(--miu-canvas); border-bottom: 1px solid var(--miu-hairline-soft); padding: 12px 20px; }
+.sort-row { padding: 0 20px; }
 .chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
 .chips::-webkit-scrollbar { display: none; }
 .chip {
   flex-shrink: 0; border: 1px solid var(--miu-hairline); background: transparent; border-radius: var(--miu-r-pill);
-  padding: 7px 13px; font-size: 13px; font-weight: 600; color: var(--miu-body); font-family: var(--miu-sans); cursor: pointer;
+  min-height: 40px; padding: 0 14px; font-size: 14px; font-weight: 600; color: var(--miu-body); font-family: var(--miu-sans); cursor: pointer;
 }
-.chip.active { background: var(--miu-ink); border-color: var(--miu-ink); color: var(--miu-on-dark); }
-.chip small { font-weight: 500; opacity: .7; margin-left: 3px; }
-.sort-row { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; font-size: 12px; color: var(--miu-muted); }
-.sort-btn { background: none; border: none; color: var(--miu-primary); font-weight: 700; font-size: 12px; cursor: pointer; font-family: var(--miu-sans); display: inline-flex; align-items: center; gap: 4px; }
+.chip.active { background: var(--miu-primary); border-color: var(--miu-primary); color: var(--miu-on-primary); }
+.chip small { font-size: 13px; font-weight: 500; margin-left: 3px; }
+.sort-row { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; font-size: 13px; color: var(--miu-muted); gap: 8px; }
+.sort-btn { background: none; border: none; color: var(--miu-primary); font-weight: 700; font-size: 13px; cursor: pointer; font-family: var(--miu-sans); display: inline-flex; align-items: center; gap: 4px; min-height: var(--miu-tap); padding: 0 8px; flex-shrink: 0; }
 
-.preview-banner { margin: 14px 20px 0; padding: 10px 14px; border-radius: var(--miu-r-md); background: #fff3e0; color: #7a5210; font-size: 13px; line-height: 1.5; }
-.note { margin: 14px 20px 0; font-size: 12.5px; color: var(--miu-muted); line-height: 1.55; }
+.preview-banner { margin: 14px 20px 0; padding: 10px 14px; border-radius: var(--miu-r-md); background: color-mix(in srgb, var(--miu-warning) 16%, var(--miu-canvas)); color: var(--miu-warning-text); border: 1px solid color-mix(in srgb, var(--miu-warning) 45%, transparent); font-size: 14px; line-height: 1.5; }
+.preview-banner i { vertical-align: -2px; }
+.note { margin: 14px 20px 0; font-size: 13px; color: var(--miu-muted); line-height: 1.55; }
 
 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 14px 20px 0; }
 .cell { position: relative; border: none; padding: 0; background: var(--miu-surface-strong); border-radius: var(--miu-r-md); overflow: hidden; aspect-ratio: 4 / 5; cursor: pointer; }
 .cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .cell .d {
   position: absolute; left: 6px; bottom: 6px; padding: 3px 8px; border-radius: var(--miu-r-pill);
-  font-size: 11px; font-weight: 700; font-family: var(--miu-sans);
+  font-size: var(--miu-fs-micro); font-weight: 700; font-family: var(--miu-sans);
 }
 .d.fast { background: var(--fast-bg); color: var(--fast-fg); }
 .d.mid  { background: var(--mid-bg);  color: var(--mid-fg); }
 .d.slow { background: var(--slow-bg); color: var(--slow-fg); }
 
-.empty { text-align: center; padding: 96px 32px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
+
 
 /* 상세 시트 */
 .sheet-bg { position: fixed; inset: 0; z-index: 1000; display: none; background: rgba(20,20,19,.5); align-items: flex-end; justify-content: center; }
@@ -52,23 +54,23 @@ body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(-
 .sheet { width: 100%; max-width: 560px; max-height: 92dvh; overflow-y: auto; background: var(--miu-canvas); border-radius: 20px 20px 0 0; padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 .sheet .photo { position: relative; width: 100%; aspect-ratio: 4 / 5; background: var(--miu-surface-strong); }
 .sheet .photo img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 20px 20px 0 0; }
-.sheet .close { position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border-radius: 50%; border: none; background: rgba(250,249,245,.92); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--miu-ink); }
+.sheet .close { position: absolute; top: 12px; right: 12px; width: var(--miu-tap); height: var(--miu-tap); border-radius: 50%; border: none; background: rgba(250,249,245,.92); font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--miu-ink); }
 .sheet .body { padding: 18px 20px 0; }
-.sheet .cat { font-size: 12px; color: var(--miu-muted); }
+.sheet .cat { font-size: 13px; color: var(--miu-muted); }
 .sheet .name { font-size: 20px; font-weight: 600; letter-spacing: -0.4px; margin-top: 2px; }
 .sheet .row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-top: 10px; }
-.sheet .price { font-family: var(--miu-serif); font-size: 24px; font-weight: 500; letter-spacing: -0.6px; }
+.sheet .price { font-family: var(--miu-sans); font-variant-numeric: tabular-nums; font-size: 24px; font-weight: 700; letter-spacing: -0.6px; }
 .sheet .speed { font-size: 14px; font-weight: 700; }
 .sheet .dates { margin-top: 6px; font-size: 13px; color: var(--miu-muted); }
 .sheet .ref { margin-top: 16px; padding: 12px 14px; border-radius: var(--miu-r-md); background: var(--miu-surface-card); font-size: 13px; line-height: 1.6; color: var(--miu-body); }
 .sheet .ref b { color: var(--miu-ink); }
 .sheet .ref.none { color: var(--miu-muted); }
-.sheet .bc { margin-top: 14px; font-size: 11px; color: var(--miu-muted-soft); font-family: var(--miu-mono); }
+.sheet .bc { margin-top: 14px; font-size: 13px; color: var(--miu-body); font-family: var(--miu-mono); }
 </style>
-<script src="/miu-hub/shared/config.js?v=202611151148"></script>
+<script src="/miu-hub/shared/config.js?v=202611151334"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
 </head>
 <body>
 
@@ -82,7 +84,7 @@ body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(-
   </div>
 </header>
 
-<div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
+<div class="wrap" id="root"><div class="miu-loading"><span class="miu-spinner"></span> 불러오는 중…</div></div>
 
 <div class="sheet-bg" id="sheet-bg"><div class="sheet" id="sheet"></div></div>
 
@@ -130,17 +132,17 @@ function render(letter) {
   const chip = (k, label) => `<button class="chip ${filter === k ? 'active' : ''}" data-f="${k}">${label}<small>${counts[k]}</small></button>`;
   const isPreview = !adminView && me && letterSubject !== me.name;
   root.innerHTML = `
-    ${adminView ? `<div class="preview-banner">👀 <b>${esc(letterSubject)}</b>님에게 발송된 레터예요. 읽기만 하며 열람 기록은 바뀌지 않아요.</div>` : ''}
-    ${isPreview ? `<div class="preview-banner">👀 미리보기예요. <b>${esc(letterSubject)}</b>님의 레터를 보고 있어요.</div>` : ''}
+    ${adminView ? `<div class="preview-banner"><i class="ph-bold ph-eye"></i> <b>${esc(letterSubject)}</b>님에게 발송된 레터예요. 읽기만 하며 열람 기록은 바뀌지 않아요.</div>` : ''}
+    ${isPreview ? `<div class="preview-banner"><i class="ph-bold ph-eye"></i> 미리보기예요. <b>${esc(letterSubject)}</b>님의 레터를 보고 있어요.</div>` : ''}
     <div class="toolbar">
-      <div class="chips">${chip('all', '전체')}${chip('fast', '⚡ 빠름')}${chip('mid', '보통')}${chip('slow', '오래 걸림')}</div>
-      <div class="sort-row">
-        <span>${md(letter.payload.week_start)} – ${md(letter.payload.week_end)} 판매 · 사진 숫자는 입고 후 일수</span>
-        <button class="sort-btn" id="sort">${asc ? '빠른 순' : '오래 걸린 순'} <i class="ph-bold ph-arrows-down-up"></i></button>
-      </div>
+      <div class="chips">${chip('all', '전체')}${chip('fast', '<i class="ph-bold ph-lightning"></i> 빠름')}${chip('mid', '보통')}${chip('slow', '오래 걸림')}</div>
+    </div>
+    <div class="sort-row">
+      <span>${md(letter.payload.week_start)} – ${md(letter.payload.week_end)} 판매 · 사진 숫자는 입고 후 일수</span>
+      <button class="sort-btn" id="sort">${asc ? '빠른 순' : '오래 걸린 순'} <i class="ph-bold ph-arrows-down-up"></i></button>
     </div>
     ${letter.payload.week.no_photo_excluded > 0 ? `<div class="note">사진이 없는 물건 ${letter.payload.week.no_photo_excluded}점은 제외했어요.</div>` : ''}
-    ${list.length ? `<div class="grid">${list.map(({ c, i }) => cellHtml(c, i)).join('')}</div>` : '<div class="empty">해당하는 물건이 없어요.</div>'}`;
+    ${list.length ? `<div class="grid">${list.map(({ c, i }) => cellHtml(c, i)).join('')}</div>` : '<div class="miu-state compact"><div class="miu-state-title">해당하는 물건이 없어요</div></div>'}`;
   root.querySelectorAll('.chip').forEach((b) => b.addEventListener('click', () => { filter = b.dataset.f; render(letter); window.scrollTo(0, 0); }));
   root.querySelector('#sort')?.addEventListener('click', () => { asc = !asc; render(letter); });
   root.querySelectorAll('.cell').forEach((b) => b.addEventListener('click', () => openSheet(items[+b.dataset.i])));
@@ -179,7 +181,7 @@ document.getElementById('sheet-bg').addEventListener('click', (e) => { if (e.tar
   me = window.MIU_PROFILE;
   const id = new URLSearchParams(location.search).get('id');
   if (!me || !id) {
-    root.innerHTML = '<div class="empty">레터를 찾을 수 없어요.</div>';
+    root.innerHTML = '<div class="miu-state compact"><div class="miu-state-title">레터를 찾을 수 없어요</div></div>';
     return;
   }
   document.getElementById('back').href = `/miu-hub/letter/?id=${encodeURIComponent(id)}${adminView ? '&as=admin' : ''}`;
@@ -187,7 +189,7 @@ document.getElementById('sheet-bg').addEventListener('click', (e) => { if (e.tar
     ? await window.sb.rpc('letter_admin_view', { p_id: id }).maybeSingle()
     : await window.sb.from('weekly_letters').select('id,subject_name,payload').eq('id', id).single();
   if (error || !letter || !letter.payload.sold_all) {
-    root.innerHTML = '<div class="empty">레터를 불러오지 못했어요.</div>';
+    root.innerHTML = '<div class="miu-fail"><div class="miu-alert" role="alert"><div>레터를 불러오지 못했어요.</div></div><button class="miu-btn miu-btn-primary" onclick="location.reload()">다시 시도</button></div>';
     return;
   }
   letterSubject = letter.subject_name;

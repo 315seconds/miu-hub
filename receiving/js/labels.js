@@ -375,7 +375,7 @@ async function markHangersPrinted(hangerIds) {
   if (!hangerIds || !hangerIds.length) return;
   const { error } = await sb.from("inventory_hangers").update({ printed_at: new Date().toISOString() }).in("id", hangerIds);
   if (error) {
-    await appAlert("⚠ 출력은 완료됐지만 '출력완료' 기록에 실패했습니다.\n오늘 입고 일괄출력에 미출력으로 남을 수 있으니 중복 출력에 주의하세요.\n\n" + error.message);
+    await appAlert("출력은 완료됐지만 '출력완료' 기록에 실패했습니다.\n오늘 입고 일괄출력에 미출력으로 남을 수 있으니 중복 출력에 주의하세요.\n\n" + error.message);
   }
 }
 
@@ -424,8 +424,8 @@ async function zebraPrint(zplText, totalCount, onSuccess) {
   btn.innerHTML = '<i class="ph-bold ph-hourglass"></i> 프린터 연결 중…';
 
   if (typeof BrowserPrint === "undefined") {
-    await appAlert("❌ BrowserPrint SDK 로드 실패");
-    btn.textContent = "🦓 Zebra 직접 출력"; btn.disabled = false;
+    await appAlert("BrowserPrint SDK 로드 실패");
+    btn.innerHTML = '<i class="ph-bold ph-printer"></i> Zebra 직접 출력'; btn.disabled = false;
     return;
   }
 
@@ -433,11 +433,11 @@ async function zebraPrint(zplText, totalCount, onSuccess) {
   BrowserPrint.getDefaultDevice("printer",
     printer => {
       if (!printer) {
-        appAlert("❌ 연결된 Zebra 프린터 없음\nUSB 케이블 및 전원을 확인하세요.");
+        appAlert("연결된 Zebra 프린터 없음\nUSB 케이블 및 전원을 확인하세요.");
         restoreLabel(); btn.disabled = false;
         return;
       }
-      btn.textContent = `⏳ 전송 중… (${totalCount}장)`;
+      btn.textContent = `전송 중… (${totalCount}장)`;
       printer.send(zplText,
         () => {
           btn.innerHTML = '<i class="ph-bold ph-check"></i> 출력 완료!';
@@ -445,19 +445,35 @@ async function zebraPrint(zplText, totalCount, onSuccess) {
           setTimeout(() => { restoreLabel(); btn.disabled = false; }, 3000);
         },
         err => {
-          appAlert("❌ 전송 실패: " + (err || "알 수 없는 오류"));
+          appAlert("전송 실패: " + (err || "알 수 없는 오류"));
           restoreLabel(); btn.disabled = false;
         }
       );
     },
     err => {
-      appAlert("❌ Browser Print 연결 실패\nBrowser Print 앱이 실행 중인지 확인하세요.\n오류: " + (err || "unknown"));
+      appAlert("Browser Print 연결 실패\nBrowser Print 앱이 실행 중인지 확인하세요.\n오류: " + (err || "unknown"));
       restoreLabel(); btn.disabled = false;
     }
   );
 }
 
 // ── 진입점 ──────────────────────────────────────────────────────────────────
+// 라벨을 만들 수 없을 때: 툴바를 숨기고 본문에 안내를 보여준다
+function showLabelsState(icon, title, desc, retry) {
+  document.querySelector(".labels-toolbar").style.display = "none";
+  const grid = document.getElementById("label-grid");
+  grid.innerHTML = `<div class="miu-state" style="width:100%">
+    <div class="miu-state-icon"><i class="ph-bold ${icon}"></i></div>
+    <div class="miu-state-title">${escapeHtml(title)}</div>
+    <div class="miu-state-desc">${escapeHtml(desc)}</div>
+    <div style="display:flex; gap:16px; flex-wrap:wrap; justify-content:center">
+      ${retry ? '<button type="button" class="miu-btn miu-btn-primary" id="labels-retry-btn">다시 시도</button>' : ""}
+      <a href="index.html" class="miu-btn ${retry ? "miu-btn-secondary" : "miu-btn-primary"}">입고 관리로</a>
+    </div>
+  </div>`;
+  document.getElementById("labels-retry-btn")?.addEventListener("click", () => location.reload());
+}
+
 async function main() {
   const params = new URLSearchParams(location.search);
   const sessionId = params.get("session_id");
@@ -475,7 +491,7 @@ async function main() {
     async function loadDaily() {
       const dateStr = dateInput.value || localDateStr();
       const includePrinted = document.getElementById("daily-include-printed").checked;
-      document.getElementById("header-title").textContent = `🖨 오늘 입고 일괄출력 — ${dateStr}`;
+      document.getElementById("header-title").textContent = `오늘 입고 일괄출력 — ${dateStr}`;
       document.getElementById("header-sub").textContent = "불러오는 중...";
       document.getElementById("not-found-box").style.display = "none";
       try {
@@ -537,7 +553,7 @@ async function main() {
       hangerIds = [...new Set(items.filter(it => !it.isSeparator && it.hangerId).map(it => it.hangerId))];
       const date = sess.session_date || new Date().toISOString().slice(0, 10);
       const labelCount = items.filter(it => !it.isSeparator).length;
-      document.getElementById("header-title").textContent = `🖨 라벨 출력 — ${date}`;
+      document.getElementById("header-title").textContent = `라벨 출력 — ${date}`;
       document.getElementById("header-sub").textContent =
         `총 ${labelCount}장` +
         (sess.start_barcode_num
@@ -546,17 +562,19 @@ async function main() {
     } else if (barcodesParam) {
       const barcodes = barcodesParam.split(",").map(s => s.trim().toUpperCase()).filter(Boolean);
       ({ items, notFound } = await buildItemsFromBarcodes(barcodes));
-      document.getElementById("header-title").textContent = "🖨 라벨 재출력";
+      document.getElementById("header-title").textContent = "라벨 재출력";
       document.getElementById("header-sub").textContent = `총 ${items.length}장`;
     } else {
       document.getElementById("header-title").textContent = "잘못된 접근";
       zebraBtn.disabled = true;
+      showLabelsState("ph-warning-circle", "출력할 라벨을 찾을 수 없어요", "주소에 세션이나 바코드 정보가 없습니다. 입고 관리에서 다시 열어 주세요.", false);
       return;
     }
   } catch (e) {
     document.getElementById("header-title").textContent = "오류";
     document.getElementById("header-sub").textContent = e.message;
     zebraBtn.disabled = true;
+    showLabelsState("ph-warning-circle", "라벨을 불러오지 못했어요", e.message, true);
     return;
   }
 
@@ -564,7 +582,7 @@ async function main() {
     const box = document.getElementById("not-found-box");
     box.style.display = "block";
     document.getElementById("not-found-title").textContent =
-      `⚠ DB에서 찾지 못한 바코드 ${notFound.length}개`;
+      `DB에서 찾지 못한 바코드 ${notFound.length}개`;
     document.getElementById("not-found-list").textContent = notFound.join(", ");
   }
 

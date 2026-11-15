@@ -9,8 +9,9 @@
 
 :root {
   /* ─── Colors: Brand & Accent ─── */
-  --miu-primary:          #cc785c;   /* 코랄 - CTA, 강조 */
-  --miu-primary-active:   #a9583e;
+  --miu-primary:          #9f5238;   /* 테라코타 - CTA, 강조 (흰 글자 5.6:1, 크림 위 글자 5.3:1) */
+  --miu-primary-active:   #843f2a;
+  --miu-primary-soft:     #cc785c;   /* 옛 코랄. 큰 면·장식 전용(글자·버튼 배경에 쓰지 않는다: 흰 글자 3.3:1) */
   --miu-primary-disabled: #e6dfd8;
   --miu-accent-teal:      #5db8a6;
   --miu-accent-amber:     #e8a55a;
@@ -30,8 +31,8 @@
   --miu-ink:          #141413;
   --miu-body-strong:  #252523;
   --miu-body:         #3d3d3a;
-  --miu-muted:        #6c6a64;
-  --miu-muted-soft:   #8e8b82;
+  --miu-muted:        #5f5d57;   /* 크림·카드 위 5.4:1 이상 */
+  --miu-muted-soft:   #66635c;   /* 보조 글자도 카드 위 4.5:1 이상. 장식 번호·화살표용으로만 더 연하게 쓰고 싶으면 직접 지정 */
   --miu-on-primary:   #ffffff;
   --miu-on-dark:      #faf9f5;
   --miu-on-dark-soft: #a09d96;
@@ -41,9 +42,12 @@
   --miu-hairline-soft: #ebe6df;
 
   /* ─── Colors: Semantic ─── */
-  --miu-success: #5db872;
-  --miu-warning: #d4a017;
-  --miu-error:   #c64545;
+  --miu-success: #2f7d46;        /* 흰 글자 5.1:1 */
+  --miu-warning: #d4a017;        /* 채움 전용. 글자는 --miu-warning-text, 채운 버튼의 글자는 --miu-ink */
+  --miu-error:   #b03a2e;        /* 흰 글자 6.0:1, 크림 위 5.7:1 */
+  --miu-success-text: #2e6b3a;
+  --miu-warning-text: #7a5c0a;
+  --miu-error-text:   #8f2f25;
 
   /* ─── Typography Families ─── */
   --miu-serif: "Noto Serif KR", "KoPub Batang", "리디바탕", "Nanum Myeongjo", ui-serif, Georgia, serif;
@@ -67,6 +71,15 @@
   --miu-sp-xl:  32px;
   --miu-sp-xxl: 48px;
   --miu-sp-section: 64px;  /* 모바일 내부툴 특성상 96px → 64px로 축소 */
+
+  /* ─── Touch & Type 최소값 (폰 한 손 조작 기준) ─── */
+  --miu-tap:        44px;   /* 탭 대상 최소 높이·너비 */
+  --miu-header-h:   66px;   /* .miu-header 최소 높이(44px 버튼 + 패딩 20 + 밑줄 1 = 65). sticky 하위 요소는 top에 이 값을 쓴다 */
+  --miu-fs-micro:   12px;   /* 배지·라벨의 하한 */
+  --miu-fs-small:   13px;   /* 보조 정보 */
+  --miu-fs-body:    15px;
+  --miu-focus:      0 0 0 3px rgba(159, 82, 56, 0.25);
+  --miu-field-border: color-mix(in srgb, var(--miu-ink) 38%, var(--miu-canvas));  /* 입력칸 윤곽: 크림 위에서 보이게 */
 }
 
 /* ============================================================================
@@ -89,6 +102,30 @@ body {
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* 키보드·스캐너 포커스가 보이게 */
+:focus-visible {
+  outline: 3px solid var(--miu-primary);
+  outline-offset: 2px;
+}
+
+/* 폰에서 글자 입력칸이 16px보다 작으면 iOS가 포커스 때 화면을 확대한다(확대를 막던 viewport 설정을 걷었으므로 여기서 막는다) */
+@media (pointer: coarse) {
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]),
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ============================================================================
@@ -165,7 +202,7 @@ body {
 
 .miu-caption-eyebrow {
   font-family: var(--miu-sans);
-  font-size: 11px;
+  font-size: var(--miu-fs-micro);
   font-weight: 600;
   line-height: 1.4;
   letter-spacing: 1.5px;
@@ -177,55 +214,6 @@ body {
  * Components
  * ============================================================================ */
 
-/* ── Header Band ── */
-.miu-header {
-  background: var(--miu-canvas);
-  padding: var(--miu-sp-xl) var(--miu-sp-lg) var(--miu-sp-lg);
-}
-
-/* ── Section Label (구획 표시) ── */
-.miu-section-label {
-  font-family: var(--miu-sans);
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--miu-muted);
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  margin: var(--miu-sp-lg) var(--miu-sp-xs) var(--miu-sp-sm);
-}
-
-/* ── Feature Card (기본 크림 카드) ── */
-.miu-card {
-  background: var(--miu-surface-card);
-  border-radius: var(--miu-r-lg);
-  padding: var(--miu-sp-lg);
-  text-decoration: none;
-  color: var(--miu-ink);
-  display: block;
-  transition: transform .12s, background .15s;
-}
-.miu-card:active {
-  transform: scale(0.98);
-  background: var(--miu-surface-strong);
-}
-
-/* ── Callout Card (전면 코랄) ── */
-.miu-callout {
-  background: var(--miu-primary);
-  color: var(--miu-on-primary);
-  border-radius: var(--miu-r-lg);
-  padding: var(--miu-sp-xl);
-}
-.miu-callout .miu-eyebrow,
-.miu-callout .miu-caption-eyebrow { color: rgba(255,255,255,0.75); }
-
-/* ── Dark Card (데이터 헤비 화면용) ── */
-.miu-card-dark {
-  background: var(--miu-surface-dark);
-  color: var(--miu-on-dark);
-  border-radius: var(--miu-r-lg);
-  padding: var(--miu-sp-lg);
-}
 
 /* ── Buttons ── */
 .miu-btn {
@@ -294,10 +282,10 @@ body {
 /* ── Input ── */
 .miu-input {
   width: 100%;
-  height: 44px;
+  min-height: var(--miu-tap);
   padding: 0 var(--miu-sp-md);
   background: var(--miu-canvas);
-  border: 1px solid var(--miu-hairline);
+  border: 1px solid var(--miu-field-border);
   border-radius: var(--miu-r-md);
   font-family: var(--miu-sans);
   font-size: 16px;
@@ -306,7 +294,7 @@ body {
 .miu-input:focus {
   outline: none;
   border-color: var(--miu-primary);
-  box-shadow: 0 0 0 3px rgba(204,120,92,0.15);
+  box-shadow: var(--miu-focus);
 }
 
 /* ── Hairline divider ── */

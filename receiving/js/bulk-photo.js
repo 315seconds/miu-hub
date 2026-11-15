@@ -8,7 +8,16 @@ let retakeIndex = null;
 // compressImage()는 js/api.js로 이동 (hanger.js 아이템 수정 모달과 공유)
 
 async function init() {
-  if (!HANGER_ID) { showError("행거 ID 없음"); return; }
+  if (!HANGER_ID) {
+    document.getElementById("shoot-area").innerHTML = `
+      <div class="miu-state">
+        <div class="miu-state-icon"><i class="ph-bold ph-warning-circle"></i></div>
+        <div class="miu-state-title">행거를 찾을 수 없어요</div>
+        <div class="miu-state-desc">주소에 행거 ID가 없습니다. 세션 목록에서 행거를 다시 열어 주세요.</div>
+        <a href="session-list.html" class="btn btn-primary">세션 목록으로</a>
+      </div>`;
+    return;
+  }
   try {
     const { data: items, error } = await sb
       .from("inventory_items")
@@ -28,7 +37,7 @@ async function init() {
     advanceCursor();
     cursor >= queue.length ? renderDone(false) : render();
   } catch (e) {
-    showError("로드 실패: " + e.message);
+    showError("로드 실패: " + e.message, init);
   }
 }
 
@@ -50,7 +59,7 @@ function render() {
       <div class="bp-price">₩${(item.price || 0).toLocaleString()}</div>
     </div>
     <label class="bp-capture-btn" id="capture-label">
-      📷 촬영
+      <i class="ph-bold ph-camera"></i> 촬영
       <input type="file" accept="image/*" capture="environment" id="photo-file" style="display:none">
     </label>
     <button class="bp-skip-btn" id="skip-btn" onclick="skip()">건너뜀 →</button>
@@ -66,7 +75,7 @@ function renderTray() {
     if (!r.url) {
       return `<div class="bp-thumb bp-thumb-skip" onclick="retakeItem(${i})">
         <span class="bp-thumb-num">${i + 1}</span>
-        <span style="font-size:9px;color:#64748b">건너뜀</span>
+        <span>건너뜀</span>
       </div>`;
     }
     return `<div class="bp-thumb" onclick="retakeItem(${i})">
@@ -90,7 +99,7 @@ async function onCapture(e) {
   if (!file || isBusy) return;
 
   const label = document.getElementById("capture-label");
-  label.textContent = "⏳ 업로드 중…";
+  label.textContent = "업로드 중…";
   label.style.pointerEvents = "none";
   setBusy(true);
 
@@ -115,7 +124,7 @@ async function onCapture(e) {
   } catch (err) {
     setBusy(false);
     showError("사진 업로드 실패: " + err.message);
-    label.textContent = "📷 촬영";
+    label.innerHTML = '<i class="ph-bold ph-camera"></i> 촬영';
     label.style.pointerEvents = "";
   }
 }
@@ -174,11 +183,11 @@ function renderDone(allDone) {
   const skipped = results.filter(r => !r.url).length;
   document.getElementById("shoot-area").innerHTML = `
     <div class="bp-done">
-      <div class="bp-done-icon">${allDone ? "✓" : "📷"}</div>
+      <div class="bp-done-icon"><i class="ph-bold ${allDone ? "ph-check-circle" : "ph-camera"}"></i></div>
       <div class="bp-done-title">${allDone ? "모든 사진이 이미 있습니다" : "촬영 완료"}</div>
       ${!allDone ? `<div class="bp-done-sub">${taken}장 촬영 · ${skipped}장 건너뜀</div>` : ""}
       ${results.length ? `<div class="text-xs muted mt8" style="text-align:center">아래 사진을 탭하면 그 아이템만 다시 촬영할 수 있습니다</div>` : ""}
-      <a href="hanger.html?id=${encodeURIComponent(HANGER_ID)}" class="btn btn-success mt16">행거로 돌아가기</a>
+      <a href="hanger.html?id=${encodeURIComponent(HANGER_ID)}" class="btn btn-primary mt16">행거로 돌아가기</a>
     </div>
   `;
   renderTray();

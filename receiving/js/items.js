@@ -73,6 +73,7 @@ function renderScanList() {
   const count = scanned.length;
   document.getElementById('count').textContent = count;
   document.getElementById('search-btn').disabled = count === 0;
+  document.getElementById('clear-btn').hidden = count === 0;
   document.getElementById('scan-box').classList.toggle('active', count > 0);
   if (count === 0) { list.innerHTML = ''; empty.style.display = 'block'; return; }
   empty.style.display = 'none';
@@ -235,7 +236,7 @@ async function fetchItemDataBatched(barcodes, onProgress) {
 async function searchBarcodes(barcodes) {
   if (barcodes.length === 0) return;
   const resultEl = document.getElementById('result');
-  resultEl.innerHTML = '<div class="empty" style="color:#60a5fa">⏳ 조회 중...</div>';
+  resultEl.innerHTML = '<div class="miu-state compact"><span class="miu-spinner"></span><div class="miu-state-desc" style="margin:8px 0 0">조회 중...</div></div>';
   clearError();
   try {
     if (barcodes.length === 1) {
@@ -243,7 +244,7 @@ async function searchBarcodes(barcodes) {
       resultEl.innerHTML = renderSingle(data);
     } else {
       const results = await fetchItemDataBatched(barcodes, (done, total) => {
-        resultEl.innerHTML = `<div class="empty" style="color:#60a5fa">⏳ 조회 중... (${done}/${total})</div>`;
+        resultEl.innerHTML = `<div class="miu-state compact"><span class="miu-spinner"></span><div class="miu-state-desc" style="margin:8px 0 0">조회 중... (${done}/${total})</div></div>`;
       });
       renderBulk(barcodes, results);
     }
@@ -261,42 +262,42 @@ function renderSingle(data) {
   if (data.timeline && data.timeline.length > 0) {
     const det = data.detail_item || {};
     html += `<div class="tl-card">
-      <div class="tl-card-title">📋 ${escapeHtml(det.barcode || (data.q || '').toUpperCase())} 전체 이력</div>`;
+      <div class="tl-card-title"><i class="ph-bold ph-clipboard-text"></i> ${escapeHtml(det.barcode || (data.q || '').toUpperCase())} 전체 이력</div>`;
     html += data.timeline.map(ev => {
       if (ev.type === 'ingest') return `
-        <div class="tl-item"><span class="tl-icon">📦</span>
+        <div class="tl-item"><span class="tl-icon"><i class="ph-bold ph-package"></i></span>
           <div class="tl-body">
             <div class="tl-main">입고</div>
             <div class="tl-sub">₩${ev.price ? ev.price.toLocaleString() : '—'}${ev.by ? ' · ' + escapeHtml(ev.by) : ''}</div>
           </div><span class="tl-date">${(ev.ts || '').slice(0, 10)}</span>
         </div>`;
       if (ev.type === 'move') return `
-        <div class="tl-item"><span class="tl-icon">🚚</span>
+        <div class="tl-item"><span class="tl-icon"><i class="ph-bold ph-truck"></i></span>
           <div class="tl-body">
             <div class="tl-main">이동 — ${escapeHtml(ev.from_location)} → ${escapeHtml(ev.to_location)}</div>
             <div class="tl-sub">${ev.by ? escapeHtml(ev.by) + ' 스캔' : ''}</div>
           </div><span class="tl-date">${(ev.ts || '').slice(0, 10)}</span>
         </div>`;
       if (ev.type === 'price') return `
-        <div class="tl-item"><span class="tl-icon">💰</span>
+        <div class="tl-item"><span class="tl-icon"><i class="ph-bold ph-currency-krw"></i></span>
           <div class="tl-body">
             <div class="tl-main">가격수정 — ₩${ev.old_price ? ev.old_price.toLocaleString() : '?'} → ₩${ev.new_price ? ev.new_price.toLocaleString() : '?'}</div>
             <div class="tl-sub">${[ev.by, ev.note].filter(Boolean).map(escapeHtml).join(' · ')}</div>
           </div><span class="tl-date">${(ev.ts || '').slice(0, 10)}</span>
         </div>`;
       if (ev.type === 'sold') return `
-        <div class="tl-item"><span class="tl-icon">🛍</span>
+        <div class="tl-item"><span class="tl-icon"><i class="ph-bold ph-shopping-bag"></i></span>
           <div class="tl-body">
-            <div class="tl-main" style="color:#4ade80">판매 완료 — ${escapeHtml(ev.store || '—')}</div>
+            <div class="tl-main" style="color:var(--miu-success-text)">판매 완료 — ${escapeHtml(ev.store || '—')}</div>
             <div class="tl-sub">₩${ev.price ? ev.price.toLocaleString() : '—'}</div>
           </div><span class="tl-date">${(ev.ts || '').slice(0, 10)}</span>
         </div>`;
       if (ev.type === 'refund') {
         const isDouble = ev.refund_type === '중복결제환불';
         return `
-        <div class="tl-item"><span class="tl-icon">↩</span>
+        <div class="tl-item"><span class="tl-icon"><i class="ph-bold ph-arrow-u-up-left"></i></span>
           <div class="tl-body">
-            <div class="tl-main" style="color:${isDouble ? '#f59e0b' : '#f87171'}">${isDouble ? '중복결제 환불' : '환불 (반납)'}</div>
+            <div class="tl-main" style="color:${isDouble ? 'var(--miu-warning-text)' : 'var(--miu-error-text)'}">${isDouble ? '중복결제 환불' : '환불 (반납)'}</div>
           </div><span class="tl-date">${(ev.ts || '').slice(0, 10)}</span>
         </div>`;
       }
@@ -423,7 +424,7 @@ function buildLookupWorkbook(barcodes, results) {
 
 async function downloadLookupExcel(barcodes, results, btn) {
   const prevText = btn.textContent;
-  btn.disabled = true; btn.textContent = '⏳ 생성 중...';
+  btn.disabled = true; btn.textContent = '생성 중...';
   try {
     const wb  = await buildLookupWorkbook(barcodes, results);
     const buf = await wb.xlsx.writeBuffer();
@@ -448,15 +449,15 @@ function renderBulk(barcodes, results) {
 
   let html = `<div class="flex mb8" style="align-items:center; gap:8px">
     <div class="muted text-sm" style="flex:1">총 ${barcodes.length}개 조회 — 확인 ${found}건${notFound > 0 ? ` / 미확인 ${notFound}건` : ''}</div>
-    <button class="btn btn-outline btn-sm" id="excel-download-btn">📥 엑셀 다운로드</button>
+    <button class="btn btn-outline btn-sm" id="excel-download-btn"><i class="ph-bold ph-download-simple"></i> 엑셀 다운로드</button>
   </div>`;
   barcodes.forEach((bc, i) => {
     const data  = results[i];
     const items = data ? (data.items || []) : [];
     const item  = items[0] || null;
     if (!item) {
-      html += `<div class="item-card" style="border-color:#374151; opacity:0.5">
-        <div class="item-bc" style="color:#64748b">${escapeHtml(bc)}</div>
+      html += `<div class="item-card" style="opacity:0.6">
+        <div class="item-bc" style="color:var(--miu-muted)">${escapeHtml(bc)}</div>
         <div class="text-sm muted" style="margin-top:4px">조회 결과 없음</div>
       </div>`;
     } else {
@@ -481,11 +482,11 @@ async function toggleTimeline(card) {
   if (isOpen) {
     tl.style.maxHeight = '0'; tl.style.opacity = '0';
     setTimeout(() => tl.remove(), 250);
-    chevron.textContent = '›'; card.style.borderBottomColor = '';
+    chevron.innerHTML = '<i class="ph-bold ph-caret-right"></i>'; card.style.borderBottomColor = '';
     return;
   }
 
-  chevron.textContent = '⏳'; card.style.borderBottomColor = '#3b82f6';
+  chevron.innerHTML = '<i class="ph-bold ph-spinner"></i>'; card.style.borderBottomColor = 'var(--miu-primary)';
   try {
     const data     = await fetchItemData(bc);
     const timeline = data.timeline || [];
@@ -498,39 +499,39 @@ async function toggleTimeline(card) {
     } else {
       div.innerHTML = timeline.map(ev => {
         if (ev.type === 'ingest') return `
-          <div class="tl-item"><span class="tl-icon">📦</span>
+          <div class="tl-item"><span class="tl-icon"><i class="ph-bold ph-package"></i></span>
             <div class="tl-body">
               <div class="tl-main">입고</div>
               <div class="tl-sub">₩${ev.price ? ev.price.toLocaleString() : '—'}${ev.by ? ' · ' + escapeHtml(ev.by) : ''}</div>
             </div><span class="tl-date">${(ev.ts || '').slice(0, 10)}</span>
           </div>`;
         if (ev.type === 'move') return `
-          <div class="tl-item"><span class="tl-icon">🚚</span>
+          <div class="tl-item"><span class="tl-icon"><i class="ph-bold ph-truck"></i></span>
             <div class="tl-body">
               <div class="tl-main">이동 — ${escapeHtml(ev.from_location)} → ${escapeHtml(ev.to_location)}</div>
               <div class="tl-sub">${ev.by ? escapeHtml(ev.by) + ' 스캔' : ''}</div>
             </div><span class="tl-date">${(ev.ts || '').slice(0, 10)}</span>
           </div>`;
         if (ev.type === 'price') return `
-          <div class="tl-item"><span class="tl-icon">💰</span>
+          <div class="tl-item"><span class="tl-icon"><i class="ph-bold ph-currency-krw"></i></span>
             <div class="tl-body">
               <div class="tl-main">가격수정 — ₩${ev.old_price ? ev.old_price.toLocaleString() : '?'} → ₩${ev.new_price ? ev.new_price.toLocaleString() : '?'}</div>
               <div class="tl-sub">${[ev.by, ev.note].filter(Boolean).map(escapeHtml).join(' · ')}</div>
             </div><span class="tl-date">${(ev.ts || '').slice(0, 10)}</span>
           </div>`;
         if (ev.type === 'sold') return `
-          <div class="tl-item"><span class="tl-icon">🛍</span>
+          <div class="tl-item"><span class="tl-icon"><i class="ph-bold ph-shopping-bag"></i></span>
             <div class="tl-body">
-              <div class="tl-main" style="color:#4ade80">판매 완료 — ${escapeHtml(ev.store || '—')}</div>
+              <div class="tl-main" style="color:var(--miu-success-text)">판매 완료 — ${escapeHtml(ev.store || '—')}</div>
               <div class="tl-sub">₩${ev.price ? ev.price.toLocaleString() : '—'}</div>
             </div><span class="tl-date">${(ev.ts || '').slice(0, 10)}</span>
           </div>`;
         if (ev.type === 'refund') {
           const isDouble = ev.refund_type === '중복결제환불';
           return `
-          <div class="tl-item"><span class="tl-icon">↩</span>
+          <div class="tl-item"><span class="tl-icon"><i class="ph-bold ph-arrow-u-up-left"></i></span>
             <div class="tl-body">
-              <div class="tl-main" style="color:${isDouble ? '#f59e0b' : '#f87171'}">${isDouble ? '중복결제 환불' : '환불 (반납)'}</div>
+              <div class="tl-main" style="color:${isDouble ? 'var(--miu-warning-text)' : 'var(--miu-error-text)'}">${isDouble ? '중복결제 환불' : '환불 (반납)'}</div>
             </div><span class="tl-date">${(ev.ts || '').slice(0, 10)}</span>
           </div>`;
         }
@@ -540,9 +541,9 @@ async function toggleTimeline(card) {
 
     card.insertAdjacentElement('afterend', div);
     requestAnimationFrame(() => { div.style.maxHeight = div.scrollHeight + 'px'; div.style.opacity = '1'; });
-    chevron.textContent = '▾';
+    chevron.innerHTML = '<i class="ph-bold ph-caret-down"></i>';
   } catch (e) {
-    chevron.textContent = '›'; card.style.borderBottomColor = '';
+    chevron.innerHTML = '<i class="ph-bold ph-caret-right"></i>'; card.style.borderBottomColor = '';
     showError('이력 조회 실패: ' + e.message);
   }
 }
@@ -557,7 +558,7 @@ function renderItemCard(item, clickable = false) {
         ${STATUS_LABEL[item.status] || item.status || '보유중'}
       </span>
       ${(item.category || '').startsWith('온') ? '<span class="item-status" style="margin-left:6px">온라인</span>' : ''}
-      ${clickable ? '<span class="card-chevron" style="margin-left:auto; color:#475569; font-size:18px">›</span>' : ''}
+      ${clickable ? '<span class="card-chevron" style="margin-left:auto; color:var(--miu-muted); font-size:18px"><i class="ph-bold ph-caret-right"></i></span>' : ''}
     </div>
     <div class="flex" style="gap:12px; align-items:flex-start">
       ${item.photo_url ? `<img src="${escapeHtml(item.photo_url)}" style="width:72px; height:72px; object-fit:cover; border-radius:8px; flex-shrink:0; cursor:zoom-in" alt="사진" onclick="event.stopPropagation(); viewPhoto('${escapeHtml(item.photo_url)}')">` : ''}
@@ -628,8 +629,8 @@ async function loadFilterOptions() {
 async function runFilterSearch(append = false) {
   const resultEl = document.getElementById('filter-result');
   const btn      = document.getElementById('filter-search-btn');
-  if (!append) { filterOffset = 0; resultEl.innerHTML = '<div class="empty" style="color:#60a5fa">⏳ 조회 중...</div>'; }
-  btn.disabled = true; btn.textContent = '⏳ 조회 중...';
+  if (!append) { filterOffset = 0; resultEl.innerHTML = '<div class="miu-state compact"><span class="miu-spinner"></span><div class="miu-state-desc" style="margin:8px 0 0">조회 중...</div></div>'; }
+  btn.disabled = true; btn.textContent = '조회 중...';
   const category = document.getElementById('f-category').value;
   const brand    = document.getElementById('f-brand').value;
   const location = document.getElementById('f-location').value;
@@ -681,7 +682,7 @@ async function runFilterSearch(append = false) {
     showError('필터 조회 실패: ' + e.message);
     if (!append) resultEl.innerHTML = '';
   } finally {
-    btn.disabled = false; btn.textContent = '🔍 조회하기';
+    btn.disabled = false; btn.innerHTML = '<i class="ph-bold ph-magnifying-glass"></i> 조회하기';
   }
 }
 

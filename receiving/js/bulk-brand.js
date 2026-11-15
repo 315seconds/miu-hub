@@ -6,7 +6,16 @@ let isBusy = false;
 let brandDropdownTimer = null;
 
 async function init() {
-  if (!HANGER_ID) { showError("행거 ID 없음"); return; }
+  if (!HANGER_ID) {
+    document.getElementById("brand-area").innerHTML = `
+      <div class="miu-state">
+        <div class="miu-state-icon"><i class="ph-bold ph-warning-circle"></i></div>
+        <div class="miu-state-title">행거를 찾을 수 없어요</div>
+        <div class="miu-state-desc">주소에 행거 ID가 없습니다. 세션 목록에서 행거를 다시 열어 주세요.</div>
+        <a href="session-list.html" class="btn btn-primary">세션 목록으로</a>
+      </div>`;
+    return;
+  }
   try {
     const { data: items, error } = await sb
       .from("inventory_items")
@@ -25,7 +34,7 @@ async function init() {
     advanceCursor();
     cursor >= queue.length ? renderDone(false) : render();
   } catch (e) {
-    showError("로드 실패: " + e.message);
+    showError("로드 실패: " + e.message, init);
   }
 }
 
@@ -46,13 +55,13 @@ function render() {
     </div>
     <div style="position:relative;margin:12px 0 8px">
       <input type="text" id="brand-input" placeholder="브랜드명 입력" autocomplete="off" autocorrect="off" spellcheck="false"
-        style="width:100%;padding:14px;border:1px solid #334155;border-radius:8px;background:#1e293b;color:#f1f5f9;font-size:16px;font-weight:600;box-sizing:border-box">
-      <div id="brand-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:#1e293b;border:1px solid #334155;border-radius:8px;margin-top:4px;z-index:100;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,.4)"></div>
+        style="width:100%;padding:14px;font-size:16px;font-weight:600;box-sizing:border-box">
+      <div id="brand-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--miu-canvas);border:1px solid var(--field-border);border-radius:8px;margin-top:4px;z-index:9;overflow:hidden;box-shadow:var(--shadow-3)"></div>
     </div>
     <div style="display:flex;gap:8px;margin-bottom:16px">
-      <button type="button" class="btn btn-outline btn-sm preset-btn" data-brand="Vintage" style="flex:1">Vintage</button>
-      <button type="button" class="btn btn-outline btn-sm preset-btn" data-brand="SPA" style="flex:1">SPA</button>
-      <button type="button" class="btn btn-outline btn-sm preset-btn" data-brand="보세" style="flex:1">보세</button>
+      <button type="button" class="btn btn-outline preset-btn" data-brand="Vintage" style="flex:1">Vintage</button>
+      <button type="button" class="btn btn-outline preset-btn" data-brand="SPA" style="flex:1">SPA</button>
+      <button type="button" class="btn btn-outline preset-btn" data-brand="보세" style="flex:1">보세</button>
     </div>
     <button id="save-btn" class="bp-capture-btn" disabled>저장하고 다음 →</button>
     <button class="bp-skip-btn" id="skip-btn">건너뜀 →</button>
@@ -102,7 +111,7 @@ async function showBrandDropdown(q) {
   if (!dd) return;
   if (brands.length === 0) { hideBrandDropdown(); return; }
   dd.innerHTML = brands.map(b =>
-    `<div data-brand="${escapeHtml(b)}" style="padding:10px 14px;font-size:14px;color:#e2e8f0;cursor:pointer;border-bottom:1px solid #0f172a">${escapeHtml(b)}</div>`
+    `<div data-brand="${escapeHtml(b)}" class="brand-dropdown-item">${escapeHtml(b)}</div>`
   ).join("");
   dd.style.display = "block";
   dd.querySelectorAll("div").forEach(item => {
@@ -179,7 +188,7 @@ function renderTray() {
       ? `<div class="bp-list-row">
            <span class="bp-list-num">${i + 1}</span>
            <span class="bp-list-brand">${escapeHtml(r.brand)}</span>
-           <i class="ph-bold ph-check" style="color:#22c55e;font-size:14px;flex-shrink:0"></i>
+           <i class="ph-bold ph-check" style="color:var(--miu-success-text);font-size:14px;flex-shrink:0"></i>
          </div>`
       : `<div class="bp-list-row skipped">
            <span class="bp-list-num">${i + 1}</span>
@@ -193,10 +202,10 @@ function renderDone(allDone) {
   const skipped = results.filter(r => !r.brand).length;
   document.getElementById("brand-area").innerHTML = `
     <div class="bp-done">
-      <div class="bp-done-icon">${allDone ? "✓" : "🏷️"}</div>
+      <div class="bp-done-icon"><i class="ph-bold ${allDone ? "ph-check-circle" : "ph-tag"}"></i></div>
       <div class="bp-done-title">${allDone ? "모든 브랜드가 이미 입력되어 있습니다" : "브랜드 입력 완료"}</div>
       ${!allDone ? `<div class="bp-done-sub">${saved}개 저장 · ${skipped}개 건너뜀</div>` : ""}
-      <a href="hanger.html?id=${encodeURIComponent(HANGER_ID)}" class="btn btn-success mt16">행거로 돌아가기</a>
+      <a href="hanger.html?id=${encodeURIComponent(HANGER_ID)}" class="btn btn-primary mt16">행거로 돌아가기</a>
     </div>
   `;
   renderTray();

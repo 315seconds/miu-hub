@@ -2,41 +2,41 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>레터 열람 현황 — 마켓인유</title>
 <meta name="theme-color" content="#faf9f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151148">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
 body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
 .wrap { max-width: 560px; margin: 0 auto; padding: 8px 20px 48px; }
 .week { margin-top: 28px; }
 .week-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
-.week-head .t { font-family: var(--miu-serif); font-size: 20px; font-weight: 500; letter-spacing: -0.5px; }
+.week-head .t { font-family: var(--miu-sans); font-variant-numeric: tabular-nums; font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
 .week-head .s { font-size: 13px; color: var(--miu-muted); }
 .list { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); overflow: hidden; }
 .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--miu-hairline-soft); }
 .row:last-child { border-bottom: none; }
 .row .n { font-size: 15px; font-weight: 600; }
 .row .st { font-size: 13px; text-align: right; }
-.st.read { color: var(--miu-success); font-weight: 600; }
+.st.read { color: var(--miu-success-text); font-weight: 600; }
 .st.unread { color: var(--miu-primary-active); font-weight: 600; }
-.st small { display: block; font-weight: 400; color: var(--miu-muted); margin-top: 1px; }
+.miu-fail { padding-inline: 0; }
+.st small { font-size: 13px; display: block; font-weight: 400; color: var(--miu-muted); margin-top: 1px; }
 .row .right { display: flex; align-items: center; gap: 12px; }
-.row .view { display: inline-flex; align-items: center; gap: 2px; padding: 6px 10px; border-radius: var(--miu-r-pill); border: 1px solid var(--miu-hairline); font-size: 12px; font-weight: 600; color: var(--miu-body); text-decoration: none; white-space: nowrap; }
+.row .view { display: inline-flex; align-items: center; gap: 2px; min-height: 40px; padding: 0 14px; border-radius: var(--miu-r-pill); border: 1px solid var(--miu-hairline); font-size: 13px; font-weight: 600; color: var(--miu-body); text-decoration: none; white-space: nowrap; }
 .row .view:active { background: var(--miu-surface-strong); }
-.empty { text-align: center; padding: 96px 32px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
-.hint { margin-top: 20px; font-size: 12.5px; color: var(--miu-muted); line-height: 1.6; }
+.hint { margin-top: 20px; font-size: 13px; color: var(--miu-muted); line-height: 1.6; }
 .kind { margin: 36px 0 0; font-size: 13px; font-weight: 700; letter-spacing: 0.8px; color: var(--miu-primary); }
 .kind + .week { margin-top: 12px; }
-.row .n small { display: block; font-weight: 400; color: var(--miu-muted); font-size: 12px; margin-top: 1px; }
+.row .n small { display: block; font-weight: 400; color: var(--miu-muted); font-size: 13px; margin-top: 1px; }
 </style>
-<script src="/miu-hub/shared/config.js?v=202611151148"></script>
+<script src="/miu-hub/shared/config.js?v=202611151334"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
 </head>
 <body>
 
@@ -50,7 +50,7 @@ body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(-
   </div>
 </header>
 
-<div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
+<div class="wrap" id="root"><div class="miu-loading"><span class="miu-spinner"></span> 불러오는 중…</div></div>
 
 <script>
 const root = document.getElementById('root');
@@ -84,7 +84,7 @@ function weeklyHtml(rows) {
             <span class="n">${esc(r.recipient_name)}</span>
             <span class="right">
               ${statusHtml(r)}
-              <a class="view" href="index.html?id=${encodeURIComponent(r.id)}&as=admin">레터 보기<i class="ph-bold ph-caret-right"></i></a>
+              <a class="view miu-btn-sm miu-btn-secondary" href="index.html?id=${encodeURIComponent(r.id)}&as=admin">레터 보기<i class="ph-bold ph-caret-right"></i></a>
             </span>
           </div>`).join('')}
         </div>
@@ -101,7 +101,7 @@ function salesHtml(rows) {
           <span class="n">${label(r)}<small>${esc(r.recipient_name)}</small></span>
           <span class="right">
             ${statusHtml(r)}
-            <a class="view" href="../sales-letter/index.html?id=${encodeURIComponent(r.id)}&as=admin">레터 보기<i class="ph-bold ph-caret-right"></i></a>
+            <a class="view miu-btn-sm miu-btn-secondary" href="../sales-letter/index.html?id=${encodeURIComponent(r.id)}&as=admin">레터 보기<i class="ph-bold ph-caret-right"></i></a>
           </span>
         </div>`).join('')}
       </div>
@@ -112,11 +112,11 @@ function salesHtml(rows) {
   for (let i = 0; i < 50 && window.MIU_PROFILE === undefined; i++) await new Promise((r) => setTimeout(r, 100));
   const [weekly, sales] = await Promise.all([window.sb.rpc('letter_read_status'), window.sb.rpc('sales_letter_read_status')]);
   if (weekly.error || sales.error) {
-    root.innerHTML = '<div class="empty">불러오지 못했어요.</div>';
+    root.innerHTML = '<div class="miu-fail"><div class="miu-alert" role="alert"><div>불러오지 못했어요.</div></div><button class="miu-btn miu-btn-primary" onclick="location.reload()">다시 시도</button></div>';
     return;
   }
   if (!weekly.data.length && !sales.data.length) {
-    root.innerHTML = '<div class="empty">볼 수 있는 열람 현황이 없어요.</div>';
+    root.innerHTML = '<div class="miu-state compact"><div class="miu-state-title">볼 수 있는 열람 현황이 없어요</div></div>';
     return;
   }
   root.innerHTML = (weekly.data.length ? weeklyHtml(weekly.data) : '')

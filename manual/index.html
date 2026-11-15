@@ -2,18 +2,18 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>매장 업무 — 마켓인유</title>
 <meta name="theme-color" content="#faf9f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151148">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
-<link rel="stylesheet" href="/miu-hub/manual/manual.css?v=202611151148">
-<script src="/miu-hub/shared/config.js?v=202611151148"></script>
+<link rel="stylesheet" href="/miu-hub/manual/manual.css?v=202611151334">
+<script src="/miu-hub/shared/config.js?v=202611151334"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
 </head>
 <body>
 
@@ -28,9 +28,9 @@
   </div>
 </header>
 
-<div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
+<div class="wrap" id="root"><div class="miu-loading"><span class="miu-spinner"></span> 불러오는 중…</div></div>
 
-<script src="/miu-hub/manual/common.js?v=202611151148"></script>
+<script src="/miu-hub/manual/common.js?v=202611151334"></script>
 <script>
 const root = document.getElementById('root');
 const LS_STORE = 'miu-manual-store';
@@ -92,9 +92,9 @@ async function refreshDay() {
 // ── 화면 ───────────────────────────────────────────────
 function render() {
   root.innerHTML = `
-    <div class="tabs">
-      <button class="tab ${tab === 'check' ? 'active' : ''}" data-tab="check">오늘 체크 · 메모</button>
-      <button class="tab ${tab === 'manual' ? 'active' : ''}" data-tab="manual">업무 매뉴얼</button>
+    <div class="miu-tabs" style="margin-top:14px">
+      <button class="miu-tab ${tab === 'check' ? 'on' : ''}" aria-selected="${tab === 'check'}" data-tab="check">오늘 체크 · 메모</button>
+      <button class="miu-tab ${tab === 'manual' ? 'on' : ''}" aria-selected="${tab === 'manual'}" data-tab="manual">업무 매뉴얼</button>
     </div>
     <div id="pane"></div>`;
   root.querySelectorAll('[data-tab]').forEach((b) => b.addEventListener('click', () => { tab = b.dataset.tab; render(); }));
@@ -107,7 +107,7 @@ function chipsHtml() {
     const list = storeItems(s), m = allChecks.get(s);
     const d = m ? list.filter((i) => m.has(i.id)).length : 0;
     const full = list.length > 0 && d === list.length;
-    return `<button class="tab ${s === store ? 'active' : ''} ${full ? 'full' : ''}" data-store="${esc(s)}">${esc(storeLabel(s))} <span class="n">${full ? '✓' : `${d}/${list.length}`}</span></button>`;
+    return `<button class="tab miu-chip-btn ${s === store ? 'active' : ''} ${full ? 'full' : ''}" aria-pressed="${s === store}" data-store="${esc(s)}">${esc(storeLabel(s))} <span class="n">${full ? '<i class="ph-bold ph-check"></i>' : `${d}/${list.length}`}</span></button>`;
   }).join('');
 }
 
@@ -166,10 +166,10 @@ function renderCheck() {
 
   document.getElementById('pane').innerHTML = `
     <div class="bar"><span class="date">${mdw(today)}</span></div>
-    <div class="tabs" style="padding-top:0">${chipsHtml()}</div>
+    <div class="tabs miu-chip-row" style="padding-top:0">${chipsHtml()}</div>
     <div class="progress">
       <div class="track"><div class="fill" style="width:${pct}%"></div></div>
-      <div class="txt">${done} / ${list.length} 완료${list.length && done === list.length ? ' 🎉' : ''} · 체크는 같은 매장 직원끼리 공유돼요</div>
+      <div class="txt">${done} / ${list.length} 완료${list.length && done === list.length ? ' <i class="ph-bold ph-confetti"></i>' : ''} · 체크는 같은 매장 직원끼리 공유돼요</div>
     </div>
     ${checkHtml}
     ${visitorHtml}
@@ -381,8 +381,8 @@ function renderManual() {
   document.getElementById('pane').innerHTML = `
     <div class="bar"><input type="text" id="q" placeholder="매뉴얼 검색 (예: 환불, 택분실, 키오스크)" value="${esc(query)}"></div>
     <div class="catchips">
-      <button class="tab ${cat === '' ? 'active' : ''}" data-cat="">전체</button>
-      ${cats.map((c) => `<button class="tab ${cat === c ? 'active' : ''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}
+      <button class="tab miu-chip-btn ${cat === '' ? 'active' : ''}" aria-pressed="${cat === ''}" data-cat="">전체</button>
+      ${cats.map((c) => `<button class="tab miu-chip-btn ${cat === c ? 'active' : ''}" aria-pressed="${cat === c}" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}
     </div>
     <div id="arts">${list.map((a) => `
       <details class="art" ${q ? 'open' : ''}>
@@ -418,7 +418,7 @@ function renderManual() {
       try { await Promise.all([loadItems(), refreshDay()]); renderCheck(); } catch (e) { toast(errMsg(e), true); }
     });
   } catch (e) {
-    root.innerHTML = `<div class="empty">불러오지 못했어요.<br>${esc(errMsg(e))}</div>`;
+    root.innerHTML = `<div class="miu-fail"><div class="miu-alert" role="alert"><div>불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.<br><small style="font-size:13px;color:var(--miu-muted)">${esc(errMsg(e))}</small></div></div><button class="miu-btn miu-btn-primary" onclick="location.reload()">다시 시도</button></div>`;
   }
 })();
 </script>

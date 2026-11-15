@@ -2,53 +2,61 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>카테고리 판매 분석 — 마켓인유</title>
 <meta name="theme-color" content="#faf9f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151148">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
 body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
 .wrap { max-width: 560px; margin: 0 auto; padding: 8px 16px 64px; }
 .card { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 16px; margin-top: 14px; }
-.card h2 { font-size: 12px; font-weight: 700; color: var(--miu-muted); letter-spacing: .3px; margin-bottom: 10px; }
+.card h2 { font-size: 13px; font-weight: 700; color: var(--miu-muted); letter-spacing: .3px; margin-bottom: 10px; }
 .dates { display: flex; align-items: center; gap: 8px; }
-.dates input[type=date] { flex: 1; min-width: 0; height: 42px; padding: 0 10px; font: inherit; font-size: 15px; color: var(--miu-ink); background: var(--miu-canvas); border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); }
+.dates input[type=date] { flex: 1; min-width: 0; height: 44px; padding: 0 10px; font: inherit; font-size: 16px; color: var(--miu-ink); background: var(--miu-canvas); border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); }
 .dates .sep { color: var(--miu-muted); }
 .row-chips { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
-.chip { padding: 7px 13px; border-radius: var(--miu-r-pill); border: 1px solid var(--miu-hairline); background: var(--miu-canvas); font: inherit; font-size: 13px; font-weight: 600; color: var(--miu-body); cursor: pointer; white-space: nowrap; }
-.chip.on { background: var(--miu-primary); border-color: var(--miu-primary); color: #fff; }
+.period > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: var(--miu-tap); cursor: pointer; list-style: none; }
+.period > summary::-webkit-details-marker { display: none; }
+.period > summary::after { content: '+'; font-size: 22px; color: var(--miu-muted); font-weight: 400; margin-left: 4px; }
+.period[open] > summary::after { content: '−'; }
+.period .ptitle { font-size: 13px; font-weight: 700; color: var(--miu-muted); letter-spacing: .3px; }
+.period .psum { flex: 1; text-align: right; font-size: 14px; font-weight: 600; color: var(--miu-ink); font-variant-numeric: tabular-nums; }
+.period[open] .psum { display: none; }
+.period[open] > summary { justify-content: flex-start; }
 .scroller { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; -webkit-overflow-scrolling: touch; }
 .scroller::-webkit-scrollbar { display: none; }
-.toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--miu-body); margin-left: auto; }
-.toggle input { width: 17px; height: 17px; accent-color: var(--miu-primary); }
-.go { display: block; width: 100%; margin-top: 12px; padding: 13px; border: none; border-radius: var(--miu-r-lg); background: var(--miu-primary); color: #fff; font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.toggle { display: inline-flex; align-items: center; gap: 8px; min-height: var(--miu-tap); font-size: 14px; color: var(--miu-body); margin-left: auto; cursor: pointer; }
+.toggle input { width: 22px; height: 22px; accent-color: var(--miu-primary); }
+.go { display: block; width: 100%; margin-top: 12px; min-height: 48px; padding: 0 13px; border: none; border-radius: var(--miu-r-lg); background: var(--miu-primary); color: var(--miu-on-primary); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
 .go:disabled { opacity: .6; }
 .tabs { display: flex; gap: 4px; margin-top: 14px; padding: 3px; background: var(--miu-surface-card); border-radius: var(--miu-r-pill); }
-.tabs button { flex: 1; padding: 9px 4px; border: none; border-radius: var(--miu-r-pill); background: transparent; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--miu-muted); cursor: pointer; }
+.tabs button { flex: 1; min-height: 44px; padding: 0 4px; border: none; border-radius: var(--miu-r-pill); background: transparent; font: inherit; font-size: 14px; font-weight: 600; color: var(--miu-muted); cursor: pointer; }
 .tabs button.on { background: var(--miu-canvas); color: var(--miu-ink); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-.status { margin-top: 12px; font-size: 13.5px; line-height: 1.6; color: var(--miu-body); }
-.status.err { color: var(--miu-error); }
-.note { margin-top: 12px; padding: 11px 14px; border-radius: var(--miu-r-md); font-size: 13px; line-height: 1.55; background: color-mix(in srgb, var(--miu-warning) 16%, transparent); color: #6b5210; }
+.status { margin-top: 12px; font-size: 14px; line-height: 1.6; color: var(--miu-body); }
+.status:empty { display: none; }
+.status.err { padding: 12px 14px; border-radius: var(--miu-r-md); font-size: 14px; background: color-mix(in srgb, var(--miu-error) 9%, var(--miu-canvas)); color: var(--miu-error-text); border: 1px solid color-mix(in srgb, var(--miu-error) 28%, transparent); }
+.status.loading::before { content: ''; display: inline-block; width: 14px; height: 14px; margin-right: 8px; vertical-align: -2px; border: 2px solid var(--miu-hairline); border-top-color: var(--miu-primary); border-radius: 50%; animation: miu-spin .8s linear infinite; }
+.note { margin-top: 12px; padding: 11px 14px; border-radius: var(--miu-r-md); font-size: 13px; line-height: 1.55; background: color-mix(in srgb, var(--miu-warning) 16%, transparent); color: var(--miu-warning-text); }
 .note.info { background: var(--miu-surface-card); color: var(--miu-body); }
 .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
 .stat { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 14px 14px 12px; }
-.stat .l { font-size: 11.5px; color: var(--miu-muted); font-weight: 600; }
-.stat .v { font-family: var(--miu-serif); font-size: 22px; font-weight: 500; letter-spacing: -.5px; margin-top: 3px; }
-.stat .d { font-size: 12px; margin-top: 2px; color: var(--miu-muted); min-height: 16px; }
-.up { color: #2e6b3a; } .down { color: #b3412f; }
+.stat .l { font-size: 13px; color: var(--miu-muted); font-weight: 600; }
+.stat .v { font-family: var(--miu-sans); font-size: 22px; font-weight: 700; letter-spacing: -.5px; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.stat .d { font-size: 13px; margin-top: 2px; color: var(--miu-muted); min-height: 16px; }
+.up { color: var(--miu-success-text); } .down { color: var(--miu-error-text); }
 .sec { margin-top: 26px; }
 .sec-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 8px; }
 .sec-head .t { font-family: var(--miu-serif); font-size: 19px; font-weight: 500; letter-spacing: -.4px; }
-.sec-head .s { font-size: 12.5px; color: var(--miu-muted); }
+.sec-head .s { font-size: 13px; color: var(--miu-muted); }
 .vdesc { margin: 10px 2px 0; font-size: 13px; color: var(--miu-muted); line-height: 1.6; }
 .more { margin-top: 14px; }
-.more > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--miu-muted); list-style: none; }
+.more > summary { display: flex; align-items: center; justify-content: space-between; min-height: var(--miu-tap); cursor: pointer; font-size: 14px; font-weight: 600; color: var(--miu-muted); list-style: none; }
 .more > summary::-webkit-details-marker { display: none; }
-.more > summary::before { content: '＋ '; }
-.more[open] > summary::before { content: '－ '; }
+.more > summary::after { content: '+'; font-size: 20px; font-weight: 400; }
+.more[open] > summary::after { content: '−'; }
 .list { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); overflow: hidden; }
 .item { border-bottom: 1px solid var(--miu-hairline-soft); }
 .item:last-child { border-bottom: none; }
@@ -59,40 +67,40 @@ body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(-
 .l2 { display: flex; justify-content: space-between; gap: 8px; margin-top: 5px; font-size: 13px; color: var(--miu-body); }
 .l2 .r { text-align: right; white-space: nowrap; }
 .l2 b { color: var(--miu-ink); font-weight: 600; }
-.delta { font-size: 11.5px; margin-left: 4px; font-weight: 600; }
+.delta { font-size: 12px; margin-left: 4px; font-weight: 600; white-space: nowrap; }
 .detail { display: none; padding: 2px 14px 14px; }
 .item.open .detail { display: block; }
 .kv { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
-.kv div { font-size: 12px; color: var(--miu-muted); }
+.kv div { font-size: 13px; color: var(--miu-muted); }
 .kv b { display: block; margin-top: 1px; font-size: 14px; font-weight: 600; color: var(--miu-ink); }
 .bands { display: flex; align-items: flex-end; gap: 4px; height: 56px; margin-top: 14px; }
 .bands .b { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; }
 .bands .bar { width: 100%; background: var(--miu-primary); border-radius: 3px 3px 0 0; min-height: 1px; opacity: .85; }
-.bands .q { font-size: 10px; color: var(--miu-muted); margin-bottom: 2px; }
+.bands .q { font-size: 12px; color: var(--miu-muted); margin-bottom: 2px; }
 .bandlbl { display: flex; gap: 4px; margin-top: 3px; }
-.bandlbl span { flex: 1; text-align: center; font-size: 9.5px; color: var(--miu-muted); letter-spacing: -.3px; }
-.cap { font-size: 12px; color: var(--miu-muted); margin: 14px 0 -8px; }
+.bandlbl span { flex: 1; text-align: center; font-size: 12px; color: var(--miu-muted); letter-spacing: -.5px; white-space: nowrap; }
+.cap { font-size: 13px; color: var(--miu-muted); margin: 14px 0 -8px; }
 .mx-wrap { overflow-x: auto; margin-top: 12px; border-radius: var(--miu-r-lg); background: var(--miu-surface-card); -webkit-overflow-scrolling: touch; }
-table.mx { border-collapse: collapse; font-size: 12.5px; min-width: 100%; }
+table.mx { border-collapse: collapse; font-size: 13px; min-width: 100%; font-variant-numeric: tabular-nums; }
 .mx th, .mx td { padding: 8px 9px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--miu-hairline-soft); }
 .mx th { font-weight: 700; color: var(--miu-body-strong); background: var(--miu-surface-card); position: sticky; top: 0; }
 .mx th:first-child, .mx td:first-child { text-align: left; position: sticky; left: 0; background: var(--miu-surface-card); z-index: 1; font-weight: 600; }
 .mx td.tot { font-weight: 700; border-right: 1px solid var(--miu-hairline); }
 .mx tr.grp td { text-align: left; font-family: var(--miu-serif); font-size: 14px; padding-top: 14px; color: var(--miu-muted); }
-.mx select, .msel { height: 38px; padding: 0 10px; font: inherit; font-size: 14px; border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); background: var(--miu-canvas); color: var(--miu-ink); }
+.mx select, .msel { height: 44px; padding: 0 10px; font: inherit; font-size: 16px; border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); background: var(--miu-canvas); color: var(--miu-ink); }
 .mg-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 14px; border-bottom: 1px solid var(--miu-hairline-soft); }
 .mg-row:last-child { border-bottom: none; }
 .mg-row .n { font-size: 15px; font-weight: 600; }
-.mg-row .n small { display: block; font-size: 11.5px; color: var(--miu-muted); font-weight: 400; margin-top: 1px; }
-.mg-row input { width: 84px; height: 40px; text-align: right; padding: 0 10px; font: inherit; font-size: 16px; border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); background: var(--miu-canvas); color: var(--miu-ink); }
+.mg-row .n small { display: block; font-size: 13px; color: var(--miu-muted); font-weight: 400; margin-top: 1px; }
+.mg-row input { width: 84px; height: 44px; text-align: right; padding: 0 10px; font: inherit; font-size: 16px; border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); background: var(--miu-canvas); color: var(--miu-ink); font-variant-numeric: tabular-nums; }
 .mg-row input.chg { border-color: var(--miu-primary); background: color-mix(in srgb, var(--miu-primary) 9%, var(--miu-canvas)); }
-.hist { font-size: 12.5px; color: var(--miu-body); line-height: 1.5; }
+.hist { font-size: 13px; color: var(--miu-body); line-height: 1.5; }
 .hist .h { display: flex; justify-content: space-between; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--miu-hairline-soft); }
 .hist .h:last-child { border-bottom: none; }
-.hist button { border: none; background: none; color: var(--miu-muted); font-size: 16px; cursor: pointer; padding: 0 4px; }
-.xl { display: block; width: 100%; margin-top: 22px; padding: 13px; border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-lg); background: var(--miu-canvas); font: inherit; font-size: 14px; font-weight: 600; color: var(--miu-body-strong); cursor: pointer; }
-.empty { text-align: center; padding: 96px 32px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
-.hint { margin-top: 20px; font-size: 12.5px; color: var(--miu-muted); line-height: 1.7; }
+.hist button { display: inline-flex; align-items: center; justify-content: center; min-width: var(--miu-tap); min-height: var(--miu-tap); margin: -8px -4px -8px 0; border: none; background: none; color: var(--miu-muted); font-size: 18px; cursor: pointer; }
+.xl { display: block; width: 100%; margin-top: 22px; min-height: 48px; padding: 0 13px; border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-lg); background: var(--miu-canvas); font: inherit; font-size: 14px; font-weight: 600; color: var(--miu-body-strong); cursor: pointer; }
+.empty { text-align: center; padding: 40px 24px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
+.hint { margin-top: 20px; font-size: 13px; color: var(--miu-muted); line-height: 1.7; }
 details.help { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); margin-top: 10px; }
 details.help > summary { list-style: none; cursor: pointer; padding: 15px 16px; font-size: 15px; font-weight: 700; display: flex; justify-content: space-between; align-items: center; }
 details.help > summary::-webkit-details-marker { display: none; }
@@ -106,14 +114,14 @@ details.help[open] > summary::after { content: '−'; }
 .hbody dt { margin-top: 12px; font-weight: 700; color: var(--miu-ink); }
 .hbody dd { margin: 2px 0 0; }
 .hbody .ex { margin-top: 10px; padding: 10px 12px; border-radius: var(--miu-r-md); background: var(--miu-canvas); font-size: 13px; }
-.hbody table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12.5px; }
+.hbody table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
 .hbody th, .hbody td { padding: 7px 6px; border-bottom: 1px solid var(--miu-hairline-soft); text-align: left; vertical-align: top; }
 .hbody th { color: var(--miu-muted); font-weight: 600; }
 </style>
-<script src="/miu-hub/shared/config.js?v=202611151148"></script>
+<script src="/miu-hub/shared/config.js?v=202611151334"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 </head>
 <body>
@@ -128,7 +136,7 @@ details.help[open] > summary::after { content: '−'; }
   </div>
 </header>
 
-<div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
+<div class="wrap" id="root"><div class="miu-loading"><span class="miu-spinner"></span>불러오는 중…</div></div>
 
 <script>
 // 최영훈 · 황태훈 · 김민지 · 이강철 · 김성경 전용. 화면 게이트이며, 서버(RPC·store_hangers RLS)도 같은 사람들의 id만 허용한다.
@@ -151,6 +159,11 @@ const diffDays = (a, b) => Math.round((new Date(b + 'T00:00:00Z') - new Date(a +
 const md = (iso) => { const [, m, d] = iso.split('-'); return `${+m}/${+d}`; };
 const num = (x) => (x == null ? null : Number(x));
 const sumBy = (arr, f) => arr.reduce((a, x) => a + f(x), 0);
+const psumText = (a, b) => (a && b && a <= b ? `${md(a)} ~ ${md(b)} · ${diffDays(a, b) + 1}일` : '기간을 입력해 주세요');
+function updPsum() {
+  const el = document.getElementById('psum'), f = document.getElementById('from'), t = document.getElementById('to');
+  if (el && f && t) el.textContent = psumText(f.value, t.value);
+}
 
 const won = (n) => (n == null ? '-' : Math.round(n).toLocaleString('ko-KR'));
 const man = (n) => {                                  // 모바일용 짧은 금액
@@ -163,7 +176,7 @@ const man = (n) => {                                  // 모바일용 짧은 금
 const f1 = (n) => (n == null ? '-' : (Math.round(n * 10) / 10).toLocaleString('ko-KR'));
 const pctDelta = (cur, prev) => (prev == null ? null : prev === 0 ? (cur === 0 ? null : Infinity) : (cur - prev) / Math.abs(prev));
 const deltaHtml = (d) => d == null ? '' : d === Infinity ? '<span class="delta up">신규</span>'
-  : `<span class="delta ${d >= 0 ? 'up' : 'down'}">${d >= 0 ? '▲' : '▼'}${Math.round(Math.abs(d) * 100)}%</span>`;
+  : `<span class="delta ${d >= 0 ? 'up' : 'down'}"><i class="ph-bold ph-caret-${d >= 0 ? 'up' : 'down'}"></i>${Math.round(Math.abs(d) * 100)}%</span>`;
 
 // ── 상태 ────────────────────────────────────────────────────
 const S = {
@@ -280,23 +293,25 @@ function ctrlHtml() {
   const stores = [ALL, ...S.stores];
   return `
     <div class="card">
-      <h2>기간</h2>
-      <div class="dates">
-        <input type="date" id="from" value="${S.from}" max="${kstDate()}">
-        <span class="sep">~</span>
-        <input type="date" id="to" value="${S.to}" max="${kstDate()}">
-      </div>
-      <div class="row-chips">
-        ${[7, 14, 30].map((n) => `<button type="button" class="chip" data-days="${n}">최근 ${n}일</button>`).join('')}
-        <label class="toggle"><input type="checkbox" id="cmp" ${S.compare ? 'checked' : ''}>직전 기간 대비</label>
-      </div>
+      <details class="period" id="period">
+        <summary><span class="ptitle">기간</span><span class="psum" id="psum">${esc(psumText(S.from, S.to))}</span></summary>
+        <div class="dates" style="margin-top:6px">
+          <input type="date" id="from" value="${S.from}" max="${kstDate()}">
+          <span class="sep">~</span>
+          <input type="date" id="to" value="${S.to}" max="${kstDate()}">
+        </div>
+        <div class="row-chips">
+          ${[7, 14, 30].map((n) => `<button type="button" class="miu-chip-btn chip" data-days="${n}">최근 ${n}일</button>`).join('')}
+          <label class="toggle"><input type="checkbox" id="cmp" ${S.compare ? 'checked' : ''}>직전 기간 대비</label>
+        </div>
+      </details>
       <button class="go" id="go" type="button">조회</button>
       <div class="status" id="status"></div>
     </div>
     <div class="card">
       <h2>매장</h2>
       <div class="scroller" id="storechips">
-        ${stores.map((s) => `<button type="button" class="chip${s === S.store ? ' on' : ''}" data-store="${esc(s)}">${esc(s === ALL ? '총합' : s)}</button>`).join('')}
+        ${stores.map((s) => `<button type="button" class="miu-chip-btn chip${s === S.store ? ' on' : ''}" data-store="${esc(s)}">${esc(s === ALL ? '총합' : s)}</button>`).join('')}
       </div>
     </div>
     <div class="tabs" id="tabs">
@@ -388,7 +403,7 @@ function renderCat() {
       <div class="stat"><div class="l">행거당 판매액</div><div class="v">${sm.revPerH != null ? man(sm.revPerH) : '-'}</div><div class="d">${sm.hSum > 0 ? `행거 ${f1(sm.hSum)}개 기준` : '행거수 미입력'}</div></div>
     </div>
     <div class="views scroller" id="views" style="margin-top:18px">${Object.entries(VIEWS).map(([k, v]) =>
-      `<button type="button" class="chip${k === S.view ? ' on' : ''}" data-view="${k}">${v.label}${k === 'all' ? '' : ` ${view.items.filter(v.pick).length}`}</button>`).join('')}</div>
+      `<button type="button" class="miu-chip-btn chip${k === S.view ? ' on' : ''}" data-view="${k}">${v.label}${k === 'all' ? '' : ` ${view.items.filter(v.pick).length}`}</button>`).join('')}</div>
     ${VIEWS[S.view].desc ? `<p class="vdesc">${VIEWS[S.view].desc}</p>` : ''}`;
   const V = VIEWS[S.view];
   let shown = 0;
@@ -404,7 +419,7 @@ function renderCat() {
     shown += items.length;
   }
   if (!view.items.length) html += '<div class="empty">이 기간·매장에는 판매가 없어요.</div>';
-  else if (!shown) html += '<div class="empty" style="padding:56px 24px">해당하는 카테고리가 없어요.</div>';
+  else if (!shown) html += '<div class="empty" style="padding:40px 24px">해당하는 카테고리가 없어요.</div>';
   html += `<button class="xl" id="xl" type="button">엑셀로 내려받기 (총합 + 매장별)</button>
     <p class="hint">숫자의 뜻과 판단 순서는 「사용법」 탭에 정리해 두었어요. 재고·재고 소진 예상은 조회 기간이 아니라 <b>지금</b> 재고 기준이고, 행거수 옆 *는 행거수 입력 이전 기간을 첫 입력값으로 채웠다는 뜻이에요.</p>`;
   document.getElementById('view').innerHTML = html;
@@ -437,7 +452,7 @@ function renderMx() {
       const max = Math.max(...vals.filter((v) => v != null), 0);
       const t = get(c);
       body += `<tr><td>${esc(c.category)}</td><td class="tot">${t == null ? '-' : fmt(t)}</td>${vals.map((v) =>
-        `<td${v != null && max > 0 && S.mxMetric !== 'stockDays' ? ` style="background:rgba(204,120,92,${(0.38 * v / max).toFixed(2)})"` : ''}>${v == null ? '-' : fmt(v)}</td>`).join('')}</tr>`;
+        `<td${v != null && max > 0 && S.mxMetric !== 'stockDays' ? ` style="background:color-mix(in srgb, var(--miu-primary) ${(38 * v / max).toFixed(0)}%, transparent)"` : ''}>${v == null ? '-' : fmt(v)}</td>`).join('')}</tr>`;
     }
   }
   document.getElementById('view').innerHTML = notesHtml(ALL) + `
@@ -482,8 +497,8 @@ async function renderHg() {
   if (S.store === ALL && !S.mgStore) S.mgStore = S.stores[0];
   const store = S.mgStore || (S.store !== ALL ? S.store : S.stores[0]);
   S.mgStore = store;
-  v.innerHTML = '<div class="empty">불러오는 중…</div>';
-  try { await loadHangers(store); } catch (e) { v.innerHTML = `<div class="status err">불러오지 못했어요: ${esc(e.message || e)}</div>`; return; }
+  v.innerHTML = '<div class="miu-loading"><span class="miu-spinner"></span>불러오는 중…</div>';
+  try { await loadHangers(store); } catch (e) { v.innerHTML = `<div class="miu-state compact"><div class="miu-state-icon"><i class="ph-bold ph-warning-circle"></i></div><div class="miu-state-title">불러오지 못했어요</div><div class="miu-state-desc">${esc(e.message || e)}</div><button class="miu-btn miu-btn-primary" onclick="renderHg()">다시 시도</button></div>`; return; }
   const cats = mgCategories(store);
   const rows = (list) => list.map((c) => {
     const cur = S.mgRows.latest.get(c);
@@ -491,12 +506,12 @@ async function renderHg() {
       <input type="number" inputmode="decimal" min="0" step="0.5" data-cat="${esc(c)}" data-cur="${cur ? cur.h : ''}" placeholder="${cur ? f1(cur.h) : '0'}" value="${cur ? cur.h : ''}"></div>`;
   }).join('');
   const phys = cats.filter((c) => !c.startsWith('온')), onl = cats.filter((c) => c.startsWith('온'));
-  const histRows = S.mgRows.hist.slice(0, 40).map((r) => `<div class="h"><span>${md(r.effective_date)} · ${esc(r.category)} ${r.old != null ? f1(r.old) + '→' : ''}<b>${f1(r.hangers)}개</b>${r.updated_by ? ` <span style="color:var(--miu-muted)">${esc(r.updated_by)}</span>` : ''}</span><button type="button" data-del="${r.id}" aria-label="삭제">×</button></div>`).join('');
+  const histRows = S.mgRows.hist.slice(0, 40).map((r) => `<div class="h"><span>${md(r.effective_date)} · ${esc(r.category)} ${r.old != null ? f1(r.old) + '→' : ''}<b>${f1(r.hangers)}개</b>${r.updated_by ? ` <span style="color:var(--miu-muted)">${esc(r.updated_by)}</span>` : ''}</span><button type="button" data-del="${r.id}" aria-label="삭제"><i class="ph-bold ph-x"></i></button></div>`).join('');
   v.innerHTML = `
     <div class="card">
       <h2>행거수 입력</h2>
-      <div class="scroller">${S.stores.map((s) => `<button type="button" class="chip${s === store ? ' on' : ''}" data-mgstore="${esc(s)}">${esc(s)}</button>`).join('')}</div>
-      <div class="dates" style="margin-top:12px"><span style="font-size:13px;color:var(--miu-muted);white-space:nowrap">적용일</span>
+      <div class="scroller">${S.stores.map((s) => `<button type="button" class="miu-chip-btn chip${s === store ? ' on' : ''}" data-mgstore="${esc(s)}">${esc(s)}</button>`).join('')}</div>
+      <div class="dates" style="margin-top:12px"><span style="font-size:14px;color:var(--miu-muted);white-space:nowrap">적용일</span>
         <input type="date" id="mgdate" value="${S.mgDate}" max="${addDays(kstDate(), 30)}"></div>
       <p class="hint" style="margin-top:10px">바꾼 칸만 저장돼요. 적용일부터 그 값이 유효하고, 분석은 날짜별로 반영한 평균 행거수를 써요. 지난 날짜로 입력하면 그 시점부터 바뀐 걸로 계산돼요.</p>
     </div>
@@ -635,7 +650,7 @@ function renderHelp() {
 
   <details class="help"><summary>숫자 읽는 법</summary><div class="hbody">
     <dl>
-      <dt>판매벌수 · 판매액 · 평균가</dt><dd>기간 동안 팔린 수량과 금액, 판매액 ÷ 판매벌수. 환불은 빼고, 취소는 차감해요. ▲▼는 직전 기간 대비 증감이에요.</dd>
+      <dt>판매벌수 · 판매액 · 평균가</dt><dd>기간 동안 팔린 수량과 금액, 판매액 ÷ 판매벌수. 환불은 빼고, 취소는 차감해요. <i class="ph-bold ph-caret-up"></i><i class="ph-bold ph-caret-down"></i> 표시는 직전 기간 대비 증감이에요.</dd>
       <dt>평균 행거수</dt><dd>기간의 하루하루에 그날 유효한 행거수를 적용한 평균이에요. 기간 중 바꿨다면 「10→12」처럼 같이 보여요. 숫자 옆 *는 행거수를 처음 입력한 날보다 이전 기간이라 첫 입력값으로 채웠다는 뜻이에요.</dd>
       <dt>행거당 판매액</dt><dd>판매액 ÷ 평균 행거수. 행거 한 개가 이 기간에 번 돈이에요. 기간이 길수록 커지니 <b>같은 길이의 기간끼리</b> 비교하세요. 기간이 다를 때는 「행거당 일평균 판매액」(판매액 ÷ (행거수×일수))을 보세요.</dd>
       <dt>행거당 판매수</dt><dd>판매벌수 ÷ 평균 행거수. 행거 한 개에서 몇 벌이 빠졌는지예요. 값이 작으면 걸어만 두고 안 나가는 행거예요.</dd>
@@ -764,13 +779,14 @@ function wireView() {
 
 async function loadAnalysis(silent) {
   const st = document.getElementById('status'), go = document.getElementById('go');
-  const say = (m, err) => { if (st) { st.textContent = m; st.classList.toggle('err', !!err); } };
+  const say = (m, err, busy) => { if (st) { st.textContent = m; st.classList.toggle('err', !!err); st.classList.toggle('loading', !!busy); } };
   if (!S.from || !S.to) return say('기간을 입력해 주세요.', true);
   if (S.from > S.to) return say('시작일이 종료일보다 늦어요.', true);
   if (diffDays(S.from, S.to) > 365) return say('기간은 1년 이내로 골라 주세요.', true);
   S.days = diffDays(S.from, S.to) + 1;
+  updPsum();
   if (go) go.disabled = true;
-  if (!silent) say('불러오는 중…');
+  if (!silent) say('불러오는 중…', false, true);
   try {
     const prevTo = addDays(S.from, -1), prevFrom = addDays(prevTo, -(S.days - 1));
     const [cur, prev] = await Promise.all([fetchPerf(S.from, S.to), S.compare ? fetchPerf(prevFrom, prevTo) : Promise.resolve(null)]);
@@ -785,6 +801,7 @@ async function loadAnalysis(silent) {
 function mount() {
   root.innerHTML = ctrlHtml();
   const $ = (id) => document.getElementById(id);
+  $('from').onchange = updPsum; $('to').onchange = updPsum;
   $('go').onclick = () => { S.from = $('from').value; S.to = $('to').value; S.compare = $('cmp').checked; loadAnalysis(); };
   $('cmp').onchange = () => { S.compare = $('cmp').checked; loadAnalysis(); };
   root.querySelectorAll('.chip[data-days]').forEach((b) => {
@@ -818,12 +835,12 @@ async function fetchStoreNames() {
 (async function init() {
   for (let i = 0; i < 50 && window.MIU_PROFILE === undefined; i++) await new Promise((r) => setTimeout(r, 100));
   if (!ALLOWED_NAMES.includes(window.MIU_PROFILE?.name)) {
-    root.innerHTML = '<div class="empty">이 기능은 사용할 수 없어요.</div>';
+    root.innerHTML = '<div class="miu-state compact"><div class="miu-state-icon"><i class="ph-bold ph-lock-simple"></i></div><div class="miu-state-title">이 기능은 사용할 수 없어요</div></div>';
     return;
   }
   try {
     S.stores = await fetchStoreNames();
-  } catch (e) { root.innerHTML = '<div class="empty">불러오지 못했어요.</div>'; return; }
+  } catch (e) { root.innerHTML = '<div class="miu-state compact"><div class="miu-state-icon"><i class="ph-bold ph-warning-circle"></i></div><div class="miu-state-title">불러오지 못했어요</div><button class="miu-btn miu-btn-primary" onclick="location.reload()">다시 시도</button></div>'; return; }
   const yesterday = addDays(kstDate(), -1);
   S.to = yesterday; S.from = addDays(yesterday, -13); S.mgDate = kstDate();
   mount();

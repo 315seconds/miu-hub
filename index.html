@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>마켓인유 관리툴</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -12,21 +12,18 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="마켓인유">
 
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
 <!-- Phosphor Icons (Bold 스타일 — 살짝 두꺼운 라인) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
 <style>
-  .hero {
-    padding: 40px 24px 32px;
-  }
-  .hero .eyebrow {
-    display: flex; align-items: center; gap: 8px;
-    margin-bottom: 20px;
-  }
-  .hero .spike-mark {
-    width: 14px; height: 14px; color: var(--miu-primary);
-  }
+  /* 폰 우선: 큰 화면에서는 가운데 좁게 */
+  body { max-width: 560px; margin: 0 auto; }
+
+  /* ── 상단: 한 줄로 압축해서 작업 타일이 첫 화면에 들어오게 ── */
+  .hero { padding: 20px 20px 4px; }
+  .hero .eyebrow { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .hero .spike-mark { width: 12px; height: 12px; color: var(--miu-primary); }
   .hero .brand {
     font-size: 11px;
     font-weight: 700;
@@ -34,227 +31,140 @@
     color: var(--miu-primary);
     text-transform: uppercase;
   }
+  .hero .title-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
   .hero .title {
     font-family: var(--miu-serif);
-    font-size: 34px;
+    font-size: 28px;
     font-weight: 500;
-    line-height: 1.12;
-    letter-spacing: -1.2px;
+    line-height: 1.15;
+    letter-spacing: -0.8px;
     color: var(--miu-ink);
-    margin-bottom: 6px;
   }
-  .hero .date-line {
-    font-size: 14px;
-    color: var(--miu-muted);
-    margin-top: 8px;
-  }
+  .hero .date-line { font-size: 14px; color: var(--miu-muted); white-space: nowrap; }
 
-  .section {
-    padding: 0 24px;
-    margin-bottom: 32px;
-  }
-  .section-head {
-    display: flex; align-items: baseline; gap: 8px;
-    margin-bottom: 14px;
-  }
-  .section-head .num {
-    font-family: var(--miu-serif);
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--miu-muted-soft);
-    letter-spacing: -0.2px;
-  }
+  .section { padding: 0 20px; margin-top: 24px; }
+  .section-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
   .section-head .label {
     font-family: var(--miu-sans);
     font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0.8px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
     color: var(--miu-ink);
-    text-transform: uppercase;
   }
-  .section-head .divider {
-    flex: 1;
-    height: 1px;
-    background: var(--miu-hairline);
-    margin-left: 8px;
-  }
+  .section-head .divider { flex: 1; height: 1px; background: var(--miu-hairline); }
 
-  /* ── Tile Cards (아이콘 + 좌측 컬러 라인) ── */
-  .tiles {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
+  /* ── 타일: 기능을 색으로 나누지 않는다. 아이콘은 테라코타 한 가지, 구분은 위치·라벨 ── */
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .tile {
     background: var(--miu-surface-card);
     border-radius: var(--miu-r-lg);
-    padding: 20px 18px 18px;
+    padding: 14px;
     text-decoration: none;
     color: var(--miu-ink);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     transition: transform .12s, background .15s;
-    min-height: 130px;
-    /* 좌측 컬러 액센트 라인 */
-    border-left: 3px solid var(--tile-accent, var(--miu-primary));
+    min-height: 108px;
   }
-  .tile:active {
-    transform: scale(0.98);
-    background: var(--miu-surface-strong);
-  }
+  .tile:active { transform: scale(0.98); background: var(--miu-surface-strong); }
   .tile-icon {
-    font-size: 26px;
-    line-height: 1;
-    margin-bottom: 6px;
-    color: var(--tile-accent, var(--miu-ink));
+    width: 44px; height: 44px;
+    border-radius: var(--miu-r-md);
+    background: var(--miu-canvas);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; line-height: 1;
+    color: var(--miu-primary);
+    flex-shrink: 0;
   }
-  .tile-icon i { display: inline-block; }
   .tile-title {
     font-family: var(--miu-sans);
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 16px;
+    font-weight: 700;
     color: var(--miu-ink);
     line-height: 1.35;
     letter-spacing: -0.2px;
     margin-top: auto;
   }
-  .tile-desc {
-    font-size: 12px;
-    color: var(--miu-body);
-    line-height: 1.5;
-    margin-top: 4px;
-  }
+  .tile-desc { font-size: 13px; color: var(--miu-body); line-height: 1.5; margin-top: 2px; }
 
-  /* 넓은 타일 (2열 폭, 아이콘 가로배치) */
+  /* 매일 쓰는 핵심 두 개는 채워서 눈에 먼저 들어오게 */
+  .tile-primary { background: var(--miu-primary); color: var(--miu-on-primary); }
+  .tile-primary:active { background: var(--miu-primary-active); }
+  .tile-primary .tile-icon { background: rgba(255,255,255,0.18); color: var(--miu-on-primary); }
+  .tile-primary .tile-title { color: var(--miu-on-primary); }
+  .tile-primary .tile-desc { color: rgba(255,255,255,0.92); }
+
+  /* 넓은 타일 (가로 배치) */
   .tile-wide {
     grid-column: span 2;
     flex-direction: row;
     align-items: center;
-    min-height: auto;
-    padding: 18px 20px 18px 18px;
-    gap: 16px;
+    min-height: 72px;
+    padding: 14px 16px;
+    gap: 14px;
   }
-  .tile-wide .tile-icon { margin-bottom: 0; font-size: 24px; }
-  .tile-wide .tile-body { flex: 1; }
+  .tile-wide .tile-body { flex: 1; min-width: 0; }
   .tile-wide .tile-title { margin-top: 0; }
-  .tile-wide .tile-arrow {
-    color: var(--miu-muted);
-    font-size: 20px;
-    font-weight: 300;
-  }
-
-  /* ── 카테고리별 컬러 액센트 ── */
-  .accent-receiving  { --tile-accent: #4a6b8a; }  /* 차분한 블루 */
-  .accent-move       { --tile-accent: #7c6da8; }  /* muted purple */
-  .accent-longterm   { --tile-accent: var(--miu-primary); }  /* 코랄 */
-  .accent-price      { --tile-accent: #b03a2e; }  /* 버건디 */
-  .accent-dashboard  { --tile-accent: #6b8e6b; }  /* muted green */
-  .accent-sold       { --tile-accent: #d4784a; }  /* warm orange */
-  .accent-report     { --tile-accent: var(--miu-accent-amber); }  /* amber */
-  .accent-lookup     { --tile-accent: #3c4e75; }  /* deep indigo */
-  .accent-reprint    { --tile-accent: var(--miu-muted); }
-  .accent-scanner    { --tile-accent: #c99a94; }  /* dusty pink */
-  .accent-inventory  { --tile-accent: var(--miu-accent-teal); }  /* teal */
-  .accent-calendar   { --tile-accent: var(--miu-primary); }
-  .accent-admin      { --tile-accent: var(--miu-body-strong); }
+  .tile-wide .tile-arrow { color: var(--miu-muted); font-size: 22px; flex-shrink: 0; }
   #admin-section { display: none; }
   #logistics-section { display: none; }
   #store-manual-section { display: none; }
 
-  /* ── Callout (전면 코랄) ── */
-  .callout {
-    margin: 0 24px 32px;
-    background: var(--miu-primary);
-    color: var(--miu-on-primary);
-    border-radius: var(--miu-r-lg);
-    padding: 24px 22px;
-    text-decoration: none;
-    display: block;
-    transition: transform .12s;
-  }
-  .callout:active { transform: scale(0.98); }
-  .callout-eyebrow {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.75);
-    margin-bottom: 10px;
-  }
-  .callout-icon { font-size: 15px; color: rgba(255,255,255,0.9); }
-  .callout-title {
-    font-family: var(--miu-serif);
-    font-size: 22px;
-    font-weight: 500;
-    line-height: 1.25;
-    letter-spacing: -0.5px;
-    margin-bottom: 6px;
-  }
-  .callout-desc {
-    font-size: 13px;
-    line-height: 1.55;
-    color: rgba(255,255,255,0.85);
-  }
-
   /* ── Footer ── */
-  .footer {
-    padding: 32px 24px 40px;
-    text-align: center;
-  }
-  .footer .user {
-    font-size: 13px;
-    color: var(--miu-body);
-    margin-bottom: 10px;
-  }
+  .footer { padding: 32px 24px 40px; text-align: center; }
+  .footer .user { font-size: 13px; color: var(--miu-body); margin-bottom: 4px; }
   .footer .logout {
     background: none;
     border: none;
     color: var(--miu-muted);
-    font-size: 12px;
+    font-size: 14px;
+    min-height: var(--miu-tap);
+    padding: 0 16px;
     text-decoration: underline;
     cursor: pointer;
     font-family: var(--miu-sans);
   }
   .footer .brand-tag {
-    margin-top: 20px;
+    margin-top: 12px;
     font-family: var(--miu-serif);
     font-size: 13px;
-    color: var(--miu-muted-soft);
+    color: var(--miu-muted);
     font-style: italic;
     letter-spacing: -0.1px;
   }
 
-  /* ── 어제 매출 카드 ── */
+  /* ── 어제 매출 카드: 합계와 증감만 색을 쓴다. 매장 행은 기호만 ── */
   .sales-card {
-    display: none; margin: 0 24px 16px; padding: 20px 20px 16px;
+    display: none; margin: 24px 20px 0; padding: 16px 18px 14px;
     background: var(--miu-surface-card); border-radius: var(--miu-r-lg);
     color: var(--miu-ink); text-decoration: none;
   }
   .sales-card:active { background: var(--miu-surface-strong); }
-  .sales-eyebrow { font-size: 11px; font-weight: 600; letter-spacing: 0.8px; color: var(--miu-muted); }
-  .sales-total { font-family: var(--miu-serif); font-size: 32px; font-weight: 500; letter-spacing: -0.8px; margin-top: 6px; }
-  .sales-sub { font-size: 13px; color: var(--miu-body); margin-top: 4px; }
-  .sales-stores { margin-top: 14px; border-top: 1px solid var(--miu-hairline); }
-  .sales-row { display: flex; align-items: baseline; gap: 8px; padding: 8px 0 0; font-size: 13px; }
+  .sales-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--miu-muted); }
+  .sales-eyebrow { font-size: 13px; font-weight: 600; color: var(--miu-muted); }
+  .sales-total { font-family: var(--miu-sans); font-size: 30px; font-weight: 700; letter-spacing: -0.6px; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .sales-sub { font-size: 14px; color: var(--miu-body); margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .sales-stores { margin-top: 12px; border-top: 1px solid var(--miu-hairline); }
+  .sales-row { display: flex; align-items: baseline; gap: 8px; padding: 10px 0 0; font-size: 14px; font-variant-numeric: tabular-nums; }
   .sales-row .nm { flex: 1; color: var(--miu-body-strong, var(--miu-ink)); }
   .sales-row .amt { font-weight: 600; }
-  .sales-row .sd { width: 54px; text-align: right; }
-  .sales-vis { font-size: 12px; color: var(--miu-muted); padding-top: 2px; }
-  .sd { font-size: 12px; font-weight: 600; }
+  .sales-row .sd { width: 56px; text-align: right; color: var(--miu-body); }
+  .sales-vis { font-size: 13px; color: var(--miu-muted); padding-top: 4px; }
+  .sales-basis { margin-top: 8px; border-top: 1px dashed var(--miu-hairline); padding-top: 8px; }
+  .sd { font-size: 13px; font-weight: 600; }
   .sd.up { color: var(--miu-success); }
   .sd.down { color: var(--miu-error); }
   .sd.flat { color: var(--miu-muted); }
+  .sales-row .sd.up, .sales-row .sd.down { color: var(--miu-body); }
 
   /* ── 주간 레터 ── */
-  .accent-letter { --tile-accent: var(--miu-accent-teal); }
   #letter-tile { display: none; position: relative; }
   #letter-status-tile { display: none; }
   #sales-letter-tile { display: none; position: relative; }
   .new-badge {
-    background: var(--miu-primary); color: #fff; font-size: 10px; font-weight: 700;
-    letter-spacing: 0.5px; padding: 3px 8px; border-radius: var(--miu-r-pill); margin-right: 4px;
+    background: var(--miu-primary); color: var(--miu-on-primary); font-size: 12px; font-weight: 700;
+    letter-spacing: 0.3px; padding: 3px 8px; border-radius: var(--miu-r-pill); margin-right: 4px;
   }
   .letter-modal {
     position: fixed; inset: 0; z-index: 1000; display: none;
@@ -275,12 +185,12 @@
   }
   .letter-sheet .d { font-size: 14px; color: var(--miu-body); line-height: 1.55; margin-bottom: 22px; }
   .letter-sheet .open-btn {
-    display: block; width: 100%; text-align: center; background: var(--miu-primary); color: #fff;
+    display: block; width: 100%; text-align: center; background: var(--miu-primary); color: var(--miu-on-primary);
     border-radius: var(--miu-r-lg); padding: 15px; font-size: 15px; font-weight: 600; text-decoration: none;
   }
   .letter-sheet .later-btn {
     display: block; width: 100%; background: none; border: none; color: var(--miu-muted);
-    font-size: 14px; padding: 14px 0 0; cursor: pointer; font-family: var(--miu-sans);
+    font-size: 14px; min-height: var(--miu-tap); margin-top: 6px; cursor: pointer; font-family: var(--miu-sans);
   }
 </style>
 </head>
@@ -293,76 +203,66 @@
     </svg>
     <span class="brand">MARKET IN U</span>
   </div>
-  <div class="title">관리툴</div>
-  <div class="date-line" id="today-label"></div>
+  <div class="title-row">
+    <div class="title">관리툴</div>
+    <div class="date-line" id="today-label"></div>
+  </div>
 </div>
 
-<!-- 어제 매출: 전 직원 공개(현금 포함, 비교는 7일 전 같은 요일) -->
-<a href="sold-report/" class="sales-card" id="sales-card">
-  <div class="sales-eyebrow" id="sales-eyebrow"></div>
-  <div class="sales-total" id="sales-total"></div>
-  <div class="sales-sub" id="sales-sub"></div>
-  <div class="sales-stores" id="sales-stores"></div>
-</a>
-
-<!-- 오늘의 캘린더 = 코랄 callout -->
-<a href="calendar/" class="callout">
-  <div class="callout-eyebrow">
-    <span class="callout-icon"><i class="ph-bold ph-calendar-blank"></i></span>
-    <span>TODAY</span>
-  </div>
-  <div class="callout-title">일정 캘린더</div>
-  <div class="callout-desc">팝업 셋업 · 철수 · 행사 · 재고조사 · 플리마켓</div>
-</a>
-
-<!-- 섹션 1: 정기 작업 -->
-<div class="section">
+<!-- 섹션: 정기 작업 (매일 쓰는 것이 맨 위. 매장 직원 계정은 아래 스크립트가 매장 업무를 이 위로 올린다) -->
+<div class="section" id="sec-regular">
   <div class="section-head">
-    <span class="num">01</span>
     <span class="label">정기 작업</span>
     <span class="divider"></span>
   </div>
   <div class="tiles">
-    <a href="receiving/" class="tile accent-receiving">
+    <a href="receiving/" class="tile tile-primary">
       <div class="tile-icon"><i class="ph-bold ph-package"></i></div>
       <div>
         <div class="tile-title">신규 입고</div>
         <div class="tile-desc">바코드 등록 · 세션 · 라벨</div>
       </div>
     </a>
-    <a href="move/" class="tile accent-move">
+    <a href="move/" class="tile tile-primary">
       <div class="tile-icon"><i class="ph-bold ph-arrows-left-right"></i></div>
       <div>
         <div class="tile-title">물류 이동</div>
         <div class="tile-desc">매장간 이동 · 승인</div>
       </div>
     </a>
-    <a href="longterm/" class="tile accent-longterm">
+    <a href="longterm/" class="tile">
       <div class="tile-icon"><i class="ph-bold ph-tag"></i></div>
       <div>
         <div class="tile-title">장기 재고</div>
         <div class="tile-desc">가격수정 · 이동복사</div>
       </div>
     </a>
-    <a href="longterm/index.html?direct=1" class="tile accent-price">
+    <a href="longterm/index.html?direct=1" class="tile">
       <div class="tile-icon"><i class="ph-bold ph-currency-krw"></i></div>
       <div>
         <div class="tile-title">가격 수정</div>
         <div class="tile-desc">기준일 없이 바로 스캔</div>
       </div>
     </a>
+    <a href="calendar/" class="tile tile-wide">
+      <div class="tile-icon"><i class="ph-bold ph-calendar-blank"></i></div>
+      <div class="tile-body">
+        <div class="tile-title">일정 캘린더</div>
+        <div class="tile-desc">팝업 셋업 · 철수 · 행사 · 재고조사 · 플리마켓</div>
+      </div>
+      <span class="tile-arrow">›</span>
+    </a>
   </div>
 </div>
 
-<!-- 섹션 2: 조회 · 출력 -->
+<!-- 섹션: 조회 · 출력 -->
 <div class="section">
   <div class="section-head">
-    <span class="num">02</span>
     <span class="label">조회 · 출력</span>
     <span class="divider"></span>
   </div>
   <div class="tiles">
-    <a href="receiving/items.html" class="tile tile-wide accent-lookup">
+    <a href="receiving/items.html" class="tile tile-wide">
       <div class="tile-icon"><i class="ph-bold ph-magnifying-glass"></i></div>
       <div class="tile-body">
         <div class="tile-title">통합 물건 조회</div>
@@ -370,7 +270,7 @@
       </div>
       <span class="tile-arrow">›</span>
     </a>
-    <a href="receiving/reprint.html" class="tile tile-wide accent-reprint">
+    <a href="receiving/reprint.html" class="tile tile-wide">
       <div class="tile-icon"><i class="ph-bold ph-printer"></i></div>
       <div class="tile-body">
         <div class="tile-title">바코드 재출력</div>
@@ -381,29 +281,41 @@
   </div>
 </div>
 
-<!-- 섹션 3: 분석 도구 -->
+<!-- 어제 매출: 전 직원 공개(현금 포함, 비교는 7일 전 같은 요일). 작업 타일을 밀어내지 않게 아래쪽에 둔다 -->
+<a href="sold-report/" class="sales-card" id="sales-card">
+  <div class="sales-head">
+    <span class="sales-eyebrow" id="sales-eyebrow"></span>
+    <i class="ph-bold ph-caret-right"></i>
+  </div>
+  <div class="sales-total" id="sales-total"></div>
+  <div class="sales-sub" id="sales-sub"></div>
+  <div class="sales-stores" id="sales-stores"></div>
+</a>
+
+<!-- 섹션: 분석 도구 -->
 <div class="section">
   <div class="section-head">
-    <span class="num">03</span>
     <span class="label">분석 도구</span>
     <span class="divider"></span>
   </div>
   <div class="tiles">
-    <a href="dashboard/" class="tile accent-dashboard">
+    <a href="dashboard/" class="tile tile-wide">
       <div class="tile-icon"><i class="ph-bold ph-chart-bar"></i></div>
-      <div>
+      <div class="tile-body">
         <div class="tile-title">매장 현황판</div>
         <div class="tile-desc">재고 · 나이 분포 · 월매출</div>
       </div>
+      <span class="tile-arrow">›</span>
     </a>
-    <a href="sold-report/" class="tile accent-sold">
+    <a href="sold-report/" class="tile tile-wide">
       <div class="tile-icon"><i class="ph-bold ph-flame"></i></div>
-      <div>
+      <div class="tile-body">
         <div class="tile-title">판매 리포트</div>
         <div class="tile-desc">지점별 · 빠른판매</div>
       </div>
+      <span class="tile-arrow">›</span>
     </a>
-    <a href="report/" class="tile tile-wide accent-report">
+    <a href="report/" class="tile tile-wide">
       <div class="tile-icon"><i class="ph-bold ph-chart-line-up"></i></div>
       <div class="tile-body">
         <div class="tile-title">매출 리포트</div>
@@ -411,21 +323,23 @@
       </div>
       <span class="tile-arrow">›</span>
     </a>
-    <a href="purchase/" class="tile accent-report">
+    <a href="purchase/" class="tile tile-wide">
       <div class="tile-icon"><i class="ph-bold ph-coins"></i></div>
-      <div>
+      <div class="tile-body">
         <div class="tile-title">사입 통계</div>
         <div class="tile-desc">차시별 회수율 · 출처별 판매</div>
       </div>
+      <span class="tile-arrow">›</span>
     </a>
-    <a href="correction/" class="tile accent-lookup">
+    <a href="correction/" class="tile tile-wide">
       <div class="tile-icon"><i class="ph-bold ph-pencil-simple-line"></i></div>
-      <div>
+      <div class="tile-body">
         <div class="tile-title">정정 · 이력</div>
         <div class="tile-desc">판매 정정 · 제외 · 이력</div>
       </div>
+      <span class="tile-arrow">›</span>
     </a>
-    <a href="letter/" class="tile tile-wide accent-letter" id="letter-tile">
+    <a href="letter/" class="tile tile-wide" id="letter-tile">
       <div class="tile-icon"><i class="ph-bold ph-envelope-simple"></i></div>
       <div class="tile-body">
         <div class="tile-title">주간 레터</div>
@@ -434,7 +348,7 @@
       <span id="letter-new" class="new-badge" hidden>NEW</span>
       <span class="tile-arrow">›</span>
     </a>
-    <a href="sales-letter/" class="tile tile-wide accent-letter" id="sales-letter-tile">
+    <a href="sales-letter/" class="tile tile-wide" id="sales-letter-tile">
       <div class="tile-icon"><i class="ph-bold ph-receipt"></i></div>
       <div class="tile-body">
         <div class="tile-title">판매 레터</div>
@@ -443,7 +357,7 @@
       <span id="sales-letter-new" class="new-badge" hidden>NEW</span>
       <span class="tile-arrow">›</span>
     </a>
-    <a href="letter/status.html" class="tile tile-wide accent-letter" id="letter-status-tile">
+    <a href="letter/status.html" class="tile tile-wide" id="letter-status-tile">
       <div class="tile-icon"><i class="ph-bold ph-envelope-open"></i></div>
       <div class="tile-body">
         <div class="tile-title">레터 열람 현황</div>
@@ -454,42 +368,42 @@
   </div>
 </div>
 
-<!-- 섹션 4: 비정기 작업 -->
+<!-- 섹션: 비정기 작업 -->
 <div class="section">
   <div class="section-head">
-    <span class="num">04</span>
     <span class="label">비정기 작업</span>
     <span class="divider"></span>
   </div>
   <div class="tiles">
-    <a href="item-scanner/" class="tile accent-scanner">
+    <a href="item-scanner/" class="tile tile-wide">
       <div class="tile-icon"><i class="ph-bold ph-camera"></i></div>
-      <div>
+      <div class="tile-body">
         <div class="tile-title">브랜드 · 사진</div>
         <div class="tile-desc">현장 입력 (임시)</div>
       </div>
+      <span class="tile-arrow">›</span>
     </a>
-    <a href="stocktake/" class="tile accent-inventory">
+    <a href="stocktake/" class="tile tile-wide">
       <div class="tile-icon"><i class="ph-bold ph-clipboard-text"></i></div>
-      <div>
+      <div class="tile-body">
         <div class="tile-title">재고 조사</div>
         <div class="tile-desc">행거별 스캔 · 결과 처리</div>
       </div>
+      <span class="tile-arrow">›</span>
     </a>
   </div>
 </div>
 
-<!-- 섹션 5: 관리 (admin only) -->
+<!-- 섹션: 관리 (admin only) -->
 <div class="section" id="admin-section">
   <div class="section-head">
-    <span class="num">05</span>
     <span class="label">관리</span>
     <span class="divider"></span>
   </div>
   <div class="tiles">
-    <a href="admin/" class="tile tile-wide accent-admin">
+    <a href="admin/" class="tile tile-wide">
       <div class="tile-icon"><i class="ph-bold ph-gear-six"></i></div>
-      <div>
+      <div class="tile-body">
         <div class="tile-title">통합 관리</div>
         <div class="tile-desc">매장 · 직원 · 거래처</div>
       </div>
@@ -498,15 +412,14 @@
   </div>
 </div>
 
-<!-- 섹션 6: 매장 매니저 (최영훈 · 황태훈 · 김민지 · 이강철 · 김성경 전용) -->
+<!-- 섹션: 매장 매니저 (최영훈 · 황태훈 · 김민지 · 이강철 · 김성경 전용) -->
 <div class="section" id="logistics-section">
   <div class="section-head">
-    <span class="num">06</span>
     <span class="label">매장 매니저</span>
     <span class="divider"></span>
   </div>
   <div class="tiles">
-    <a href="logistics-request/" class="tile tile-wide accent-admin">
+    <a href="logistics-request/" class="tile tile-wide">
       <div class="tile-icon"><i class="ph-bold ph-truck"></i></div>
       <div class="tile-body">
         <div class="tile-title">물류요청 판매 집계</div>
@@ -514,7 +427,7 @@
       </div>
       <span class="tile-arrow">›</span>
     </a>
-    <a href="category-analysis/" class="tile tile-wide accent-admin">
+    <a href="category-analysis/" class="tile tile-wide">
       <div class="tile-icon"><i class="ph-bold ph-chart-bar-horizontal"></i></div>
       <div class="tile-body">
         <div class="tile-title">카테고리 판매 분석</div>
@@ -525,15 +438,14 @@
   </div>
 </div>
 
-<!-- 섹션 7: 매장 업무 (매장직원 3명 + 관리자 2명, 서버가 강제) -->
+<!-- 섹션: 매장 업무 (매장직원 3명 + 관리자, 서버가 강제) -->
 <div class="section" id="store-manual-section">
   <div class="section-head">
-    <span class="num">07</span>
     <span class="label">매장 업무</span>
     <span class="divider"></span>
   </div>
   <div class="tiles">
-    <a href="manual/" class="tile tile-wide accent-inventory">
+    <a href="manual/" class="tile tile-wide">
       <div class="tile-icon"><i class="ph-bold ph-list-checks"></i></div>
       <div class="tile-body">
         <div class="tile-title">업무 매뉴얼 · 체크리스트</div>
@@ -541,7 +453,7 @@
       </div>
       <span class="tile-arrow">›</span>
     </a>
-    <a href="manual/admin.html" class="tile tile-wide accent-admin" id="store-manual-admin-tile" style="display:none">
+    <a href="manual/admin.html" class="tile tile-wide" id="store-manual-admin-tile" style="display:none">
       <div class="tile-icon"><i class="ph-bold ph-clipboard-text"></i></div>
       <div class="tile-body">
         <div class="tile-title">체크리스트 현황</div>
@@ -552,15 +464,14 @@
   </div>
 </div>
 
-<!-- 섹션 8: 사무 업무 (로그인 직원 전체 읽기, 편집은 관리자) -->
+<!-- 섹션: 사무 업무 (로그인 직원 전체 읽기, 편집은 관리자) -->
 <div class="section" id="office-section">
   <div class="section-head">
-    <span class="num">08</span>
     <span class="label">사무 업무</span>
     <span class="divider"></span>
   </div>
   <div class="tiles">
-    <a href="office/" class="tile tile-wide accent-receiving">
+    <a href="office/" class="tile tile-wide">
       <div class="tile-icon"><i class="ph-bold ph-book-open-text"></i></div>
       <div class="tile-body">
         <div class="tile-title">사무 업무 가이드</div>
@@ -588,16 +499,16 @@
   </div>
 </div>
 
-<script src="/miu-hub/shared/config.js?v=202611151148"></script>
+<script src="/miu-hub/shared/config.js?v=202611151334"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
 
 <script>
 const days = ['일','월','화','수','목','금','토'];
 const d = new Date();
 document.getElementById('today-label').textContent =
-  `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 ${days[d.getDay()]}요일`;
+  `${d.getMonth()+1}월 ${d.getDate()}일 ${days[d.getDay()]}요일`;
 
 // 어제 매출 카드(RPC home_sales_summary: 현금 포함, 7일 전 같은 요일 대비). 실패하면 카드를 숨긴 채 둔다.
 (async function showYesterdaySales() {
@@ -637,25 +548,28 @@ document.getElementById('today-label').textContent =
     let cv = null;
     try { const r = await window.sb.rpc('home_store_conversion'); if (!r.error && r.data && r.data[0]) cv = r.data[0]; } catch (e) { /* 줄만 생략 */ }
     const pct = (a, b) => (b > 0 ? (a / b * 100).toFixed(1) + '%' : '—');
+    let basis = '';
     const convLine = (r) => {
       if (r.store !== '성수' || !cv) return '';
+      basis = cv.cash_included ? '카드·QR·현금' : '카드·QR';
       let html = '';
       if (cv.visitors != null) {
         const day = cv.purchases != null ? `구매 ${cv.purchases}건 · 전환율 ${pct(cv.purchases, cv.visitors)}` : '구매 건수 집계 전';
         const week = cv.week_visitors > 0 ? ` (7일 ${pct(cv.week_purchases, cv.week_visitors)})` : '';
-        html += `<div class="sales-vis">방문객 ${cv.visitors}명 · ${day}${week} · ${cv.cash_included ? '카드·QR·현금' : '카드·QR'} 기준</div>`;
+        html += `<div class="sales-vis">방문객 ${cv.visitors}명 · ${day}${week}</div>`;
       }
       // 국내/해외: 카드·QR 순매출은 카드 발급사명으로, 현금(시트 손님 표시가 있는 날부터)은 국적 표시로 나눈 값. 어제 값이 없으면 줄을 만들지 않는다.
       if (cv.foreign_net != null && cv.domestic_net != null && Number(cv.foreign_net) + Number(cv.domestic_net) > 0) {
         const share = (f, dm) => Math.round((Number(f) / (Number(f) + Number(dm))) * 100);
         const fs = share(cv.foreign_net, cv.domestic_net);
         const wk = Number(cv.week_foreign_net) + Number(cv.week_domestic_net) > 0 ? ` (7일 해외 ${share(cv.week_foreign_net, cv.week_domestic_net)}%)` : '';
-        html += `<div class="sales-vis">해외 결제 ${fs}% · 국내 ${100 - fs}%${wk} · ${cv.cash_included ? '카드·QR·현금' : '카드·QR'} 매출 기준</div>`;
+        html += `<div class="sales-vis">해외 결제 ${fs}% · 국내 ${100 - fs}%${wk}</div>`;
       }
       return html;
     };
     document.getElementById('sales-stores').innerHTML = data.filter((r) => r.active).map((r) =>
-      `<div class="sales-row"><span class="nm">${escH(r.store)}</span><span class="amt">${won(Number(r.sales))}</span>${delta(Number(r.sales), Number(r.prev_sales))}</div>${convLine(r)}`).join('');
+      `<div class="sales-row"><span class="nm">${escH(r.store)}</span><span class="amt">${won(Number(r.sales))}</span>${delta(Number(r.sales), Number(r.prev_sales))}</div>${convLine(r)}`).join('')
+      + (basis ? `<div class="sales-vis sales-basis">위 방문객·전환율·해외 비중은 ${basis} 기준</div>` : '');
     card.style.display = 'block';
   } catch (e) { console.error('[home] 어제 매출 카드 실패:', e); }
 })();
@@ -746,13 +660,16 @@ if (window.MIU_USER) {
 (async function showStoreManual() {
   const { data } = await window.sb.rpc('store_manual_role');
   if (!data) return;
-  document.getElementById('store-manual-section').style.display = 'block';
+  const manual = document.getElementById('store-manual-section');
+  manual.style.display = 'block';
+  // 매장 직원 계정은 이 화면이 주 업무라 가장 위로 올린다
+  if (data === 'staff') document.getElementById('sec-regular').before(manual);
   if (data === 'manager') document.getElementById('store-manual-admin-tile').style.display = 'flex';
 })();
 document.getElementById('logout-btn').addEventListener('click', async () => {
   if (!confirm('로그아웃하시겠습니까?')) return;
   await window.sb.auth.signOut();
-  window.location.replace('/login.html');
+  window.location.replace('/miu-hub/login.html');
 });
 </script>
 </body>

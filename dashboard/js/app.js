@@ -4,7 +4,12 @@ let WAREHOUSE = [];
 const SOLD_PFX  = '공동판매';
 const ADMIN_PIN = '1357';
 
-const AGE_COLORS = { '0-30일': '#22c55e', '31-60일': '#f59e0b', '61-90일': '#f97316', '90일+': '#ef4444' };
+// 연령 구간 색(채도 낮춤). 신선 → 오래됨 순서로 읽히는 상태 표시 용도
+const AGE_COLORS = { '0-30일': '#7c9a6d', '31-60일': '#c8a04a', '61-90일': '#cf8a4f', '90일+': '#b4503f' };
+// 차트(canvas)는 CSS 변수를 못 읽어 토큰 값을 복사해 둔다: --miu-primary / 중립 / --miu-hairline / --miu-muted
+const CHART = { primary: '#9f5238', neutral: '#b9b3a6', grid: '#e6dfd8', text: '#5f5d57' };
+if (typeof Chart !== 'undefined') Chart.defaults.color = CHART.text;
+const chartH = n => Math.max(160, n * 34 + 48);
 
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -38,6 +43,13 @@ async function route() {
       await renderLocation(decodeURIComponent(hash.slice(5)));
     }
     updateFooter();
+  } catch (e) {
+    document.getElementById('content').innerHTML = `<div class="miu-state compact">
+      <div class="miu-state-icon"><i class="ph-bold ph-warning-circle"></i></div>
+      <div class="miu-state-title">불러오지 못했어요</div>
+      <div class="miu-state-desc">${e.message || ''}</div>
+      <button class="miu-btn miu-btn-primary" onclick="route()">다시 시도</button>
+    </div>`;
   } finally {
     showLoading(false);
   }
@@ -71,10 +83,10 @@ function renderSidebar() {
   const bar = document.getElementById('mobile-tab-bar');
   if (bar) {
     bar.innerHTML = [
-      `<a class="mob-tab" href="#home">전체</a>`,
-      ...stores.map(l => `<a class="mob-tab" href="#loc/${enc(l.name)}">${l.name}</a>`),
-      ...wh.map(l => `<a class="mob-tab" href="#loc/${enc(l.name)}">${l.name} 창고</a>`),
-      ...(closedLocations.length ? [`<a class="mob-tab" href="#closed">철수 재고</a>`] : []),
+      `<a class="mob-tab miu-tab" href="#home">전체</a>`,
+      ...stores.map(l => `<a class="mob-tab miu-tab" href="#loc/${enc(l.name)}">${l.name}</a>`),
+      ...wh.map(l => `<a class="mob-tab miu-tab" href="#loc/${enc(l.name)}">${l.name} 창고</a>`),
+      ...(closedLocations.length ? [`<a class="mob-tab miu-tab" href="#closed">철수 재고</a>`] : []),
     ].join('');
   }
 }
@@ -91,8 +103,14 @@ function highlightNav() {
   document.querySelectorAll('.mob-tab').forEach(el => {
     const active = el.getAttribute('href') === cur;
     el.classList.toggle('active', active);
+    el.classList.toggle('on', active);
     if (active) el.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
   });
+}
+
+// 차트 범례(차트 옵션은 그대로 두고 DOM으로): [색 클래스, 라벨]
+function chartLegend(items) {
+  return `<div class="chart-legend">${items.map(([c, t]) => `<span><i class="lg-dot ${c}"></i>${t}</span>`).join('')}</div>`;
 }
 
 // ─── Home page ────────────────────────────────────────────────────────────────
@@ -119,7 +137,7 @@ async function renderHome() {
         <span class="miu-section-num">01</span>
         <span class="miu-section-label">전체 요약</span>
         <span class="miu-section-divider"></span>
-        <button class="miu-icon-btn" onclick="route()" aria-label="새로고침" style="margin-left:6px">
+        <button class="miu-icon-btn dash-refresh-desk" onclick="route()" aria-label="새로고침" style="margin-left:6px">
           <i class="ph-bold ph-arrow-clockwise"></i>
         </button>
       </div>
@@ -154,7 +172,8 @@ async function renderHome() {
         <span class="miu-section-divider"></span>
       </div>
       <div class="dash-panel">
-        <div class="chart-wrap"><canvas id="chart-stock"></canvas></div>
+        ${chartLegend([['primary', '매장'], ...(WAREHOUSE.some(w => names.includes(w)) ? [['neutral', '창고']] : [])])}
+        <div class="chart-wrap" style="height:${chartH(names.length)}px"><canvas id="chart-stock"></canvas></div>
       </div>
     </div>
 
@@ -165,7 +184,8 @@ async function renderHome() {
         <span class="miu-section-divider"></span>
       </div>
       <div class="dash-panel">
-        <div class="chart-wrap"><canvas id="chart-sales"></canvas></div>
+        ${chartLegend([['primary', '운영 매장'], ...(closedLocations.some(l => sales[l.name]?.revenue > 0) ? [['neutral', '철수']] : [])])}
+        <div class="chart-wrap" style="height:${chartH(stores.length + closedLocations.filter(l => sales[l.name]?.revenue > 0).length)}px"><canvas id="chart-sales"></canvas></div>
       </div>
     </div>
 
@@ -198,13 +218,13 @@ function renderOldTable(counts, oldCounts) {
   if (!rows.length) return '<div class="empty">90일 이상 장기재고 없음</div>';
 
   return `<div style="overflow-x:auto"><table>
-    <thead><tr><th>위치</th><th>장기재고</th><th>전체 재고</th><th>비율</th><th>시각화</th></tr></thead>
+    <thead><tr><th>위치</th><th>장기재고</th><th>전체 재고</th><th>비율</th><th class="viz-col">시각화</th></tr></thead>
     <tbody>${rows.map(r => `<tr>
       <td>${r.name}${WAREHOUSE.includes(r.name) ? '<span class="tag-warehouse">창고</span>' : ''}</td>
       <td><span class="badge badge-red">${fmt(r.old)}</span></td>
       <td>${fmt(r.total)}</td>
       <td>${pct(r.old, r.total)}</td>
-      <td style="width:140px">
+      <td class="viz-col" style="width:140px">
         <div class="old-bar-bg">
           <div class="old-bar-fill" style="width:${Math.min(r.old/r.total*100,100)}%"></div>
         </div>
@@ -246,48 +266,48 @@ async function renderLocation(name) {
         <div class="page-title">${name}${isWh ? '<span class="tag-warehouse" style="font-size:14px;padding:3px 10px">창고</span>' : ''}</div>
         <div class="page-sub">${isWh ? '보관 재고 현황' : '매장 재고 · 매출 현황'}</div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
+      <div class="page-actions">
         ${!isWh ? `<button class="btn-closure" onclick="initiateClosure(window.__currentLocationName)">철수완료</button>` : ''}
-        <button class="btn-refresh" onclick="route()">${iconRefresh()} 새로고침</button>
+        <button class="btn-refresh refresh-dup" onclick="route()">${iconRefresh()} 새로고침</button>
       </div>
     </div>
 
     <div class="cards-row ${isWh ? 'cards-row-2' : ''}">
-      <div class="stat-card stat-card-peach">
-        <div class="stat-label">현재 재고</div>
-        <div class="stat-value">${fmt(items.length)}</div>
-        <div class="stat-sub">${cats.length}개 카테고리</div>
+      <div class="miu-stat">
+        <div class="miu-stat-label">현재 재고</div>
+        <div class="miu-stat-value">${fmt(items.length)}</div>
+        <div class="dash-stat-sub">${cats.length}개 카테고리</div>
       </div>
       ${!isWh ? `
-      <div class="stat-card stat-card-teal">
-        <div class="stat-label">이달 매출</div>
-        <div class="stat-value">${fmtMoney(monthRev)}</div>
-        <div class="stat-sub">${thisMonth()} · ${fmt((sales||[]).length)}건</div>
+      <div class="miu-stat">
+        <div class="miu-stat-label">이달 매출</div>
+        <div class="miu-stat-value">${fmtMoney(monthRev)}</div>
+        <div class="dash-stat-sub">${thisMonth()} · ${fmt((sales||[]).length)}건</div>
       </div>
-      <div class="stat-card stat-card-ochre">
-        <div class="stat-label">어제 판매</div>
-        <div class="stat-value">${fmt(yestTotal)}</div>
-        <div class="stat-sub">건 · ${yesterday()}</div>
+      <div class="miu-stat">
+        <div class="miu-stat-label">어제 판매</div>
+        <div class="miu-stat-value">${fmt(yestTotal)}</div>
+        <div class="dash-stat-sub">건 · ${yesterday()}</div>
       </div>` : ''}
-      <div class="stat-card stat-card-pink">
-        <div class="stat-label">장기재고 90일+</div>
-        <div class="stat-value">${fmt(oldCount)}</div>
-        <div class="stat-sub">${items.length ? pct(oldCount, items.length) : '0%'} (매장 도착 기준)</div>
+      <div class="miu-stat">
+        <div class="miu-stat-label">장기재고 90일+</div>
+        <div class="miu-stat-value">${fmt(oldCount)}</div>
+        <div class="dash-stat-sub">${items.length ? pct(oldCount, items.length) : '0%'} (매장 도착 기준)</div>
       </div>
     </div>
 
     ${!isWh ? renderDeadStockAlert(cats) : ''}
 
     <div class="section-card">
-      <h3>카테고리별 재고 현황 <span style="font-size:11px;font-weight:400;color:var(--muted)">(클릭하면 연령 분포 확인)</span></h3>
+      <h3>카테고리별 재고 현황 <span class="h3-sub">(눌러서 연령 분포 확인)</span></h3>
       <div class="cat-grid" id="cat-grid">
         ${renderCatGrid(cats, yestSales, monthlyCatSales)}
       </div>
     </div>
 
     <div class="section-card">
-      <h3>전체 재고 연령 분포 <span style="font-size:11px;font-weight:400;color:var(--muted)">매장 도착일 기준</span></h3>
-      <div class="chart-wrap"><canvas id="chart-age"></canvas></div>
+      <h3>전체 재고 연령 분포 <span class="h3-sub">매장 도착일 기준</span></h3>
+      <div class="chart-wrap" style="height:150px"><canvas id="chart-age"></canvas></div>
     </div>
   `;
 
@@ -303,7 +323,7 @@ function renderCatGrid(cats, yestSales = {}, monthlyCatSales = {}) {
     const sold30 = monthlyCatSales[c.name] || 0;
     const strDenom = sold30 + c.total;
     const str = strDenom > 0 ? Math.round(sold30 / strDenom * 100) : 0;
-    const strColor = str >= 50 ? '#22c55e' : str >= 20 ? '#f59e0b' : '#ef4444';
+    const strColor = str >= 50 ? 'var(--miu-success-text)' : str >= 20 ? 'var(--miu-warning-text)' : 'var(--miu-error-text)';
     const strLabel = str >= 50 ? '빠름' : str >= 20 ? '보통' : '느림';
 
     const ySold = yestSales[c.name] || 0;
@@ -323,7 +343,7 @@ function renderCatGrid(cats, yestSales = {}, monthlyCatSales = {}) {
         </div>
         <div class="cat-str">
           <span style="color:${strColor};font-weight:600">${str}%</span>
-          <span style="color:var(--muted-soft)"> 소진 · ${strLabel}</span>
+          <span style="color:var(--miu-muted)"> 소진 · ${strLabel}</span>
         </div>
         ${yestHtml}
       </div>
@@ -363,10 +383,10 @@ function onCatClick(e) {
       <button class="btn-csv-dl" onclick="downloadCatCSV(${idx})">CSV 다운로드</button>
     </div>
     <div class="age-breakdown">
-      ${ageBox('0–30일',  cat.d30,  '#22c55e', '#d1fae5', 'd30')}
-      ${ageBox('31–60일', cat.d60,  '#f59e0b', '#fef3c7', 'd60')}
-      ${ageBox('61–90일', cat.d90,  '#f97316', '#ffedd5', 'd90')}
-      ${ageBox('90일+',   cat.old,  '#ef4444', '#fee2e2', 'old')}
+      ${ageBox('0–30일',  cat.d30,  AGE_COLORS['0-30일'], 'd30')}
+      ${ageBox('31–60일', cat.d60,  AGE_COLORS['31-60일'], 'd60')}
+      ${ageBox('61–90일', cat.d90,  AGE_COLORS['61-90일'], 'd90')}
+      ${ageBox('90일+',   cat.old,  AGE_COLORS['90일+'], 'old')}
     </div>
     <div class="barcode-list-wrap"></div>
   `;
@@ -392,12 +412,12 @@ function onCatClick(e) {
   card.after(panel);
 }
 
-function ageBox(label, val, color, bg, bucket) {
+function ageBox(label, val, color, bucket) {
   const clickable = val > 0 && bucket;
-  return `<div class="age-bucket${clickable ? ' age-bucket-clickable' : ''}" style="background:${bg}"${clickable ? ` data-bucket="${bucket}"` : ''}>
+  return `<div class="age-bucket${clickable ? ' age-bucket-clickable' : ''}" style="background:color-mix(in srgb, ${color} 18%, var(--miu-canvas));border-top:3px solid ${color}"${clickable ? ` data-bucket="${bucket}"` : ''}>
     <div class="bk-label">${label}</div>
-    <div class="bk-val" style="color:${color}">${fmt(val)}</div>
-    ${clickable ? `<div class="bk-hint" style="color:${color}">목록 보기 ▼</div>` : ''}
+    <div class="bk-val">${fmt(val)}</div>
+    ${clickable ? `<div class="bk-hint">목록 보기 <i class="ph-bold ph-caret-down"></i></div>` : ''}
   </div>`;
 }
 
@@ -407,7 +427,7 @@ function renderBarcodeList(barcodes, bucket) {
     if (typeof b === 'string') return `<span class="barcode-chip">${b}</span>`;
     const hasPriceChange = b.priceChangedDaysAgo != null;
     const urgent = bucket === 'old' && hasPriceChange;
-    const badge = hasPriceChange ? `<span class="chip-badge">💰 ${b.priceChangedDaysAgo}일 전</span>` : '';
+    const badge = hasPriceChange ? `<span class="chip-badge"><i class="ph-bold ph-coins"></i> ${b.priceChangedDaysAgo}일 전</span>` : '';
     return `<span class="barcode-chip${urgent ? ' barcode-chip-urgent' : ''}">${b.barcode}${badge}</span>`;
   }).join('')}</div>`;
 }
@@ -443,17 +463,17 @@ function renderDeadStockAlert(cats) {
 
   if (!alerts.length) {
     return `
-    <div class="section-card" style="border-color:var(--success)">
+    <div class="section-card ok">
       <h3>장기재고 처리 권장</h3>
-      <div class="empty" style="color:var(--success);padding:12px 0">90일 이상 장기재고 없음</div>
+      <div class="empty" style="color:var(--miu-success-text);padding:12px 0">90일 이상 장기재고 없음</div>
     </div>`;
   }
 
   const rows = alerts.map(c => {
     const ratio = Math.round(c.old / c.total * 100);
-    const urgency = ratio >= 50 ? { color: '#ef4444', bg: '#fee2e2', label: '긴급' }
-                  : ratio >= 25 ? { color: '#f97316', bg: '#ffedd5', label: '주의' }
-                  :               { color: '#f59e0b', bg: '#fef3c7', label: '모니터링' };
+    const urgency = ratio >= 50 ? { color: 'var(--miu-error)', text: 'var(--miu-error-text)', cls: 'danger', label: '긴급' }
+                  : ratio >= 25 ? { color: 'var(--miu-warning)', text: 'var(--miu-warning-text)', cls: 'warn', label: '주의' }
+                  :               { color: 'var(--miu-muted-soft)', text: 'var(--miu-muted)', cls: 'muted', label: '모니터링' };
     return `
       <div class="dead-stock-row">
         <div class="ds-name">${c.name}</div>
@@ -461,16 +481,16 @@ function renderDeadStockAlert(cats) {
           <div class="ds-bar-bg">
             <div class="ds-bar-fill" style="width:${ratio}%;background:${urgency.color}"></div>
           </div>
-          <span class="ds-pct" style="color:${urgency.color}">${ratio}%</span>
+          <span class="ds-pct" style="color:${urgency.text}">${ratio}%</span>
         </div>
         <div class="ds-detail">${fmt(c.old)}개 / 전체 ${fmt(c.total)}개</div>
-        <span class="ds-badge" style="background:${urgency.bg};color:${urgency.color}">${urgency.label}</span>
+        <span class="ds-badge miu-chip ${urgency.cls}">${urgency.label}</span>
       </div>`;
   }).join('');
 
   return `
-  <div class="section-card" style="border-color:var(--error)">
-    <h3>장기재고 처리 권장 <span style="font-size:11px;font-weight:400;color:var(--muted)">90일 이상 · 매장 도착일 기준 · 비율 순</span></h3>
+  <div class="section-card bad">
+    <h3>장기재고 처리 권장 <span class="h3-sub">90일 이상 · 매장 도착일 기준 · 비율 순</span></h3>
     <div class="dead-stock-list">${rows}</div>
   </div>`;
 }
@@ -485,15 +505,16 @@ function drawStockChart(counts) {
     data: {
       labels:   sorted.map(c => c.name),
       datasets: [{ data: sorted.map(c => c.count),
-        backgroundColor: sorted.map(c => WAREHOUSE.includes(c.name) ? '#b8a4ed' : '#1a3a3a'),
+        backgroundColor: sorted.map(c => WAREHOUSE.includes(c.name) ? CHART.neutral : CHART.primary),
         borderRadius: 5 }]
     },
     options: {
       indexAxis: 'y',
+      maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { grid: { color: '#ebe6d6' }, ticks: { font: { size: 11 } } },
-        y: { grid: { display: false }, ticks: { font: { size: 12 } } },
+        x: { grid: { color: CHART.grid }, ticks: { font: { size: 12 } } },
+        y: { grid: { display: false }, ticks: { font: { size: 13 }, autoSkip: false } },
       }
     }
   });
@@ -518,13 +539,15 @@ function drawSalesChart(stores, sales, closedNames = []) {
     type: 'bar',
     data: {
       labels:   data.map(d => d.name),
-      datasets: [{ data: data.map(d => d.rev), backgroundColor: data.map(d => d.closed ? '#c0bdb8' : '#ffb084'), borderRadius: 5 }]
+      datasets: [{ data: data.map(d => d.rev), backgroundColor: data.map(d => d.closed ? CHART.neutral : CHART.primary), borderRadius: 5 }]
     },
     options: {
+      indexAxis: 'y',
+      maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 12 } } },
-        y: { grid: { color: '#ebe6d6' }, ticks: { font: { size: 11 }, callback: v => fmtShort(v) } }
+        x: { grid: { color: CHART.grid }, ticks: { font: { size: 12 }, callback: v => fmtShort(v) } },
+        y: { grid: { display: false }, ticks: { font: { size: 13 }, autoSkip: false } }
       }
     }
   });
@@ -545,9 +568,10 @@ function drawAgeChart(buckets) {
     },
     options: {
       indexAxis: 'y',
-      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 11 } } },
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 12 }, boxWidth: 12 } } },
       scales: {
-        x: { stacked: true, grid: { color: '#ebe6d6' }, ticks: { font: { size: 11 } } },
+        x: { stacked: true, grid: { color: CHART.grid }, ticks: { font: { size: 12 } } },
         y: { stacked: true, grid: { display: false }, ticks: { display: false } }
       }
     }
@@ -573,7 +597,7 @@ function initiateClosure(name) {
         ${[1,2,3,4,5,6,7,8,9].map(n => `<button class="pin-key" onclick="pinPress('${n}')">${n}</button>`).join('')}
         <button class="pin-key pin-key-empty"></button>
         <button class="pin-key" onclick="pinPress('0')">0</button>
-        <button class="pin-key pin-key-del" onclick="pinDel()">⌫</button>
+        <button class="pin-key pin-key-del" onclick="pinDel()" aria-label="지우기"><i class="ph-bold ph-backspace"></i></button>
       </div>
       <button class="pin-cancel" onclick="closePinModal()">취소</button>
     </div>
@@ -658,7 +682,7 @@ async function renderClosed() {
         <div class="page-title">철수 후 남은 재고</div>
         <div class="page-sub">철수된 매장 전산 잔여 바코드 · 총 ${fmt(totalCount)}건</div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
+      <div class="page-actions">
         ${withItems.length ? `<label class="closed-select-all-label"><input type="checkbox" id="chk-all-stores" checked onchange="toggleAllClosedStores(this.checked)"> 전체 선택</label>` : ''}
         <button class="btn-refresh" onclick="copyClosedBarcodes()">바코드 복사</button>
         <button class="btn-refresh" id="btn-closed-csv" onclick="downloadClosedCSV()">CSV 다운로드 (전체)</button>
@@ -1028,7 +1052,7 @@ async function fetchStocktakeBanner() {
     const { data } = await sb.from('stocktake_sessions').select('session_date').eq('status', 'in_progress').maybeSingle();
     if (!data) return '';
     const [, m, d] = String(data.session_date).split('-');
-    return `<a href="/miu-hub/stocktake/" style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;padding:12px 16px;border-radius:var(--r-md);background:#fdf3d8;color:#5a4408;font-size:14px;font-weight:600;text-decoration:none"><span>${+m}월 ${+d}일 재고조사 진행 중</span><span>이동 →</span></a>`;
+    return `<a href="/miu-hub/stocktake/" class="miu-alert warn" style="align-items:center;justify-content:space-between;margin-bottom:16px;font-weight:600;text-decoration:none;min-height:var(--miu-tap)"><span>${+m}월 ${+d}일 재고조사 진행 중</span><span>이동 <i class="ph-bold ph-arrow-right"></i></span></a>`;
   } catch (e) { return ''; }
 }
 

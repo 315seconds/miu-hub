@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>로그인 · 마켓인유</title>
 
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151148">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
 <style>
@@ -206,9 +206,9 @@
   <div class="login-footer">— 마켓인유 —</div>
 </div>
 
-<script src="/miu-hub/shared/config.js?v=202611151148"></script>
+<script src="/miu-hub/shared/config.js?v=202611151334"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
 
 <script>
 const $ = (id) => document.getElementById(id);
@@ -269,7 +269,7 @@ $('email-form').addEventListener('submit', async (e) => {
   btn.disabled = false; btn.textContent = '로그인 코드 받기';
 
   if (error) {
-    showMsg('err', '전송 실패: ' + error.message);
+    showMsg('err', /not allowed|signups/i.test(error.message) ? '등록되지 않은 이메일이에요. 관리자에게 초대를 요청해 주세요.' : '전송 실패: ' + error.message);
     return;
   }
 
@@ -319,7 +319,7 @@ $('resend-btn').addEventListener('click', async () => {
 
   btn.disabled = false; btn.textContent = '코드 다시 받기';
 
-  if (error) showMsg('err', '재전송 실패: ' + error.message);
+  if (error) showMsg('err', /not allowed|signups/i.test(error.message) ? '등록되지 않은 이메일이에요. 관리자에게 초대를 요청해 주세요.' : '재전송 실패: ' + error.message);
   else showMsg('ok', '새 코드를 보냈습니다.');
 });
 

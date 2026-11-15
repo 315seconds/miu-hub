@@ -55,7 +55,7 @@ async function load() {
 
     render(pendingRes.data || [], doneRes.data || []);
   } catch (e) {
-    showError("세션 목록 로드 실패: " + e.message);
+    showError("세션 목록 로드 실패: " + e.message, load);
   }
 }
 
@@ -63,31 +63,26 @@ function render(pending, done) {
   const ps = document.getElementById("pending-section");
   if (pending.length === 0) {
     ps.innerHTML = `
-      <div class="card" style="background:#0f172a; text-align:center; padding:32px 16px; margin-bottom:16px">
-        <div style="font-size:32px; margin-bottom:8px">📭</div>
-        <div style="color:#64748b">진행 중인 세션이 없습니다</div>
+      <div class="card miu-state compact" style="margin-bottom:16px">
+        <div class="miu-state-icon"><i class="ph-bold ph-tray"></i></div>
+        <div class="muted">진행 중인 세션이 없습니다</div>
         <div class="text-xs muted mt8">아래에서 새 세션을 만들어 시작하세요</div>
       </div>`;
   } else {
     ps.innerHTML = `<h2>지금 진행 중인 세션</h2>` +
       pending.map(s => `
         <div class="join-card">
-          <a href="session.html?id=${encodeURIComponent(s.id)}" style="text-decoration:none; display:block; color:inherit">
-            <h3>${escapeHtml(s.session_date)}
-              <span style="font-size:15px; color:#93c5fd; font-weight:600"> · ${escapeHtml(s.barcode_prefix)}*</span>
-              ${s.location === "온라인" ? '<span class="tag-online" style="margin-left:6px">온라인</span>' : ""}
-            </h3>
-            <div class="meta">${escapeHtml(s.location || "")}${s.created_by ? " · " + escapeHtml(s.created_by) : ""}</div>
+          <a class="join-link" href="session.html?id=${encodeURIComponent(s.id)}" aria-label="세션 참여하기">
+            <div class="join-main">
+              <h3>${escapeHtml(s.session_date)}
+                <span style="font-size:var(--text-sm); color:var(--miu-muted); font-weight:600">${escapeHtml(s.barcode_prefix)}*</span>
+                ${s.location === "온라인" ? '<span class="tag-online">온라인</span>' : ""}
+              </h3>
+              <div class="meta">${escapeHtml(s.location || "")}${s.created_by ? " · " + escapeHtml(s.created_by) : ""}</div>
+            </div>
+            <i class="ph-bold ph-caret-right join-go"></i>
           </a>
-          <div style="display:flex; gap:8px; margin-top:10px">
-            <a href="session.html?id=${encodeURIComponent(s.id)}" style="flex:1; text-decoration:none">
-              <div class="btn btn-primary btn-block">참여하기 →</div>
-            </a>
-            <button class="del-session-btn" data-id="${escapeHtml(s.id)}"
-              style="background:none; border:1px solid #ef4444; border-radius:6px; color:#ef4444; font-size:12px; padding:6px 12px; cursor:pointer; white-space:nowrap">
-              삭제
-            </button>
-          </div>
+          <button class="del-session-btn btn btn-sm miu-btn-danger" data-id="${escapeHtml(s.id)}">삭제</button>
         </div>`).join("");
   }
 

@@ -66,6 +66,7 @@ function renderList() {
   const count = scanned.length;
   document.getElementById("count").textContent = count;
   document.getElementById("lookup-btn").disabled = count === 0;
+  document.getElementById("clear-btn").hidden = count === 0;
   document.getElementById("scan-box").classList.toggle("active", count > 0);
   if (count === 0) { list.innerHTML = ""; empty.style.display = "block"; return; }
   empty.style.display = "none";
@@ -138,7 +139,7 @@ document.getElementById("lookup-btn").addEventListener("click", async () => {
       const list = soldRows.map(r =>
         `${r.barcode}${r.product_name ? " (" + r.product_name + ")" : ""} — 판매일: ${r.sold_date || "미기재"}`
       ).join("\n");
-      const ok = await appConfirm(`⚠️ 아래 바코드는 이미 판매된 상품입니다:\n\n${list}\n\n그래도 가격 수정을 계속 진행하시겠습니까?`);
+      const ok = await appConfirm(`아래 바코드는 이미 판매된 상품입니다:\n\n${list}\n\n그래도 가격 수정을 계속 진행하시겠습니까?`);
       if (!ok) return;
     }
 
@@ -168,10 +169,10 @@ function renderEdit(data, changedBy) {
   const c = document.getElementById("step2");
   c.style.display = "block";
 
-  let html = `<a href="#" id="back-btn" class="back-btn">← 바코드 목록으로</a>`;
+  let html = `<a href="#" id="back-btn" class="back-btn"><i class="ph-bold ph-caret-left"></i> 바코드 목록으로</a>`;
 
   if ((data.not_found || []).length > 0) {
-    html += `<div class="warn-box"><strong>⚠ 입고 시트에서 찾지 못한 바코드 ${data.not_found.length}개</strong><br>${escapeHtml(data.not_found.join(", "))}</div>`;
+    html += `<div class="warn-box"><strong><i class="ph-bold ph-warning"></i> 입고 시트에서 찾지 못한 바코드 ${data.not_found.length}개</strong><br>${escapeHtml(data.not_found.join(", "))}</div>`;
   }
 
   if (originalData.length === 0) {
@@ -188,10 +189,10 @@ function renderEdit(data, changedBy) {
     </div>
     <div class="bulk-box" id="bulk-box">
       <div style="display:flex; align-items:center; gap:10px">
-        <span style="font-size:14px; color:#fbbf24; font-weight:600">할인율</span>
+        <span class="bulk-label">할인율</span>
         <input class="bulk-input" id="bulk-pct" type="number" min="1" max="99" placeholder="30">
-        <span style="color:#fbbf24; font-weight:700">%</span>
-        <span style="font-size:12px; color:#78350f">반올림 천원 단위</span>
+        <span class="bulk-label" style="font-weight:700">%</span>
+        <span class="bulk-hint">반올림 천원 단위</span>
       </div>
     </div>
   `;
@@ -200,44 +201,44 @@ function renderEdit(data, changedBy) {
     <div class="item-card">
       <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px">
         <span class="item-bc">${escapeHtml(item.barcode)}</span>
-        <span style="font-size:13px; color:#94a3b8; flex:1">${escapeHtml(item.displayName || "")}</span>
+        <span style="font-size:13px; color:var(--miu-muted); flex:1">${escapeHtml(item.displayName || "")}</span>
       </div>
       <div style="display:flex; align-items:center; gap:8px">
         <span class="price-old" id="old-${i}">${item.oldPrice.toLocaleString()}</span>
         <span class="price-arrow">→</span>
         <input class="price-input" id="new-${i}" type="number" step="1000" min="0"
                value="${item.oldPrice}" data-original="${item.oldPrice}" data-idx="${i}">
-        <span style="font-size:13px; color:#64748b">원</span>
+        <span style="font-size:13px; color:var(--miu-muted)">원</span>
       </div>
     </div>`).join("");
 
-  html += `<div style="margin-top:16px">
-    <button class="btn btn-warn btn-block" id="apply-btn">✅ 수정 적용하기</button>
+  html += `<div class="miu-action-bar">
+    <button class="btn btn-primary flex-1" id="apply-btn"><i class="ph-bold ph-check"></i> 수정 적용하기</button>
   </div>`;
 
   html += `
     <div class="modal-overlay" id="modal">
       <div class="modal-box">
-        <div class="modal-title">⚠️ 수정 전 확인하세요</div>
+        <div class="modal-title"><i class="ph-bold ph-warning"></i> 수정 전 확인하세요</div>
         <div class="modal-slack">
           <strong>Slack에 먼저 메시지를 보내주세요</strong><br>
           <strong>「지금 공동판매 엑셀 가격 수정 중입니다」</strong> 메시지를 보낸 후 진행해주세요.
         </div>
-        <div id="modal-summary" style="font-size:13px; color:#94a3b8; margin-bottom:16px"></div>
+        <div id="modal-summary" style="font-size:13px; color:var(--miu-muted); margin-bottom:16px"></div>
         <div class="modal-btns">
           <button class="btn btn-outline flex-1" id="modal-cancel">취소</button>
-          <button class="btn btn-warn flex-1" id="modal-confirm">수정 적용</button>
+          <button class="btn btn-primary flex-1" id="modal-confirm">수정 적용</button>
         </div>
       </div>
     </div>
 
     <div id="print-after" style="display:none; margin-top:14px">
-      <div style="background:#0a2a18; border:1px solid #22c55e; border-radius:12px; padding:16px">
-        <div class="success" style="font-weight:700; margin-bottom:10px">✅ 가격 수정 완료</div>
-        <div style="font-size:13px; color:#64748b; margin-bottom:14px">
+      <div class="done-box">
+        <div class="success" style="font-weight:700; margin-bottom:10px"><i class="ph-bold ph-check-circle"></i> 가격 수정 완료</div>
+        <div style="font-size:13px; color:var(--miu-muted); margin-bottom:14px">
           수정된 바코드 라벨을 출력해서 기존 라벨 위에 붙여주세요.
         </div>
-        <button class="btn btn-block" id="print-btn" style="background:#22c55e; color:#000; font-weight:800">🖨 수정된 라벨 출력</button>
+        <button class="btn btn-primary btn-block" id="print-btn"><i class="ph-bold ph-printer"></i> 수정된 라벨 출력</button>
       </div>
     </div>
   `;
@@ -311,7 +312,7 @@ function openConfirm() {
 
 async function submitChanges() {
   const btn = document.getElementById("modal-confirm");
-  btn.disabled = true; btn.textContent = "⏳ 처리 중...";
+  btn.disabled = true; btn.textContent = "처리 중...";
   const changes = getChanges();
   try {
     const now = new Date().toISOString();

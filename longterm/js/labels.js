@@ -402,45 +402,56 @@ function downloadZpl(zplText, filename) {
   setTimeout(() => URL.revokeObjectURL(a.href), 100);
 }
 
+const ZEBRA_BTN_HTML = '<i class="ph-bold ph-printer"></i> Zebra 직접 출력';
+
+// 오류·잘못된 접근: 조작 버튼 묶음을 숨기고 안내 상태를 본문에 보여준다
+function showLabelState(title, desc, retry) {
+  const g = document.getElementById("print-group");
+  if (g) g.style.display = "none";
+  const grid = document.getElementById("label-grid");
+  grid.innerHTML = `<div class="miu-state compact" style="width:100%" role="alert"><i class="ph-bold ph-warning-circle miu-state-icon"></i><div class="miu-state-title">${escapeHtml(title)}</div><div class="miu-state-desc" style="font-size:13px;word-break:break-all">${escapeHtml(desc)}</div>${retry ? '<button type="button" class="miu-btn miu-btn-primary" id="state-retry"><i class="ph-bold ph-arrow-clockwise"></i> 다시 시도</button>' : ""}</div>`;
+  if (retry) document.getElementById("state-retry").onclick = retry;
+}
+
 async function zebraPrint(zplText, totalCount, onSuccess) {
   const btn = document.getElementById("zebra-btn");
   btn.disabled = true;
-  btn.textContent = "⏳ 프린터 연결 중…";
+  btn.textContent = "프린터 연결 중…";
 
   if (typeof BrowserPrint === "undefined") {
-    await appAlert("❌ BrowserPrint SDK 로드 실패");
-    btn.textContent = "🦓 Zebra 직접 출력"; btn.disabled = false;
+    await appAlert("BrowserPrint SDK 로드 실패");
+    btn.innerHTML = ZEBRA_BTN_HTML; btn.disabled = false;
     return;
   }
 
   BrowserPrint.getDefaultDevice("printer",
     printer => {
       if (!printer) {
-        appAlert("❌ 연결된 Zebra 프린터 없음\nUSB 케이블 및 전원을 확인하세요.");
-        btn.textContent = "🦓 Zebra 직접 출력"; btn.disabled = false;
+        appAlert("연결된 Zebra 프린터 없음\nUSB 케이블 및 전원을 확인하세요.");
+        btn.innerHTML = ZEBRA_BTN_HTML; btn.disabled = false;
         return;
       }
-      btn.textContent = `⏳ 전송 중… (${totalCount}장)`;
+      btn.textContent = `전송 중… (${totalCount}장)`;
       printer.send(zplText,
         () => {
-          btn.textContent = "✓ 출력 완료!";
-          btn.style.background = "#166534";
+          btn.innerHTML = '<i class="ph-bold ph-check"></i> 출력 완료!';
+          btn.style.background = "var(--miu-success)";
           if (typeof onSuccess === "function") onSuccess();
           setTimeout(() => {
-            btn.textContent = "🦓 Zebra 직접 출력";
-            btn.style.background = "#22c55e";
+            btn.innerHTML = ZEBRA_BTN_HTML;
+            btn.style.background = "";
             btn.disabled = false;
           }, 3000);
         },
         err => {
-          appAlert("❌ 전송 실패: " + (err || "알 수 없는 오류"));
-          btn.textContent = "🦓 Zebra 직접 출력"; btn.disabled = false;
+          appAlert("전송 실패: " + (err || "알 수 없는 오류"));
+          btn.innerHTML = ZEBRA_BTN_HTML; btn.disabled = false;
         }
       );
     },
     err => {
-      appAlert("❌ Browser Print 연결 실패\nBrowser Print 앱이 실행 중인지 확인하세요.\n오류: " + (err || "unknown"));
-      btn.textContent = "🦓 Zebra 직접 출력"; btn.disabled = false;
+      appAlert("Browser Print 연결 실패\nBrowser Print 앱이 실행 중인지 확인하세요.\n오류: " + (err || "unknown"));
+      btn.innerHTML = ZEBRA_BTN_HTML; btn.disabled = false;
     }
   );
 }
@@ -472,9 +483,10 @@ async function main() {
       const dateStr = dateInput.value || localDateStr();
       const includePrinted = document.getElementById("daily-include-printed").checked;
       const store = storeSelect.value;
-      document.getElementById("header-title").textContent = `🖨 일괄출력 — ${dateStr}${store ? " · " + store : ""}`;
+      document.getElementById("header-title").textContent = `일괄출력 — ${dateStr}${store ? " · " + store : ""}`;
       document.getElementById("header-sub").textContent = "불러오는 중...";
       document.getElementById("not-found-box").style.display = "none";
+      document.getElementById("print-group").style.display = "";
       try {
         const result = await buildItemsFromPriceChanges(dateStr, includePrinted, store);
         items = result.items; changeIds = result.changeIds;
@@ -486,7 +498,8 @@ async function main() {
         renderPreview(items);
         bindDailyPrintButtons();
       } catch (e) {
-        document.getElementById("header-sub").textContent = "오류: " + e.message;
+        document.getElementById("header-sub").textContent = "";
+        showLabelState("불러오지 못했어요", e.message, loadDaily);
       }
     }
     function bindDailyPrintButtons() {
@@ -532,7 +545,7 @@ async function main() {
       const date = sess.session_date || new Date().toISOString().slice(0, 10);
       zplFilename = `labels_${date}_${sess.barcode_prefix}.zpl`;
       const labelCount = items.filter(it => !it.isSeparator).length;
-      document.getElementById("header-title").textContent = `🖨 라벨 출력 — ${date}`;
+      document.getElementById("header-title").textContent = `라벨 출력 — ${date}`;
       document.getElementById("header-sub").textContent =
         `총 ${labelCount}장` +
         (sess.start_barcode_num
@@ -550,16 +563,18 @@ async function main() {
       }
       ({ items, notFound } = await buildItemsFromBarcodes(barcodes, priceOverrides));
       document.getElementById("header-title").textContent =
-        Object.keys(priceOverrides).length ? "🖨 수정된 라벨 출력" : "🖨 라벨 재출력";
+        Object.keys(priceOverrides).length ? "수정된 라벨 출력" : "라벨 재출력";
       document.getElementById("header-sub").textContent = `총 ${items.length}장`;
     } else {
       document.getElementById("header-title").textContent = "잘못된 접근";
+      showLabelState("잘못된 접근이에요", "출력할 라벨 정보가 없어요. 이전 화면에서 다시 열어 주세요.");
       zplBtn.disabled = true; zebraBtn.disabled = true;
       return;
     }
   } catch (e) {
     document.getElementById("header-title").textContent = "오류";
-    document.getElementById("header-sub").textContent = e.message;
+    document.getElementById("header-sub").textContent = "";
+    showLabelState("불러오지 못했어요", e.message, () => location.reload());
     zplBtn.disabled = true; zebraBtn.disabled = true;
     return;
   }
@@ -568,7 +583,7 @@ async function main() {
     const box = document.getElementById("not-found-box");
     box.style.display = "block";
     document.getElementById("not-found-title").textContent =
-      `⚠ DB에서 찾지 못한 바코드 ${notFound.length}개`;
+      `DB에서 찾지 못한 바코드 ${notFound.length}개`;
     document.getElementById("not-found-list").textContent = notFound.join(", ");
   }
 

@@ -2,18 +2,18 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>가이드 편집 — 마켓인유</title>
 <meta name="theme-color" content="#faf9f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151148">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
-<link rel="stylesheet" href="/miu-hub/office/office.css?v=202611151148">
-<script src="/miu-hub/shared/config.js?v=202611151148"></script>
+<link rel="stylesheet" href="/miu-hub/office/office.css?v=202611151334">
+<script src="/miu-hub/shared/config.js?v=202611151334"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
 </head>
 <body>
 
@@ -24,15 +24,16 @@
     <h1 class="miu-header-h1">가이드 편집</h1>
   </div>
   <div class="miu-header-actions">
-    <button class="miu-btn-sm miu-btn-secondary" id="save-all">모두 저장</button>
+    <button class="miu-btn-sm miu-btn-primary" id="save-all">모두 저장</button>
   </div>
 </header>
 
-<div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
+<div class="wrap" id="root"><div class="miu-loading"><span class="miu-spinner"></span> 불러오는 중…</div></div>
 
-<script src="/miu-hub/office/common.js?v=202611151148"></script>
+<script src="/miu-hub/office/common.js?v=202611151334"></script>
 <script>
 const root = document.getElementById('root');
+const errBox = (e) => `<div class="miu-fail"><div class="miu-alert" role="alert"><div>불러오지 못했어요. 잠시 뒤 다시 시도해 주세요.<br><small style="font-size:13px;color:var(--miu-muted)">${esc(errMsg(e))}</small></div></div><button class="miu-btn miu-btn-primary" onclick="location.reload()">다시 시도</button></div>`;
 const guideId = new URLSearchParams(location.search).get('id');
 let guide = null, steps = [], atts = [], thumbs = new Map(), categories = [];
 const MAX_IMG = 1600;   // 캡처가 크면 가로 1600px로 줄여 올린다(폰 업로드·보기 속도)
@@ -70,10 +71,10 @@ function render() {
       <label class="fld"><span>언제 하나요</span><textarea id="g-summary" rows="3">${esc(guide.summary)}</textarea></label>
       <label class="fld"><span>준비물 (사이트 주소·계정 등. 줄바꿈 그대로, https:// 주소는 링크)</span><textarea id="g-prepare" rows="4">${esc(guide.prepare)}</textarea></label>
       <label class="fld"><span>순서 (작을수록 목록 위)</span><input type="number" id="g-sort" value="${guide.sort_order}"></label>
-      <label class="fld"><input type="checkbox" id="g-active" ${guide.is_active ? 'checked' : ''}> 직원에게 보이기 (끄면 관리자만 보임)</label>
+      <label class="miu-check" style="margin-bottom:12px"><input type="checkbox" id="g-active" ${guide.is_active ? 'checked' : ''}> 직원에게 보이기 (끄면 관리자만 보임)</label>
     </div>
     <div id="steps">${steps.map(stepHtml).join('')}</div>
-    <div class="bar"><button class="btn" id="add-step">+ 단계 추가</button><span class="sp"></span><button class="btn danger" id="del-guide">이 가이드 삭제</button></div>`;
+    <div class="bar" style="gap:16px"><button class="btn" id="add-step">+ 단계 추가</button><span class="sp"></span><button class="btn danger" id="del-guide">이 가이드 삭제</button></div>`;
   document.getElementById('add-step').addEventListener('click', addStep);
   document.getElementById('del-guide').addEventListener('click', deleteGuide);
   steps.forEach(bindStep);
@@ -82,9 +83,9 @@ function render() {
 function stepHtml(s, i) {
   return `<div class="ecard" data-step="${s.id}">
     <div class="eh">${i + 1}단계<span class="sp"></span>
-      <button class="btn sec sm" data-act="up" ${i === 0 ? 'disabled' : ''}>↑</button>
-      <button class="btn sec sm" data-act="down" ${i === steps.length - 1 ? 'disabled' : ''}>↓</button>
-      <button class="btn danger sm" data-act="del">삭제</button></div>
+      <button class="btn sec sm" data-act="up" aria-label="위로" ${i === 0 ? 'disabled' : ''}><i class="ph-bold ph-arrow-up"></i></button>
+      <button class="btn sec sm" data-act="down" aria-label="아래로" ${i === steps.length - 1 ? 'disabled' : ''}><i class="ph-bold ph-arrow-down"></i></button>
+      <button class="btn danger sm" data-act="del" style="margin-left:12px">삭제</button></div>
     <label class="fld"><span>제목</span><input type="text" class="s-title" value="${esc(s.title)}"></label>
     <label class="fld"><span>설명 (무엇을, 어디서, 정해진 값, 흔한 실수)</span><textarea class="s-body" rows="6">${esc(s.body)}</textarea></label>
     <div class="att-list">${attsHtml(s.id)}</div>
@@ -204,7 +205,7 @@ async function deleteGuide() {
     location.href = 'index.html';
   } catch (e) { toast(errMsg(e), true); await reload(); }
 }
-async function reload() { try { await load(); render(); } catch (e) { root.innerHTML = `<div class="empty">불러오지 못했어요.<br>${esc(errMsg(e))}</div>`; } }
+async function reload() { try { await load(); render(); } catch (e) { root.innerHTML = errBox(e); } }
 
 // ── 첨부 ───────────────────────────────────────────────
 // 스토리지 키는 영문·숫자만(한글 파일 이름은 키로 못 쓴다). 원래 이름은 office_attachments.name에 따로 둔다.
@@ -259,13 +260,13 @@ async function deleteAtt(id) {
 (async function boot() {
   try {
     const p = await waitProfile();
-    if (p?.role !== 'admin') { root.innerHTML = '<div class="empty">관리자만 편집할 수 있어요.</div>'; document.getElementById('save-all').classList.add('hidden'); return; }
-    if (!guideId) { root.innerHTML = '<div class="empty">가이드가 지정되지 않았어요.</div>'; return; }
+    if (p?.role !== 'admin') { root.innerHTML = '<div class="miu-state compact"><div class="miu-state-title">관리자만 편집할 수 있어요</div><a class="miu-btn miu-btn-secondary" href="index.html">가이드 목록으로</a></div>'; document.getElementById('save-all').classList.add('hidden'); return; }
+    if (!guideId) { root.innerHTML = '<div class="miu-state compact"><div class="miu-state-title">가이드가 지정되지 않았어요</div><a class="miu-btn miu-btn-secondary" href="index.html">가이드 목록으로</a></div>'; document.getElementById('save-all').classList.add('hidden'); return; }
     await load();
     document.getElementById('back').href = `index.html#${guideId}`;
     render();
   } catch (e) {
-    root.innerHTML = `<div class="empty">불러오지 못했어요.<br>${esc(errMsg(e))}</div>`;
+    root.innerHTML = errBox(e);
   }
 })();
 </script>

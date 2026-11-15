@@ -33,7 +33,7 @@ async function load() {
 
     render();
   } catch (e) {
-    showError("로드 실패: " + e.message);
+    showError("로드 실패: " + e.message, load);
   }
 }
 
@@ -69,7 +69,7 @@ function render() {
         ${SESS.created_by ? `<span class="muted">개설: ${escapeHtml(SESS.created_by)}</span>` : ""}
       </div>
       <div class="mt8">
-        <strong style="color:var(--brand-primary); font-size:18px">총 ${TOTAL}벌</strong>
+        <strong style="color:var(--miu-ink); font-size:18px">총 ${TOTAL}벌</strong>
         <span class="muted text-sm">&nbsp;·&nbsp;행거 ${HANGERS.length}개</span>
       </div>
     </div>
@@ -78,17 +78,17 @@ function render() {
   if (SESS.status === "pending") {
     html += `
       <div class="card card-pending" style="margin-bottom:16px">
-        <h2 style="color:var(--brand-primary); margin-bottom:12px">바코드 부여 &amp; 승인</h2>
+        <h2 style="margin-bottom:12px">바코드 부여 &amp; 승인</h2>
         <div class="card" style="background:var(--bg-secondary); padding:12px 14px; margin-bottom:14px">
           ${PREVIEW_START ? `
             <div class="text-xs muted" style="margin-bottom:4px">예상 시작 바코드</div>
-            <div class="mono" style="font-size:20px; font-weight:700; color:var(--brand-primary); letter-spacing:-.5px">
+            <div class="mono" style="font-size:20px; font-weight:700; color:var(--miu-ink); letter-spacing:-.5px">
               ${escapeHtml(PREVIEW_START)}
             </div>
             <div class="text-xs muted" style="margin-top:6px">
               끝: <span class="mono">${escapeHtml(previewEndBarcode(PREVIEW_START, TOTAL))}</span> · 총 ${TOTAL}벌
             </div>
-            <div class="text-xs muted" style="margin-top:10px; padding-top:10px; border-top:1px solid var(--hairline)">
+            <div class="text-xs muted" style="margin-top:10px; padding-top:10px; border-top:1px solid var(--miu-hairline)">
               동시 승인이 있으면 실제 번호는 약간 앞뒤로 밀릴 수 있어요.
             </div>` : `
             <div class="text-sm" style="line-height:1.6">
@@ -102,13 +102,13 @@ function render() {
             ? `<strong>${escapeHtml(MY_NAME)}</strong> <span class="muted">(로그인한 계정으로 자동 기록돼요)</span>`
             : `<span class="danger">계정에 이름이 설정돼 있지 않아요. 관리자에게 요청해 주세요.</span>`}</div>
         </div>
-        <button id="confirm-btn" class="btn btn-success btn-block">✓ 승인하기 (${TOTAL}벌 바코드 발행)</button>
+        <button id="confirm-btn" class="btn btn-primary btn-block">승인하기 (${TOTAL}벌 바코드 발행)</button>
       </div>
     `;
   } else if (SESS.status === "approved" && !SESS.excel_updated) {
     html += `
       <div class="card card-success" style="margin-bottom:16px">
-        <div class="success" style="font-weight:700">✓ 승인됨 — 엑셀 기록 대기 중</div>
+        <div class="success" style="font-weight:700"><i class="ph-bold ph-check-circle"></i> 승인됨 — 엑셀 기록 대기 중</div>
         <div class="text-sm muted mt8">서버 크론이 2분 내 입고 시트에 자동 기록합니다.</div>
         ${range ? `
         <div class="mt8 text-sm muted">
@@ -116,21 +116,21 @@ function render() {
           <span class="text-xs">(총 ${range.count}벌)</span>
         </div>` : ""}
         ${HANGERS.some(h => h.printed_at || h.kiosk_exported_at)
-          ? `<div class="text-sm mt8" style="color:var(--status-danger)">라벨을 이미 출력했거나 키오스크 파일을 내려받아서 승인을 취소할 수 없어요. 번호가 바뀌면 붙인 라벨과 어긋나요.</div>`
+          ? `<div class="text-sm mt8" style="color:var(--miu-error-text)">라벨을 이미 출력했거나 키오스크 파일을 내려받아서 승인을 취소할 수 없어요. 번호가 바뀌면 붙인 라벨과 어긋나요.</div>`
           : `<button id="reopen-btn" class="btn btn-outline btn-sm mt8">승인 취소 (수정)</button>`}
       </div>
     `;
   } else if (SESS.status === "expired") {
     html += `
-      <div class="card" style="border-color:#334155; background:#0f172a; margin-bottom:16px">
-        <div style="color:#64748b; font-weight:700">❌ 만료됨</div>
+      <div class="card" style="background:var(--miu-surface-soft); margin-bottom:16px">
+        <div style="color:var(--miu-muted); font-weight:700"><i class="ph-bold ph-x-circle"></i> 만료됨</div>
         <div class="text-sm muted mt8">미제출 행거가 있어 만료 처리되었습니다.</div>
       </div>
     `;
   } else {
     html += `
-      <div class="card" style="border-color:var(--w-violet-80); background:var(--w-violet-99); margin-bottom:16px">
-        <div style="color:var(--w-violet-50); font-weight:700">✓ 처리 완료</div>
+      <div class="card" style="background:var(--miu-surface-soft); margin-bottom:16px">
+        <div style="color:var(--miu-ink); font-weight:700"><i class="ph-bold ph-check-circle"></i> 처리 완료</div>
         ${range ? `
         <div class="text-sm muted mt8">
           바코드: <span class="mono">${escapeHtml(range.first)} ~ ${escapeHtml(range.last)}</span> (총 ${range.count}벌)
@@ -143,7 +143,7 @@ function render() {
     html += `
       <div class="flex mb8" style="gap:8px">
         <a href="labels.html?session_id=${encodeURIComponent(SESS.id)}" target="_blank"
-           class="btn btn-warn flex-1" style="text-align:center; text-decoration:none">🖨 라벨 출력</a>
+           class="btn btn-primary flex-1" style="text-align:center; text-decoration:none"><i class="ph-bold ph-printer"></i> 라벨 출력</a>
       </div>
     `;
   }
@@ -157,14 +157,14 @@ function render() {
       const cats = [...new Set(items.map(it => it.category).filter(Boolean))];
       return `
         <div class="card">
-          <div class="flex" style="align-items:center; margin-bottom:10px">
+          <div class="hanger-head" style="margin-bottom:10px">
             <strong style="font-size:16px">행거 ${escapeHtml(h.hanger_number)}</strong>
-            <span class="muted" style="margin-left:8px">${cats.length ? escapeHtml(cats.join(" · ")) : "카테고리 미정"}</span>
-            ${h.source ? `<span style="margin-left:8px;padding:2px 8px;font-size:11px;border-radius:6px;background:var(--miu-surface-soft, #f5f0e8);color:var(--miu-body, #3d3d3a)">${escapeHtml(h.source)}</span>` : ""}
+            <span class="muted">${cats.length ? escapeHtml(cats.join(" · ")) : "카테고리 미정"}</span>
+            ${h.source ? `<span class="chip-s">${escapeHtml(h.source)}</span>` : ""}
             <span class="muted text-sm" style="margin-left:auto">${items.length}벌</span>
             ${h.submitted_at
-              ? `<span style="margin-left:8px; font-size:11px; color:var(--status-success)">✓ 제출</span>`
-              : `<span style="margin-left:8px; font-size:11px; color:#ef4444; font-weight:600">미제출</span>`}
+              ? `<span style="font-size:13px; color:var(--miu-success-text)"><i class="ph-bold ph-check"></i> 제출</span>`
+              : `<span style="font-size:13px; color:var(--miu-error-text); font-weight:600">미제출</span>`}
           </div>
           ${items.length === 0 ? '<div class="text-sm muted">아이템 없음</div>' :
             items.map((item, i) => `
@@ -198,7 +198,7 @@ async function confirmApprove() {
   const btn = document.getElementById("confirm-btn");
   const originalLabel = btn.textContent;
   btn.disabled = true;
-  btn.textContent = "⏳ 바코드 부여 중…";
+  btn.textContent = "바코드 부여 중…";
 
   try {
     // 서버에서 한 번에 처리한다: 바코드 발급, 상품 갱신, 승인 기록이 모두 성공하거나 모두 취소된다.

@@ -24,13 +24,13 @@ function getTodayLabel() {
 function appConfirm(msg) {
   return new Promise(resolve => {
     const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(20,20,19,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
     overlay.innerHTML = `
-      <div style="background:#1e293b;border-radius:14px;padding:24px 20px;max-width:320px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.5)">
-        <div style="color:#f1f5f9;font-size:15px;line-height:1.6;white-space:pre-line;margin-bottom:20px">${escapeHtml(msg)}</div>
+      <div style="background:var(--miu-canvas);border-radius:16px;padding:24px 20px;max-width:340px;width:100%;box-shadow:0 12px 32px rgba(20,20,19,.2);border:1px solid var(--miu-hairline)">
+        <div style="color:var(--miu-ink);font-size:15px;line-height:1.6;white-space:pre-line;margin-bottom:20px">${escapeHtml(msg)}</div>
         <div style="display:flex;gap:8px">
-          <button id="_modal-cancel" style="flex:1;padding:11px;background:#334155;border:none;border-radius:8px;color:#94a3b8;font-size:14px;cursor:pointer">취소</button>
-          <button id="_modal-ok" style="flex:1;padding:11px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">확인</button>
+          <button id="_modal-cancel" style="flex:1;min-height:44px;padding:12px;background:var(--miu-canvas);border:1px solid var(--miu-hairline);border-radius:10px;color:var(--miu-ink);font-size:14px;font-weight:600;cursor:pointer">취소</button>
+          <button id="_modal-ok" style="flex:1;min-height:44px;padding:12px;background:var(--miu-primary);border:none;border-radius:10px;color:var(--miu-on-primary);font-size:14px;font-weight:600;cursor:pointer">확인</button>
         </div>
       </div>`;
     document.body.appendChild(overlay);
@@ -52,11 +52,11 @@ function viewPhoto(url) {
 function appAlert(msg) {
   return new Promise(resolve => {
     const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(20,20,19,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box';
     overlay.innerHTML = `
-      <div style="background:#1e293b;border-radius:14px;padding:24px 20px;max-width:320px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.5)">
-        <div style="color:#f1f5f9;font-size:15px;line-height:1.6;white-space:pre-line;margin-bottom:20px">${escapeHtml(msg)}</div>
-        <button id="_modal-ok" style="width:100%;padding:11px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">확인</button>
+      <div style="background:var(--miu-canvas);border-radius:16px;padding:24px 20px;max-width:340px;width:100%;box-shadow:0 12px 32px rgba(20,20,19,.2);border:1px solid var(--miu-hairline)">
+        <div style="color:var(--miu-ink);font-size:15px;line-height:1.6;white-space:pre-line;margin-bottom:20px">${escapeHtml(msg)}</div>
+        <button id="_modal-ok" style="width:100%;min-height:44px;padding:12px;background:var(--miu-primary);border:none;border-radius:10px;color:var(--miu-on-primary);font-size:14px;font-weight:600;cursor:pointer">확인</button>
       </div>`;
     document.body.appendChild(overlay);
     const close = () => { overlay.remove(); resolve(); };

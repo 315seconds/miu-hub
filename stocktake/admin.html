@@ -2,12 +2,12 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>재고조사 관리 — 마켓인유</title>
 <meta name="theme-color" content="#faf9f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151148">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
 body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
@@ -16,11 +16,11 @@ button { font-family: inherit; }
 .sec-title { font-family: var(--miu-serif); font-size: 20px; font-weight: 500; letter-spacing: -0.5px; margin: 32px 0 10px; display: flex; align-items: baseline; gap: 10px; }
 .sec-title small { font-family: var(--miu-sans); font-size: 13px; font-weight: 400; color: var(--miu-muted); }
 .muted { color: var(--miu-muted); }
-.small { font-size: 12.5px; line-height: 1.6; }
+.small { font-size: 13px; line-height: 1.6; }
 .empty { text-align: center; padding: 72px 24px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
 .card { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 16px 18px; }
-.err { background: color-mix(in srgb, var(--miu-error) 12%, transparent); color: #7a2a2a; border-radius: var(--miu-r-md); padding: 10px 14px; font-size: 13.5px; margin: 12px 0; line-height: 1.5; }
-.banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: color-mix(in srgb, var(--miu-warning) 20%, transparent); color: #6b5210; border-radius: var(--miu-r-lg); padding: 12px 16px; margin: 12px 0; font-size: 14px; font-weight: 600; text-decoration: none; }
+.err { background: color-mix(in srgb, var(--miu-error) 12%, transparent); color: var(--miu-error-text); border-radius: var(--miu-r-md); padding: 10px 14px; font-size: 13.5px; margin: 12px 0; line-height: 1.5; }
+.banner { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: color-mix(in srgb, var(--miu-warning) 20%, transparent); color: var(--miu-warning-text); border-radius: var(--miu-r-lg); padding: 12px 16px; margin: 12px 0; font-size: 14px; font-weight: 600; text-decoration: none; }
 .btn { height: 44px; padding: 0 18px; border-radius: var(--miu-r-md); border: 1px solid transparent; font-size: 15px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .btn.primary { background: var(--miu-primary); color: var(--miu-on-primary); }
 .btn.secondary { background: var(--miu-canvas); color: var(--miu-ink); border-color: var(--miu-hairline); }
@@ -30,12 +30,12 @@ button { font-family: inherit; }
 .btn.block { width: 100%; }
 .miu-btn-sm:disabled { opacity: .5; cursor: not-allowed; }
 .inp { width: 100%; height: 44px; padding: 0 14px; background: var(--miu-canvas); border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); font-family: var(--miu-sans); font-size: 15px; color: var(--miu-ink); }
-.inp:focus { outline: none; border-color: var(--miu-primary); box-shadow: 0 0 0 3px rgba(204,120,92,0.15); }
+.inp:focus { outline: none; border-color: var(--miu-primary); box-shadow: var(--miu-focus); }
 /* 시작 화면 */
 .locs { background: var(--miu-canvas); border-radius: var(--miu-r-md); border: 1px solid var(--miu-hairline); margin: 10px 0 14px; max-height: 420px; overflow-y: auto; }
-.loc-row { display: flex; align-items: center; gap: 10px; padding: 11px 14px; border-bottom: 1px solid var(--miu-hairline-soft); cursor: pointer; font-size: 15px; }
+.loc-row { display: flex; align-items: center; gap: 10px; padding: 4px 14px; min-height: 48px; border-bottom: 1px solid var(--miu-hairline-soft); cursor: pointer; font-size: 15px; }
 .loc-row:last-child { border-bottom: none; }
-.loc-row input { width: 18px; height: 18px; accent-color: var(--miu-primary); flex: none; }
+.loc-row input { width: 24px; height: 24px; accent-color: var(--miu-primary); flex: none; }
 .loc-row .nm { flex: 1; font-weight: 600; }
 .loc-row .ct { font-size: 13px; color: var(--miu-muted); text-align: right; }
 .loc-row.off .nm { color: var(--miu-muted); font-weight: 500; }
@@ -46,13 +46,13 @@ button { font-family: inherit; }
 .past:last-child { border-bottom: none; }
 a.past:active { background: var(--miu-surface-strong); }
 .past .n { font-size: 15px; font-weight: 600; }
-.past .n small { display: block; font-weight: 400; color: var(--miu-muted); font-size: 12px; margin-top: 2px; }
+.past .n small { display: block; font-weight: 400; color: var(--miu-muted); font-size: 13px; margin-top: 2px; }
 .past.cancelled { opacity: .5; }
 /* 진행 화면 */
 .sum { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
 .sum .box { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 14px 16px; }
-.sum .k { font-size: 12px; color: var(--miu-muted); }
-.sum .v { font-family: var(--miu-serif); font-size: 22px; font-weight: 500; margin-top: 2px; }
+.sum .k { font-size: 13px; color: var(--miu-muted); }
+.sum .v { font-family: var(--miu-sans); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
 .sum .v small { font-family: var(--miu-sans); font-size: 13px; color: var(--miu-muted); font-weight: 400; }
 .sum .box.wide { grid-column: 1 / -1; }
 .bar { height: 8px; border-radius: var(--miu-r-pill); background: var(--miu-hairline); overflow: hidden; margin: 8px 0; }
@@ -65,34 +65,34 @@ a.past:active { background: var(--miu-surface-strong); }
 .lc .nm { font-size: 17px; font-weight: 700; }
 .lc .stats { font-size: 13px; color: var(--miu-body); line-height: 1.7; }
 .lc .stats b { font-weight: 700; color: var(--miu-ink); }
-.lc .who { font-size: 12.5px; color: var(--miu-muted); line-height: 1.6; }
-.lc .stale { color: #6b5210; font-weight: 600; }
+.lc .who { font-size: 13px; color: var(--miu-muted); line-height: 1.6; }
+.lc .stale { color: var(--miu-warning-text); font-weight: 600; }
 .lc .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
 .kinds { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 .kinds .miu-chip { font-size: 13px; padding: 5px 12px; }
-.foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 28px; }
+.foot { display: flex; align-items: center; justify-content: space-between; gap: 24px; flex-wrap: wrap; margin-top: 28px; }
 /* 모달 */
 .miu-modal.wide { max-width: 760px; }
 .m-line { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; font-size: 14px; }
 .m-line + .m-line { border-top: 1px solid var(--miu-hairline-soft); }
 .m-note { font-size: 13px; color: var(--miu-muted); line-height: 1.6; margin: 10px 0; }
 .u-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-.u-tools .inp { flex: 1; min-width: 140px; height: 38px; }
+.u-tools .inp { flex: 1; min-width: 140px; height: 44px; }
 .u-tools select.inp { flex: none; width: auto; min-width: 120px; }
 .u-row { display: grid; grid-template-columns: 120px 1fr auto; gap: 4px 12px; padding: 9px 0; border-bottom: 1px solid var(--miu-hairline-soft); font-size: 13.5px; align-items: baseline; }
 .u-row .bc { font-family: var(--miu-mono); font-size: 13px; }
 .u-row .pr { text-align: right; white-space: nowrap; }
-.u-row .cat { grid-column: 1 / -1; font-size: 12px; color: var(--miu-muted); }
+.u-row .cat { grid-column: 1 / -1; font-size: 13px; color: var(--miu-muted); }
 @media (min-width: 640px) { .u-row { grid-template-columns: 120px 90px 1fr auto; } .u-row .cat { grid-column: auto; } }
 .chk { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; padding: 4px 0; line-height: 1.5; }
 .chk i { margin-top: 3px; }
-.chk.bad { color: #7a2a2a; font-weight: 600; }
-.chk.ok { color: #2e6b3a; }
+.chk.bad { color: var(--miu-error-text); font-weight: 600; }
+.chk.ok { color: var(--miu-success-text); }
 </style>
-<script src="/miu-hub/shared/config.js?v=202611151148"></script>
+<script src="/miu-hub/shared/config.js?v=202611151334"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
 </head>
 <body>
 
@@ -116,7 +116,7 @@ a.past:active { background: var(--miu-surface-strong); }
 <div id="modalHost"></div>
 <div id="toastHost"></div>
 
-<script src="js/common.js?v=202611151148"></script>
+<script src="js/common.js?v=202611151334"></script>
 <script>
 (function () {
 'use strict';
@@ -135,7 +135,7 @@ function toast(msg) {
   $('toastHost').appendChild(el);
   setTimeout(() => el.remove(), 3200);
 }
-function setErr(msg) { $('errBar').innerHTML = msg ? `<div class="err">${esc(msg)}</div>` : ''; }
+function setErr(msg) { $('errBar').innerHTML = msg ? `<div class="miu-alert" role="alert" style="margin:12px 0"><i class="ph-bold ph-warning-circle" style="font-size:20px;flex:none"></i><span>${esc(msg)}</span></div>` : ''; }
 const ago = (iso) => {
   const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
   if (m < 1) return '방금';
@@ -218,8 +218,11 @@ async function load() {
       setErr('');
     }
   } catch (e) {
-    setErr(e.message || '불러오지 못했어요.');
-    if (!S.mode) root.innerHTML = `<div class="empty">불러오지 못했어요.<br><button class="btn secondary" type="button" data-act="retry" style="margin-top:14px">다시 시도</button></div>`;
+    const msg = e.message || '불러오지 못했어요.';
+    if (!S.mode || root.querySelector('.miu-loading')) {
+      setErr('');
+      root.innerHTML = `<div class="miu-fail"><div class="miu-alert" role="alert"><i class="ph-bold ph-warning-circle" style="font-size:20px;flex:none"></i><div><strong>불러오지 못했어요.</strong><div style="font-size:13px;margin-top:2px;word-break:break-all">${esc(msg)}</div></div></div><button class="miu-btn miu-btn-secondary" type="button" data-act="retry"><i class="ph-bold ph-arrow-clockwise"></i> 다시 시도</button></div>`;
+    } else setErr(msg);
   } finally { S.loading = false; }
 }
 
@@ -419,8 +422,8 @@ function renderActive() {
       <div class="small muted" style="margin-top:10px">마감한 위치만 미스캔으로 계산돼요. 아직 조사 중인 위치의 안 찍힌 물건은 여기에 포함되지 않아요.</div>
     </div>
     <div class="foot">
-      <button class="btn danger" type="button" data-act="close-session"><i class="ph-bold ph-lock-key"></i>재고조사 닫기</button>
-      <button class="miu-btn-sm miu-btn-ghost" type="button" data-act="cancel-session">재고조사 취소</button>
+      <button class="btn primary" type="button" data-act="close-session"><i class="ph-bold ph-lock-key"></i>재고조사 닫기</button>
+      <button class="miu-btn miu-btn-danger" type="button" data-act="cancel-session">재고조사 취소</button>
     </div>`;
 }
 function kindChips(summary) {

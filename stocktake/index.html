@@ -2,12 +2,12 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>재고조사 — 마켓인유</title>
 <meta name="theme-color" content="#faf9f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151148">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
 body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
@@ -15,28 +15,32 @@ body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(-
 .card { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); padding: 18px; margin-top: 16px; }
 .card h2 { font-family: var(--miu-serif); font-size: 20px; font-weight: 500; letter-spacing: -0.5px; }
 .card .meta { font-size: 13px; color: var(--miu-muted); margin-top: 4px; line-height: 1.6; }
-.btn { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 14px; padding: 15px 16px; border-radius: var(--miu-r-lg); border: 1px solid var(--miu-hairline); background: var(--miu-canvas); color: var(--miu-ink); font-family: inherit; font-size: 15px; font-weight: 700; text-decoration: none; cursor: pointer; }
+.btn { min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; margin-top: 14px; padding: 15px 16px; border-radius: var(--miu-r-lg); border: 1px solid var(--miu-hairline); background: var(--miu-canvas); color: var(--miu-ink); font-family: inherit; font-size: 15px; font-weight: 700; text-decoration: none; cursor: pointer; }
 .btn:active { background: var(--miu-surface-strong); }
 .btn.primary { background: var(--miu-primary); color: #fff; border-color: transparent; }
 .btn.primary:active { background: var(--miu-primary-active); }
 .loc { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--miu-hairline-soft); font-size: 14px; }
 .loc:last-child { border-bottom: none; }
-.loc .s { font-size: 12.5px; color: var(--miu-muted); margin-top: 1px; }
+.loc .s { font-size: 13px; color: var(--miu-muted); margin-top: 1px; }
 .bar { height: 5px; background: var(--miu-surface-strong); border-radius: 3px; margin-top: 5px; overflow: hidden; }
 .bar > i { display: block; height: 100%; background: var(--miu-primary); }
-.banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 16px; padding: 14px 16px; border-radius: var(--miu-r-lg); background: color-mix(in srgb, var(--miu-warning) 20%, var(--miu-canvas)); color: #5a4408; font-weight: 700; font-size: 14px; text-decoration: none; }
+.banner { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 16px; padding: 14px 16px; border-radius: var(--miu-r-lg); background: color-mix(in srgb, var(--miu-warning) 20%, var(--miu-canvas)); color: var(--miu-warning-text); font-weight: 700; font-size: 14px; text-decoration: none; }
 .empty { text-align: center; padding: 56px 24px; color: var(--miu-muted); font-size: 14px; line-height: 1.7; }
 .empty strong { display: block; color: var(--miu-ink); font-size: 16px; margin-bottom: 4px; }
 .guide { margin-top: 24px; font-size: 13px; color: var(--miu-muted); line-height: 1.75; }
-.guide summary { cursor: pointer; font-weight: 700; color: var(--miu-body); }
+.guide summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-weight: 700; color: var(--miu-body); }
+.guide summary { list-style: none; gap: 6px; }
+.guide summary::-webkit-details-marker { display: none; }
+.guide summary::before { font-family: 'Phosphor-Bold'; content: '\e13a'; font-size: 14px; }
+.guide details[open] summary::before, .guide[open] summary::before { content: '\e136'; }
 .guide ol { padding-left: 18px; margin-top: 6px; }
 .guide a { display: inline-block; margin-top: 8px; font-weight: 600; color: var(--miu-primary); text-decoration: none; }
-.err { margin-top: 16px; padding: 12px 14px; border-radius: var(--miu-r-md); background: color-mix(in srgb, var(--miu-error) 12%, transparent); color: #7a2a2a; font-size: 13px; }
+.err { margin-top: 16px; padding: 12px 14px; border-radius: var(--miu-r-md); background: color-mix(in srgb, var(--miu-error) 12%, transparent); color: var(--miu-error-text); font-size: 13px; }
 </style>
-<script src="/miu-hub/shared/config.js?v=202611151148"></script>
+<script src="/miu-hub/shared/config.js?v=202611151334"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
 </head>
 <body>
 
@@ -48,13 +52,14 @@ body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(-
   </div>
 </header>
 
-<div class="wrap" id="root"><div class="empty">불러오는 중…</div></div>
+<div class="wrap" id="root"><div class="miu-loading"><span class="miu-spinner"></span>불러오는 중…</div></div>
 
-<script src="js/common.js?v=202611151148"></script>
+<script src="js/common.js?v=202611151334"></script>
 <script>
-(async () => {
+const loadMain = async () => {
   const { esc, fmt } = ST;
   const root = document.getElementById('root');
+  root.innerHTML = '<div class="miu-loading"><span class="miu-spinner"></span>불러오는 중…</div>';
   const stateChip = (s) => s === 'done' ? '<span class="miu-chip success">마감</span>' : s === 'skipped' ? '<span class="miu-chip muted">건너뜀</span>' : '<span class="miu-chip primary">조사 중</span>';
 
   try {
@@ -110,9 +115,10 @@ body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(-
         <li>다 끝나면 "남은 물건"으로 못 찾은 물건을 확인하고 "위치 마감"을 누르세요.</li>
       </ol><a href="/miu-hub/office/index.html#75656a1d-7187-4816-80c8-30dacb88dfdc"><i class="ph-bold ph-file-pdf"></i> 전체 가이드(PDF) 보기 · 받기</a></details>`;
   } catch (e) {
-    root.innerHTML = `<div class="err">${esc(e.message || '불러오지 못했어요.')}</div>`;
+    root.innerHTML = ST.errBox(e, loadMain);
   }
-})();
+};
+loadMain();
 </script>
 </body>
 </html>

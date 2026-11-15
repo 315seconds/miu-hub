@@ -2,11 +2,11 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>회전율 리포트 · MIU</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-  <link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
-  <link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151148">
+  <link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
+  <link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -19,61 +19,57 @@
       --muted: var(--miu-muted);
       --radius: 12px;
     }
-    body { font-family: 'Pretendard Variable', sans-serif; background: var(--miu-canvas); color: var(--text); min-height: 100vh; }
+    body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--text); min-height: 100vh; }
 
     /* ── Controls ── */
     .controls { padding: 12px 16px 4px; display: flex; flex-direction: column; gap: 10px; }
-    .label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .6px; margin-bottom: 4px; }
-    .tabs { display: flex; gap: 6px; }
-    .tab { padding: 7px 14px; border: 1px solid var(--border); border-radius: 99px; font-size: 13px; font-weight: 600; background: var(--card); color: var(--muted); cursor: pointer; white-space: nowrap; font-family: inherit; }
-    .tab.active { background: var(--miu-primary); color: #fff; border-color: var(--miu-primary); }
+    .label { font-size: 12px; font-weight: 700; color: var(--muted); letter-spacing: .4px; margin-bottom: 6px; }
+    .tabs { display: flex; gap: 8px; }
+    .tab.active { background: var(--miu-primary); color: var(--miu-on-primary); border-color: var(--miu-primary); }
     .store-row { overflow-x: auto; -webkit-overflow-scrolling: touch; }
     .store-row::-webkit-scrollbar { display: none; }
 
     /* ── Summary ── */
     .summary { display: flex; gap: 10px; padding: 12px 16px; }
-    .stat { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; }
-    .stat-val { font-family: var(--miu-serif); font-size: 22px; font-weight: 500; letter-spacing: -0.4px; }
-    .stat-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .stat { flex: 1; background: var(--miu-surface-card); border-radius: var(--radius); padding: 12px 14px; }
+    .stat-val { font-family: var(--miu-sans); font-size: 22px; font-weight: 700; letter-spacing: -0.4px; font-variant-numeric: tabular-nums; }
+    .stat-label { font-size: 13px; color: var(--muted); margin-top: 2px; }
 
     /* ── Table ── */
     .table-wrap { padding: 0 16px 40px; overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: var(--radius); overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.07); font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: var(--radius); overflow: hidden; box-shadow: 0 0 0 1px var(--border); font-size: 13px; font-variant-numeric: tabular-nums; }
     thead th {
-      background: var(--miu-surface-soft); padding: 10px 12px;
-      font-size: 11px; font-weight: 700; color: var(--muted);
+      background: var(--miu-surface-soft); padding: 0 8px; height: var(--miu-tap);
+      font-size: 13px; font-weight: 700; color: var(--muted);
       text-align: left; white-space: nowrap;
       cursor: pointer; user-select: none; border-bottom: 1px solid var(--border);
     }
     thead th:hover { background: var(--miu-surface-card); }
-    thead th.sort-asc::after  { content: ' ↑'; color: var(--brand); }
-    thead th.sort-desc::after { content: ' ↓'; color: var(--brand); }
+    thead th.sort-asc::after, thead th.sort-desc::after { content: ''; display: inline-block; margin-left: 6px; vertical-align: middle; border: 4px solid transparent; }
+    thead th.sort-asc::after  { border-bottom: 6px solid var(--brand); border-top-width: 0; }
+    thead th.sort-desc::after { border-top: 6px solid var(--brand); border-bottom-width: 0; }
     tbody tr { border-top: 1px solid var(--miu-hairline-soft); transition: background .1s; }
     tbody tr:hover { background: var(--miu-surface-soft); }
-    td { padding: 10px 12px; vertical-align: middle; }
-    .td-rank { color: #cbd5e1; font-size: 12px; font-weight: 700; width: 24px; }
-    .brand-name { font-weight: 700; font-size: 13px; }
-    .cat-tag { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    td { padding: 10px 8px; vertical-align: middle; }
+    thead th:nth-child(n+3), td:nth-child(n+3) { text-align: right; }
+    .td-rank { color: var(--muted); font-size: 13px; font-weight: 700; width: 24px; }
+    .brand-name { font-weight: 700; font-size: 14px; }
+    .cat-tag { font-size: 13px; color: var(--muted); margin-top: 2px; }
     .count-cell { font-weight: 700; font-size: 14px; }
     .price-cell { font-variant-numeric: tabular-nums; color: var(--muted); }
 
     /* ── Days badge ── */
-    .badge { display: inline-block; padding: 3px 9px; border-radius: 6px; font-size: 12px; font-weight: 700; white-space: nowrap; }
-    .badge-fast { background: #dcfce7; color: #166534; }
-    .badge-ok   { background: #fef9c3; color: #854d0e; }
-    .badge-slow { background: #fee2e2; color: #991b1b; }
-    .badge-none { background: #f1f5f9; color: #94a3b8; }
+    .badge { display: inline-block; padding: 3px 9px; border-radius: 99px; font-size: 12px; font-weight: 700; white-space: nowrap; }
 
     /* ── States ── */
-    .state { text-align: center; padding: 56px 16px; color: var(--muted); font-size: 14px; }
-    .state-icon { font-size: 36px; margin-bottom: 10px; }
-    .note { padding: 0 16px 16px; font-size: 12px; color: #94a3b8; }
+    #loading { padding: 24px 16px; }
+    .note { padding: 0 16px 16px; font-size: 13px; color: var(--muted); }
   </style>
   <!-- auth-migration: 로그인 가드 -->
-  <script src="/miu-hub/shared/config.js?v=202611151148"></script>
+  <script src="/miu-hub/shared/config.js?v=202611151334"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
-  <script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
+  <script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
+  <script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
 </head>
 <body>
 
@@ -81,7 +77,9 @@
   <a href="/miu-hub/" class="miu-header-back" aria-label="허브로">
     <i class="ph-bold ph-caret-left"></i>
   </a>
-  <div class="miu-header-title">    <h1 class="miu-header-h1">회전율 리포트</h1>
+  <div class="miu-header-title">
+    <div class="miu-header-eyebrow">TURNOVER</div>
+    <h1 class="miu-header-h1">회전율 리포트</h1>
   </div>
 </header>
 
@@ -89,15 +87,15 @@
   <div>
     <div class="label">기간</div>
     <div class="tabs" id="period-tabs">
-      <button class="tab" data-days="30">30일</button>
-      <button class="tab active" data-days="60">60일</button>
-      <button class="tab" data-days="90">90일</button>
+      <button class="tab miu-chip-btn" aria-pressed="false" data-days="30">30일</button>
+      <button class="tab miu-chip-btn active" aria-pressed="true" data-days="60">60일</button>
+      <button class="tab miu-chip-btn" aria-pressed="false" data-days="90">90일</button>
     </div>
   </div>
   <div>
     <div class="label">매장</div>
     <div class="tabs store-row" id="store-tabs">
-      <button class="tab active" data-store="">전체</button>
+      <button class="tab miu-chip-btn active" aria-pressed="true" data-store="">전체</button>
     </div>
   </div>
 </div>
@@ -119,7 +117,7 @@
 
 <div class="table-wrap">
   <div class="state" id="loading">
-    <div class="state-icon">⏳</div>데이터 로딩 중…
+    <div class="miu-loading"><span class="miu-spinner"></span>데이터 로딩 중…</div>
   </div>
   <table id="report-table" style="display:none">
     <thead>
@@ -127,7 +125,7 @@
         <th class="td-rank">#</th>
         <th data-col="key">브랜드 / 카테고리</th>
         <th data-col="count" class="sort-desc">판매</th>
-        <th data-col="avgDays">평균 소요일</th>
+        <th data-col="avgDays">소요일</th>
         <th data-col="avgPrice">평균가</th>
       </tr>
     </thead>
@@ -253,18 +251,19 @@ let activeStore = '';
 function populateStores(items) {
   const stores = [...new Set(items.map(i => i.store).filter(Boolean))].sort();
   const wrap = document.getElementById('store-tabs');
-  wrap.innerHTML = `<button class="tab active" data-store="">전체</button>`;
+  wrap.innerHTML = `<button class="tab miu-chip-btn active" aria-pressed="true" data-store="">전체</button>`;
   for (const s of stores) {
     const btn = document.createElement('button');
-    btn.className = 'tab';
+    btn.className = 'tab miu-chip-btn';
+    btn.setAttribute('aria-pressed', 'false');
     btn.dataset.store = s;
     btn.textContent = s;
     wrap.appendChild(btn);
   }
   wrap.querySelectorAll('.tab').forEach(btn => {
     btn.addEventListener('click', () => {
-      wrap.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+      wrap.querySelectorAll('.tab').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+      btn.classList.add('active'); btn.setAttribute('aria-pressed', 'true');
       activeStore = btn.dataset.store;
       renderTable();
     });
@@ -273,9 +272,9 @@ function populateStores(items) {
 
 // ── 뱃지
 function daysBadge(d) {
-  if (d === null) return `<span class="badge badge-none">-</span>`;
-  const [cls, label] = d <= 7 ? ['badge-fast','빠름'] : d <= 21 ? ['badge-ok','보통'] : ['badge-slow','느림'];
-  return `<span class="badge ${cls}">${d}일 · ${label}</span>`;
+  if (d === null) return `<span class="badge miu-chip muted">-</span>`;
+  const [cls, label] = d <= 7 ? ['success','빠름'] : d <= 21 ? ['warn','보통'] : ['danger','느림'];
+  return `<span class="badge miu-chip ${cls}">${d}일 · ${label}</span>`;
 }
 
 // ── 요약 바
@@ -304,7 +303,7 @@ function renderTable() {
   renderSummary(filtered);
 
   document.getElementById('tbody').innerHTML = rows.length === 0
-    ? '<tr><td colspan="5" style="text-align:center;padding:32px;color:#94a3b8">데이터 없음</td></tr>'
+    ? '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--miu-muted)">데이터 없음</td></tr>'
     : rows.map((r, i) => `
       <tr>
         <td class="td-rank">${i + 1}</td>
@@ -334,24 +333,28 @@ document.querySelectorAll('thead th[data-col]').forEach(th => {
   });
 });
 
+function loadError(e) {
+  return `<div class="miu-alert" role="alert"><i class="ph-bold ph-warning-circle"></i><div>불러오지 못했어요<div style="font-size:13px;margin-top:2px;opacity:.85">${h(e.message)}</div><button class="miu-btn miu-btn-sm miu-btn-secondary" style="margin-top:10px" onclick="location.reload()">다시 시도</button></div></div>`;
+}
+
 // ── 기간 탭 클릭
 document.getElementById('period-tabs').querySelectorAll('.tab').forEach(btn => {
   btn.addEventListener('click', async () => {
     if (btn.classList.contains('active')) return;
-    document.getElementById('period-tabs').querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    document.getElementById('period-tabs').querySelectorAll('.tab').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+    btn.classList.add('active'); btn.setAttribute('aria-pressed', 'true');
     document.getElementById('loading').style.display      = '';
     document.getElementById('report-table').style.display = 'none';
     document.getElementById('summary').style.display      = 'none';
     document.getElementById('data-note').style.display    = 'none';
-    document.getElementById('loading').innerHTML = '<div class="state-icon">⏳</div>데이터 로딩 중…';
+    document.getElementById('loading').innerHTML = '<div class="miu-loading"><span class="miu-spinner"></span>데이터 로딩 중…</div>';
     try {
       allItems = await loadData(parseInt(btn.dataset.days));
       populateStores(allItems);
       activeStore = '';
       renderTable();
     } catch (e) {
-      document.getElementById('loading').innerHTML = `<div class="state-icon">⚠️</div>오류: ${h(e.message)}`;
+      document.getElementById('loading').innerHTML = loadError(e);
     }
   });
 });
@@ -363,7 +366,7 @@ document.getElementById('period-tabs').querySelectorAll('.tab').forEach(btn => {
     populateStores(allItems);
     renderTable();
   } catch (e) {
-    document.getElementById('loading').innerHTML = `<div class="state-icon">⚠️</div>오류: ${h(e.message)}`;
+    document.getElementById('loading').innerHTML = loadError(e);
   }
 })();
 </script>

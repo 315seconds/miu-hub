@@ -51,7 +51,7 @@ async function load() {
     render(loaded);
     if (SESSION.status === "pending") { loadSessionBrands(); loadTodayBrands(); }
   } catch (e) {
-    showError("행거 로드 실패: " + e.message);
+    showError("행거 로드 실패: " + e.message, load);
   }
 }
 
@@ -64,8 +64,8 @@ function render(items) {
   const backWrap = document.getElementById("back-btn-wrap");
   const titleEl  = document.getElementById("page-title");
   if (backWrap) backWrap.innerHTML = `
-    <a href="session.html?id=${encodeURIComponent(SESSION.id || "")}" class="back-btn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="22" height="22"><polyline points="15 18 9 12 15 6"/></svg>
+    <a href="session.html?id=${encodeURIComponent(SESSION.id || "")}" class="miu-header-back" aria-label="뒤로">
+      <i class="ph-bold ph-caret-left"></i>
     </a>`;
   if (titleEl) titleEl.textContent = `행거 ${HANGER.hanger_number}`;
 
@@ -80,11 +80,11 @@ function render(items) {
 
   if (!isPending) {
     html += `<div class="card card-success" style="margin-bottom:16px">
-      <span class="success">✓ 이 세션은 승인되었습니다. 편집 불가.</span>
+      <span class="success"><i class="ph-bold ph-check-circle"></i> 이 세션은 승인되었습니다. 편집 불가.</span>
     </div>`;
   } else if (!isMine) {
-    html += `<div class="card" style="border-color:#334155; background:#0f172a; margin-bottom:16px">
-      <span style="color:#94a3b8">🔒 ${escapeHtml(HANGER.submitted_by)}만 편집할 수 있는 행거입니다.</span>
+    html += `<div class="miu-alert warn" style="margin-bottom:16px">
+      <i class="ph-bold ph-lock"></i><span>${escapeHtml(HANGER.submitted_by)}만 편집할 수 있는 행거입니다.</span>
     </div>`;
   } else {
     const isBulkC = currentCategory.trim().toUpperCase() === "C";
@@ -101,9 +101,9 @@ function render(items) {
         <div id="brand-chips" style="display:flex; flex-wrap:nowrap; gap:6px; margin-bottom:8px; overflow-x:auto; padding-bottom:2px"></div>
         <div style="position:relative; margin-bottom:10px">
           <input type="text" id="brand-input" placeholder="브랜드명" autocomplete="off">
-          <div id="brand-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:#1e293b; border:1px solid #334155; border-radius:8px; margin-top:4px; z-index:100; overflow:hidden; box-shadow:0 4px 16px rgba(0,0,0,.4)"></div>
+          <div id="brand-dropdown" style="display:none; position:absolute; top:100%; left:0; right:0; background:var(--miu-canvas); border:1px solid var(--field-border); border-radius:8px; margin-top:4px; z-index:9; overflow:hidden; box-shadow:var(--shadow-3)"></div>
         </div>
-        <button type="button" class="btn btn-outline btn-sm" id="no-brand-btn" style="margin-bottom:10px">브랜드 없음 (Vintage)</button>`}
+        <button type="button" class="btn btn-outline btn-sm" id="no-brand-btn" style="margin-bottom:10px; min-height:44px">브랜드 없음 (Vintage)</button>`}
         <div class="add-row">
           <input type="number" id="price-input" placeholder="가격 입력" inputmode="decimal" autocomplete="off">
           <input type="number" id="count-input" value="1" min="1" max="50" inputmode="numeric" title="수량">
@@ -111,7 +111,7 @@ function render(items) {
         </div>
         ${isBulkC ? "" : `
         <div class="flex mt8">
-          <button type="button" class="btn btn-outline btn-sm" id="ref-btn">📊 가격 참조</button>
+          <button type="button" class="btn btn-outline btn-sm" id="ref-btn" style="min-height:44px"><i class="ph-bold ph-chart-bar"></i> 가격 참조</button>
         </div>
         <div id="price-ref-panel" class="price-ref-panel">
           <div id="price-ref-content" class="text-xs muted">브랜드 입력 후 조회</div>
@@ -142,8 +142,8 @@ function render(items) {
   `;
 
   if (canEdit) {
-    html += `<div class="mt16">
-      <button id="submit-btn" class="btn btn-success btn-block">행거 제출하기</button>
+    html += `<div class="miu-action-bar">
+      <button id="submit-btn" class="btn btn-primary">행거 제출하기</button>
     </div>`;
   }
 
@@ -155,25 +155,27 @@ function render(items) {
 }
 
 function bulkPhotoLabel() {
-  if (unphotographedCount === 0 && itemCount > 0) return "📷 일괄 촬영 ✓ 완료";
-  if (unphotographedCount > 0) return `📷 일괄 촬영 (${unphotographedCount}장 미촬영)`;
-  return "📷 일괄 촬영";
+  const ic = '<i class="ph-bold ph-camera"></i> ';
+  if (unphotographedCount === 0 && itemCount > 0) return ic + '일괄 촬영 <i class="ph-bold ph-check"></i> 완료';
+  if (unphotographedCount > 0) return ic + `일괄 촬영 (${unphotographedCount}장 미촬영)`;
+  return ic + "일괄 촬영";
 }
 
 function updateBulkPhotoBtn() {
   const btn = document.getElementById("bulk-photo-btn");
-  if (btn) btn.textContent = bulkPhotoLabel();
+  if (btn) btn.innerHTML = bulkPhotoLabel();
 }
 
 function bulkBrandLabel() {
-  if (unbrandedCount === 0 && itemCount > 0) return "🏷️ 일괄 브랜드 입력 ✓ 완료";
-  if (unbrandedCount > 0) return `🏷️ 일괄 브랜드 입력 (${unbrandedCount}개 미입력)`;
-  return "🏷️ 일괄 브랜드 입력";
+  const ic = '<i class="ph-bold ph-tag"></i> ';
+  if (unbrandedCount === 0 && itemCount > 0) return ic + '일괄 브랜드 입력 <i class="ph-bold ph-check"></i> 완료';
+  if (unbrandedCount > 0) return ic + `일괄 브랜드 입력 (${unbrandedCount}개 미입력)`;
+  return ic + "일괄 브랜드 입력";
 }
 
 function updateBulkBrandBtn() {
   const btn = document.getElementById("bulk-brand-btn");
-  if (btn) btn.textContent = bulkBrandLabel();
+  if (btn) btn.innerHTML = bulkBrandLabel();
 }
 
 function itemRowHtml(item, num, canDel) {
@@ -185,8 +187,8 @@ function itemRowHtml(item, num, canDel) {
       ${meta ? `<div class="item-brand">${escapeHtml(meta)}</div>` : ""}
       ${item.photo_url ? `<img src="${escapeHtml(item.photo_url)}" class="photo-preview" alt="사진">` : ""}
     </div>
-    ${canDel ? `<button class="edit-btn" data-id="${escapeHtml(item.id)}">✎</button>` : ""}
-    ${canDel ? `<button class="del-btn" data-id="${escapeHtml(item.id)}">×</button>` : ""}
+    ${canDel ? `<button class="edit-btn" data-id="${escapeHtml(item.id)}" aria-label="수정"><i class="ph-bold ph-pencil-simple"></i></button>` : ""}
+    ${canDel ? `<button class="del-btn" data-id="${escapeHtml(item.id)}" aria-label="삭제"><i class="ph-bold ph-trash"></i></button>` : ""}
   </div>`;
 }
 
@@ -194,13 +196,13 @@ function openEditItemModal(item) {
   const overlay = document.createElement("div");
   overlay.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;box-sizing:border-box";
   overlay.innerHTML = `
-    <div style="background:#1e293b;border-radius:14px;padding:24px 20px;max-width:340px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.5)">
-      <div style="color:#f1f5f9;font-size:16px;font-weight:700;margin-bottom:16px">아이템 수정</div>
+    <div style="background:var(--miu-canvas);border-radius:14px;padding:24px 20px;max-width:340px;width:100%;max-height:100%;overflow-y:auto;box-shadow:var(--shadow-3)">
+      <div style="color:var(--miu-ink);font-size:16px;font-weight:700;margin-bottom:16px">아이템 수정</div>
       <div style="text-align:center; margin-bottom:16px">
-        <img id="edit-photo-preview" src="${escapeHtml(item.photo_url || "")}" style="max-width:140px; max-height:140px; border-radius:8px; border:1px solid #334155; object-fit:cover; ${item.photo_url ? "" : "display:none"}" alt="사진">
-        <div id="edit-photo-empty" style="${item.photo_url ? "display:none" : ""}; color:#64748b; font-size:13px; padding:24px 0">사진 없음</div>
+        <img id="edit-photo-preview" src="${escapeHtml(item.photo_url || "")}" style="max-width:140px; max-height:140px; border-radius:8px; border:1px solid var(--miu-hairline); object-fit:cover; ${item.photo_url ? "" : "display:none"}" alt="사진">
+        <div id="edit-photo-empty" style="${item.photo_url ? "display:none" : ""}; color:var(--miu-muted); font-size:13px; padding:24px 0">사진 없음</div>
         <div>
-          <button type="button" id="edit-photo-btn" class="btn btn-outline btn-sm" style="margin-top:8px">${item.photo_url ? "📷 재촬영" : "📷 촬영"}</button>
+          <button type="button" id="edit-photo-btn" class="btn btn-outline btn-sm" style="margin-top:8px; min-height:44px">${item.photo_url ? '<i class="ph-bold ph-camera"></i> 재촬영' : '<i class="ph-bold ph-camera"></i> 촬영'}</button>
         </div>
         <input type="file" accept="image/*" capture="environment" id="edit-photo-file" style="display:none">
       </div>
@@ -219,8 +221,8 @@ function openEditItemModal(item) {
         <input type="number" id="edit-price" value="${item.price || 0}" inputmode="decimal">
       </div>
       <div style="display:flex;gap:8px">
-        <button id="_edit-cancel" style="flex:1;padding:11px;background:#334155;border:none;border-radius:8px;color:#94a3b8;font-size:14px;cursor:pointer">취소</button>
-        <button id="_edit-save" style="flex:1;padding:11px;background:#3b82f6;border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:600;cursor:pointer">저장</button>
+        <button id="_edit-cancel" style="flex:1;min-height:44px;padding:11px;background:var(--miu-canvas);border:1px solid var(--field-border);border-radius:8px;color:var(--miu-body);font-size:14px;font-weight:600;cursor:pointer">취소</button>
+        <button id="_edit-save" style="flex:1;min-height:44px;padding:11px;background:var(--miu-primary);border:none;border-radius:8px;color:var(--miu-on-primary);font-size:14px;font-weight:600;cursor:pointer">저장</button>
       </div>
     </div>`;
   document.body.appendChild(overlay);
@@ -235,7 +237,7 @@ function openEditItemModal(item) {
     const file = e.target.files[0];
     e.target.value = "";
     if (!file) return;
-    photoBtn.disabled = true; photoBtn.textContent = "⏳ 업로드 중…";
+    photoBtn.disabled = true; photoBtn.textContent = "업로드 중…";
     const hadPhoto = !!item.photo_url;
     try {
       const compressed = await compressImage(file);
@@ -253,7 +255,7 @@ function openEditItemModal(item) {
       showError("사진 업로드 실패: " + err.message);
     } finally {
       photoBtn.disabled = false;
-      photoBtn.textContent = item.photo_url ? "📷 재촬영" : "📷 촬영";
+      photoBtn.innerHTML = item.photo_url ? '<i class="ph-bold ph-camera"></i> 재촬영' : '<i class="ph-bold ph-camera"></i> 촬영';
     }
   });
 
@@ -341,7 +343,7 @@ function renderBrandChips() {
   const el = document.getElementById("brand-chips");
   if (!el) return;
   el.innerHTML = sessionBrands.slice(0, 20).map(b =>
-    `<button type="button" style="background:#0f172a; border:1px solid #334155; border-radius:99px; padding:4px 12px; font-size:12px; color:#94a3b8; cursor:pointer; white-space:nowrap; flex-shrink:0" data-brand="${escapeHtml(b)}">${escapeHtml(b)}</button>`
+    `<button type="button" class="brand-chip" data-brand="${escapeHtml(b)}">${escapeHtml(b)}</button>`
   ).join("");
   el.querySelectorAll("button").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -386,7 +388,7 @@ async function showBrandDropdown(q) {
   if (!dd) return;
   if (brands.length === 0) { hideBrandDropdown(); return; }
   dd.innerHTML = brands.map(b =>
-    `<div data-brand="${escapeHtml(b)}" style="padding:10px 14px; font-size:14px; color:#e2e8f0; cursor:pointer; border-bottom:1px solid #0f172a">${escapeHtml(b)}</div>`
+    `<div data-brand="${escapeHtml(b)}" class="brand-dropdown-item">${escapeHtml(b)}</div>`
   ).join("");
   dd.style.display = "block";
   dd.querySelectorAll("div").forEach(item => {
@@ -418,7 +420,7 @@ async function loadPriceRef() {
   const brand   = document.getElementById("brand-input").value.trim();
   const content = document.getElementById("price-ref-content");
   if (!brand) { content.textContent = "브랜드를 입력하세요"; return; }
-  content.textContent = "⏳ 로딩…";
+  content.textContent = "불러오는 중…";
   try {
     const { data, error } = await sb
       .from("inventory_items")
@@ -437,8 +439,8 @@ async function loadPriceRef() {
     const avg = Math.round(data.reduce((s, it) => s + it.price, 0) / data.length);
     content.innerHTML = `
       <div style="text-align:center; padding:4px 0">
-        <div style="font-size:22px; font-weight:800; color:var(--brand-primary)">₩${avg.toLocaleString()}</div>
-        <div style="font-size:11px; color:var(--fg-tertiary); margin-top:4px">최근 ${data.length}건 평균</div>
+        <div style="font-size:22px; font-weight:800; color:var(--miu-ink)">₩${avg.toLocaleString()}</div>
+        <div style="font-size:13px; color:var(--fg-tertiary); margin-top:4px">최근 ${data.length}건 평균</div>
       </div>`;
   } catch (e) {
     content.textContent = "오류: " + e.message;
@@ -542,7 +544,7 @@ async function deleteItem(itemId, btn) {
     }
   } catch (e) {
     showError("삭제 실패: " + e.message);
-    btn.textContent = "×"; btn.disabled = false;
+    btn.innerHTML = '<i class="ph-bold ph-trash"></i>'; btn.disabled = false;
   }
 }
 

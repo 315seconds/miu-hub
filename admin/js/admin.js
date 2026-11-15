@@ -55,7 +55,7 @@ async function loadLocations() {
   if (!data.length) { list.innerHTML = '<div class="section-hint">등록된 매장이 없어요.</div>'; return; }
   list.innerHTML = data.map(l => {
     const kindCtl = (l.kind === 'store' || l.kind === 'warehouse')
-      ? `<select data-loc-kind="${esc(l.id)}" aria-label="종류"><option value="store"${l.kind === 'store' ? ' selected' : ''}>매장</option><option value="warehouse"${l.kind === 'warehouse' ? ' selected' : ''}>창고·물류</option></select>`
+      ? `<select class="miu-select" data-loc-kind="${esc(l.id)}" aria-label="종류"><option value="store"${l.kind === 'store' ? ' selected' : ''}>매장</option><option value="warehouse"${l.kind === 'warehouse' ? ' selected' : ''}>창고·물류</option></select>`
       : `<span class="role-badge">${esc(KIND_LABEL[l.kind] || l.kind)}</span>`;
     const protectedLoc = l.kind === 'final';
     return `
@@ -63,7 +63,7 @@ async function loadLocations() {
       <div class="name">${esc(l.name)}${l.is_active ? '' : '<div class="name-sub">비활성</div>'}</div>
       <div class="actions">
         ${kindCtl}
-        ${protectedLoc ? '' : `<button data-loc-toggle="${esc(l.id)}" data-active="${l.is_active}">${l.is_active ? '비활성' : '활성'}</button>
+        ${protectedLoc ? '' : `<button data-loc-toggle="${esc(l.id)}" data-active="${l.is_active}">${l.is_active ? '비활성화' : '활성화'}</button>
         <button class="danger" data-loc-delete="${esc(l.id)}" data-name="${esc(l.name)}">삭제</button>`}
       </div>
     </div>`;
@@ -75,6 +75,18 @@ async function loadLocations() {
 async function setLocationKind(id, kind) {
   const { error } = await sb.from('locations').update({ kind }).eq('id', id);
   if (error) toast('종류 변경 실패: ' + error.message, 'error'); else toast('종류를 바꿨어요');
+  loadLocations();
+}
+async function toggleLocation(id, currActive) {
+  const { error } = await sb.from('locations').update({ is_active: !currActive }).eq('id', id);
+  if (error) { toast(error.message, 'error'); return; }
+  loadLocations();
+}
+async function deleteLocation(id, name) {
+  if (!confirm(`'${name}' 위치를 정말 삭제하시겠어요? 과거 이동 기록은 유지됩니다.`)) return;
+  const { error } = await sb.from('locations').delete().eq('id', id);
+  if (error) { toast('삭제 실패: ' + error.message, 'error'); return; }
+  toast('삭제됨');
   loadLocations();
 }
 async function addLocation(name, kind) {
@@ -142,7 +154,7 @@ async function loadSources() {
     <div class="list-item ${s.is_active ? '' : 'inactive'}">
       <div class="name">${esc(s.name)}${s.is_active ? '' : '<div class="name-sub">비활성</div>'}</div>
       <div class="actions">
-        <button data-src-toggle="${s.id}" data-active="${s.is_active}">${s.is_active ? '비활성' : '활성'}</button>
+        <button data-src-toggle="${s.id}" data-active="${s.is_active}">${s.is_active ? '비활성화' : '활성화'}</button>
         <button class="danger" data-src-delete="${s.id}" data-name="${esc(s.name)}">삭제</button>
       </div>
     </div>
