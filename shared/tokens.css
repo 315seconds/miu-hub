@@ -48,6 +48,9 @@
   --miu-success-text: #2e6b3a;
   --miu-warning-text: #7a5c0a;
   --miu-error-text:   #8f2f25;
+  /* 등락 표시는 한국 관례: 상승 빨강, 하락 파랑(▲▼ 기호와 함께). 성공·오류 같은 상태 색과는 별개다 */
+  --miu-up:   #b03a2e;   /* 크림 위 5.7:1, 카드 위 5.0:1 */
+  --miu-down: #2f5d9e;   /* 크림 위 6.3:1, 카드 위 5.5:1 */
 
   /* ─── Typography Families ─── */
   --miu-serif: "Noto Serif KR", "KoPub Batang", "리디바탕", "Nanum Myeongjo", ui-serif, Georgia, serif;

@@ -456,8 +456,8 @@
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
-.miu-stat-delta.up   { color: var(--miu-success); }
-.miu-stat-delta.down { color: var(--miu-error); }
+.miu-stat-delta.up   { color: var(--miu-up); }
+.miu-stat-delta.down { color: var(--miu-down); }
 
 
 /* ===========================================================================

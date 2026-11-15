@@ -5,15 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>입고 관리 · 마켓인유</title>
 
-  <link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
-  <link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
+  <link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151348">
+  <link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151348">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
   <!-- auth-migration: 로그인 가드 -->
-  <script src="/miu-hub/shared/config.js?v=202611151334"></script>
+  <script src="/miu-hub/shared/config.js?v=202611151348"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
-  <script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
+  <script src="/miu-hub/shared/supabase-client.js?v=202611151348"></script>
+  <script src="/miu-hub/shared/auth-guard.js?v=202611151348"></script>
 
   <style>
     /* receiving/index 전용 미세 조정 */
@@ -46,8 +46,8 @@
     .cmp-row.cur .cmp-fill { background: var(--miu-ink); }
     .cmp-val { text-align: right; font-variant-numeric: tabular-nums; font-weight: 700; font-size: 18px; line-height: 1.1; color: var(--miu-ink); }
     .cmp-delta { display: block; margin-top: 2px; font-family: var(--miu-sans); font-size: var(--miu-fs-micro); font-weight: 600; color: var(--miu-muted); }
-    .cmp-delta.up { color: var(--miu-success-text); }
-    .cmp-delta.down { color: var(--miu-error-text); }
+    .cmp-delta.up { color: var(--miu-up); }
+    .cmp-delta.down { color: var(--miu-down); }
   </style>
 </head>
 <body class="miu-app">
@@ -156,9 +156,9 @@
   </div>
 
   <!-- 기존 receiving JS 스택 유지 (통계 로드 + bottom-nav 자동 삽입) -->
-  <script src="js/supabase-client.js?v=202611151334"></script>
-  <script src="js/api.js?v=202611151334"></script>
-  <script src="js/shared.js?v=202611151334"></script>
+  <script src="js/supabase-client.js?v=202611151348"></script>
+  <script src="js/api.js?v=202611151348"></script>
+  <script src="js/shared.js?v=202611151348"></script>
   <script>
     document.getElementById('today-label').textContent = getTodayLabel();
 

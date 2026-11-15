@@ -6,8 +6,8 @@
 <title>카테고리 판매 분석 — 마켓인유</title>
 <meta name="theme-color" content="#faf9f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151334">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151334">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151348">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151348">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
 body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
@@ -46,7 +46,7 @@ body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(-
 .stat .l { font-size: 13px; color: var(--miu-muted); font-weight: 600; }
 .stat .v { font-family: var(--miu-sans); font-size: 22px; font-weight: 700; letter-spacing: -.5px; margin-top: 3px; font-variant-numeric: tabular-nums; }
 .stat .d { font-size: 13px; margin-top: 2px; color: var(--miu-muted); min-height: 16px; }
-.up { color: var(--miu-success-text); } .down { color: var(--miu-error-text); }
+.up { color: var(--miu-up); } .down { color: var(--miu-down); }
 .sec { margin-top: 26px; }
 .sec-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 8px; }
 .sec-head .t { font-family: var(--miu-serif); font-size: 19px; font-weight: 500; letter-spacing: -.4px; }
@@ -118,10 +118,10 @@ details.help[open] > summary::after { content: '−'; }
 .hbody th, .hbody td { padding: 7px 6px; border-bottom: 1px solid var(--miu-hairline-soft); text-align: left; vertical-align: top; }
 .hbody th { color: var(--miu-muted); font-weight: 600; }
 </style>
-<script src="/miu-hub/shared/config.js?v=202611151334"></script>
+<script src="/miu-hub/shared/config.js?v=202611151348"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611151334"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611151334"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611151348"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611151348"></script>
 <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
 </head>
 <body>
