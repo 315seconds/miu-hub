@@ -68,6 +68,6 @@ begin
 end $fn$;
 drop trigger if exists protect_profile_privileged_columns on public.profiles;
 create trigger protect_profile_privileged_columns before update on public.profiles for each row execute function public.protect_profile_privileged_columns();
--- 8) 죽은 DB 웹훅 제거 (옛 서버 43.202.62.74로 이동 승인 때마다 POST, 현재 응답 없음)
+-- 8) 죽은 DB 웹훅 제거 (옛 서버로 이동 승인 때마다 POST, 현재 응답 없음)
 drop trigger if exists "move-approved" on public.move_sessions;
 commit;

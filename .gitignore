@@ -4,3 +4,4 @@
 __pycache__/
 *.pyc
 supabase/.temp/
+item-scanner/supabase/.temp/

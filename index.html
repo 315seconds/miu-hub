@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="마켓인유">
 
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611130006">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151148">
 <!-- Phosphor Icons (Bold 스타일 — 살짝 두꺼운 라인) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
@@ -160,7 +160,6 @@
   .accent-admin      { --tile-accent: var(--miu-body-strong); }
   #admin-section { display: none; }
   #logistics-section { display: none; }
-  #tag-check-section { display: none; }
   #store-manual-section { display: none; }
 
   /* ── Callout (전면 코랄) ── */
@@ -526,25 +525,6 @@
   </div>
 </div>
 
-<!-- 임시(2026-11-10 하루 재개): 택갈이 확인 — 전 직원. 끝나면 이 섹션·아래 스크립트·receiving/tag-check.html 삭제 -->
-<div class="section" id="tag-check-section">
-  <div class="section-head">
-    <span class="num">임시</span>
-    <span class="label">오늘만</span>
-    <span class="divider"></span>
-  </div>
-  <div class="tiles">
-    <a href="receiving/tag-check.html" class="tile tile-wide accent-admin">
-      <div class="tile-icon"><i class="ph-bold ph-barcode"></i></div>
-      <div class="tile-body">
-        <div class="tile-title">택갈이 확인</div>
-        <div class="tile-desc">바코드 스캔 → 사진·정보 확인, 없으면 사진·브랜드 입력</div>
-      </div>
-      <span class="tile-arrow">›</span>
-    </a>
-  </div>
-</div>
-
 <!-- 섹션 7: 매장 업무 (매장직원 3명 + 관리자 2명, 서버가 강제) -->
 <div class="section" id="store-manual-section">
   <div class="section-head">
@@ -608,10 +588,10 @@
   </div>
 </div>
 
-<script src="/miu-hub/shared/config.js?v=202611130006"></script>
+<script src="/miu-hub/shared/config.js?v=202611151148"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611130006"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611130006"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611151148"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611151148"></script>
 
 <script>
 const days = ['일','월','화','수','목','금','토'];
@@ -760,12 +740,6 @@ if (window.MIU_USER) {
   if (['최영훈', '황태훈', '김민지', '이강철', '김성경'].includes(window.MIU_PROFILE?.name)) {
     document.getElementById('logistics-section').style.display = 'block';
   }
-})();
-
-// 임시(2026-11-10 하루 재개): 택갈이 확인 타일 — 로그인한 전 직원에게, 2026-11-10(KST)까지만 노출
-(function showTagCheckTile() {
-  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
-  if (today <= '2026-11-10') document.getElementById('tag-check-section').style.display = 'block';
 })();
 
 // 매장 업무(매뉴얼·체크리스트): 서버 함수가 직원 3명·관리자 2명에게만 'staff'/'manager'를 돌려준다
