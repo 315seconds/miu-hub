@@ -57,7 +57,7 @@ async function loadLog() {
   try {
     const { data: sessions, error } = await sb
       .from("inventory_sessions")
-      .select("*, inventory_hangers(inventory_items(id, category))")
+      .select("*, inventory_hangers(inventory_items(id, category, barcode))")
       .gte("session_date", from)
       .lte("session_date", to)
       .order("session_date", { ascending: false });
@@ -66,6 +66,9 @@ async function loadLog() {
     sessions.forEach(s => {
       s.total_items = (s.inventory_hangers || [])
         .reduce((sum, h) => sum + (h.inventory_items || []).length, 0);
+      const bcs = (s.inventory_hangers || [])
+        .flatMap(h => (h.inventory_items || []).map(i => i.barcode)).filter(Boolean).sort();
+      s.barcode_range = bcs.length ? { first: bcs[0], last: bcs[bcs.length - 1] } : null;
     });
     renderLog(sessions);
   } catch (e) {
@@ -163,7 +166,9 @@ function renderLog(sessions) {
               </div>
               <div style="font-size:13px; color:var(--miu-muted); margin-top:2px">
                 ${escapeHtml(s.location || "")}${s.created_by ? " · " + escapeHtml(s.created_by) : ""}
-                ${s.start_barcode_num ? ' · <span style="font-family:var(--font-mono); color:var(--miu-muted); white-space:nowrap">' + escapeHtml(s.barcode_prefix) + s.start_barcode_num + '~</span>' : ""}
+                ${s.barcode_range
+                  ? ' · <span style="font-family:var(--font-mono); color:var(--miu-muted); white-space:nowrap">' + escapeHtml(s.barcode_range.first) + ' ~ ' + escapeHtml(s.barcode_range.last) + '</span>'
+                  : s.start_barcode_num ? ' · <span style="font-family:var(--font-mono); color:var(--miu-muted); white-space:nowrap">' + escapeHtml(s.barcode_prefix) + s.start_barcode_num + '~</span>' : ""}
               </div>
             </div>
             <span class="badge ${statusClass[s.status] || "badge-pending"}" style="flex-shrink:0">
