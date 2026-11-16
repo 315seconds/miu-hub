@@ -384,6 +384,15 @@ async function markHangersKioskExported(hangerIds) {
   await sb.from("inventory_hangers").update({ kiosk_exported_at: new Date().toISOString() }).in("id", hangerIds);
 }
 
+// 세탁실 완료가 올린 재출력 대기열에서 출력한 바코드를 뺀다(대기열에 없는 바코드는 무시된다)
+async function markQueuePrinted(barcodes) {
+  if (!barcodes || !barcodes.length) return;
+  const { error } = await sb.rpc("reprint_queue_mark_printed", { p_barcodes: barcodes });
+  if (error) {
+    await appAlert("출력은 완료됐지만 재출력 대기열에서 빼지 못했습니다.\n재출력 화면에서 같은 바코드를 다시 출력하면 중복되니 주의하세요.\n\n" + error.message);
+  }
+}
+
 // HTML 라벨 미리보기 렌더 (SVG id는 index 기반으로 CSS selector 충돌 방지)
 function renderPreview(items) {
   const grid = document.getElementById("label-grid");
@@ -592,7 +601,10 @@ async function main() {
 
   function bindPrintButtons() {
     const zplText = generateZpl(items);
-    zebraBtn.onclick = () => zebraPrint(zplText, labelItems.length, () => markHangersPrinted(hangerIds));
+    zebraBtn.onclick = () => zebraPrint(zplText, labelItems.length, () => {
+      markHangersPrinted(hangerIds);
+      if (barcodesParam) markQueuePrinted(labelItems.map(it => it.barcode));
+    });
   }
 
   document.querySelectorAll(".tb-btn--team").forEach(btn => {

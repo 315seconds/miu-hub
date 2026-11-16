@@ -108,6 +108,20 @@ document.getElementById("paste-btn").addEventListener("click", () => {
 });
 document.getElementById("clear-btn").addEventListener("click", clearAll);
 
+// 세탁실 완료가 올린 대기열(scripts/laundry-room-20261116.sql). 출력하면 labels.js 가 대기열에서 뺀다.
+document.getElementById("queue-btn").addEventListener("click", async () => {
+  const msg = document.getElementById("queue-msg");
+  msg.textContent = "불러오는 중…";
+  const { data, error } = await sb.from("reprint_queue").select("barcode").is("printed_at", null).order("queued_at");
+  if (error) { msg.textContent = ""; showError("대기열을 불러오지 못했어요: " + error.message); return; }
+  clearError();
+  const before = scanned.length;
+  (data || []).forEach(r => addBarcode(r.barcode));
+  const added = scanned.length - before;
+  msg.textContent = !data.length ? "대기열이 비어 있어요."
+    : added ? `대기열 ${data.length}장 중 ${added}장을 목록에 담았어요.` : `대기열 ${data.length}장은 이미 목록에 있어요.`;
+});
+
 document.getElementById("print-btn").addEventListener("click", () => {
   if (scanned.length === 0) return;
   const url = "labels.html?barcodes=" + encodeURIComponent(scanned.join(","));

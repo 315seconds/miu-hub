@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>세탁실 현황 — 마켓인유</title>
+<meta name="theme-color" content="#faf9f5">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611160643">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611160643">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<style>
+[hidden] { display: none !important; }
+body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
+.sum { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; }
+.sum .t { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.list { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); overflow: hidden; margin-top: 10px; }
+.it { display: flex; gap: 12px; align-items: flex-start; padding: 12px 14px; border-bottom: 1px solid var(--miu-hairline-soft); }
+.it:last-child { border-bottom: none; }
+.it .pick { flex: none; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; margin: -6px 0 0 -8px; }
+.it .pick input { width: 24px; height: 24px; accent-color: var(--miu-primary); }
+.it .ph { flex: none; width: 72px; height: 72px; border-radius: var(--miu-r-md); background: var(--miu-surface-soft); overflow: hidden; display: flex; align-items: center; justify-content: center; color: var(--miu-muted-soft); font-size: 24px; }
+.it .ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.it .body { flex: 1; min-width: 0; }
+.it .bc { font-size: 15.5px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.it .l2 { margin-top: 3px; font-size: 13px; color: var(--miu-body); line-height: 1.55; }
+.it .l3 { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.it .fb { margin-top: 8px; }
+.empty { text-align: center; padding: 32px 16px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
+.sheet-sum { font-size: 14px; line-height: 1.7; color: var(--miu-body-strong); }
+.toggle { min-height: 44px; display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--miu-ink); margin-top: 10px; }
+.toggle input { width: 24px; height: 24px; accent-color: var(--miu-primary); flex: none; }
+.hint { margin-top: 4px; font-size: 13px; color: var(--miu-muted); line-height: 1.6; }
+</style>
+<script src="/miu-hub/shared/config.js?v=202611160643"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611160643"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611160643"></script>
+</head>
+<body>
+
+<header class="miu-header">
+  <a href="/miu-hub/" class="miu-header-back" aria-label="허브로">
+    <i class="ph-bold ph-caret-left"></i>
+  </a>
+  <div class="miu-header-title">
+    <div class="miu-header-eyebrow">LAUNDRY</div>
+    <h1 class="miu-header-h1">세탁실 현황</h1>
+  </div>
+</header>
+
+<div class="miu-page" id="root"><div class="miu-loading"><span class="miu-spinner"></span>불러오는 중…</div></div>
+<div class="miu-action-bar" id="bar" hidden>
+  <button class="miu-btn miu-btn-primary" id="done-btn" disabled>세탁·수선 완료</button>
+</div>
+
+<script>
+// 세탁·수선을 보낼 때 이동앱으로 옮기는 위치. 창고 종류(kind)만으로는 구분할 수 없어 이름을 쓴다(scripts/laundry-room-20261116.sql 과 같은 값).
+const LAUNDRY = '세탁실';
+
+const root = document.getElementById('root');
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const won = (n) => (n == null ? '' : Number(n).toLocaleString('ko-KR') + '원');
+const md = (d) => { const [, m, day] = String(d).split('-'); return `${Number(m)}/${Number(day)}`; };
+
+// items: 세탁실 재고(RPC laundry_list). locs: 돌려보낼 수 있는 위치(활성 매장·창고). picked: 체크한 바코드. fb: 보낸 위치를 직접 고른 값.
+const S = { items: [], locs: [], filter: 'all', picked: new Set(), fb: {} };
+
+const known = (it) => S.locs.includes(it.sent_from);   // 보낸 위치를 이력으로 알고, 지금도 쓰는 위치인가
+const destOf = (it) => (known(it) ? it.sent_from : S.fb[it.barcode] || '');
+const visible = () => S.items.filter((it) => S.filter === 'all' || (S.filter === '' ? !known(it) : it.sent_from === S.filter));
+
+async function load() {
+  root.innerHTML = '<div class="miu-loading"><span class="miu-spinner"></span>불러오는 중…</div>';
+  $('bar').hidden = true;
+  const [l, loc] = await Promise.all([
+    window.sb.rpc('laundry_list'),
+    window.sb.from('locations').select('name,kind').eq('is_active', true).in('kind', ['store', 'warehouse']).order('name'),
+  ]);
+  const err = l.error || loc.error;
+  if (err) {
+    root.innerHTML = `<div class="miu-alert warn"><span>불러오지 못했어요: ${esc(err.message)}</span></div>
+      <button class="miu-btn miu-btn-secondary" id="retry">다시 시도</button>`;
+    $('retry').addEventListener('click', load);
+    return;
+  }
+  S.items = l.data || [];
+  S.locs = (loc.data || []).map((x) => x.name).filter((n) => n !== LAUNDRY);
+  const here = new Set(S.items.map((it) => it.barcode));
+  S.picked = new Set([...S.picked].filter((b) => here.has(b)));
+  if (S.filter !== 'all' && !visible().length) S.filter = 'all';
+  render();
+}
+
+function chips() {
+  const counts = new Map();
+  let unknown = 0;
+  for (const it of S.items) {
+    if (known(it)) counts.set(it.sent_from, (counts.get(it.sent_from) || 0) + 1); else unknown++;
+  }
+  const chip = (key, label, n) => `<button type="button" class="miu-chip-btn" data-filter="${esc(key)}" aria-pressed="${S.filter === key}">${esc(label)} ${n}</button>`;
+  return `<div class="miu-chip-row">${chip('all', '전체', S.items.length)}${[...counts].map(([k, n]) => chip(k, k, n)).join('')}${unknown ? chip('', '위치 모름', unknown) : ''}</div>`;
+}
+
+function card(it) {
+  const checked = S.picked.has(it.barcode);
+  const meta = [it.brand, it.category, it.product_name].filter(Boolean).map(esc).join(' · ');
+  const sent = it.sent_date
+    ? `<span class="miu-chip muted">${esc(md(it.sent_date))} 보냄</span><span class="miu-chip muted">${it.days}일 경과</span>`
+    : '<span class="miu-chip muted">보낸 이력 없음</span>';
+  const from = known(it)
+    ? `<span class="miu-chip">보낸 곳 ${esc(it.sent_from)}</span>`
+    : `<div class="fb" style="width:100%"><label class="miu-field-label" for="fb-${esc(it.barcode)}">${it.sent_from ? `보낸 곳 ${esc(it.sent_from)}(현재 사용 안 함) · ` : ''}돌려보낼 위치</label>
+        <select class="miu-select" id="fb-${esc(it.barcode)}" data-fb="${esc(it.barcode)}"><option value="">위치 선택</option>${S.locs.map((n) => `<option value="${esc(n)}"${S.fb[it.barcode] === n ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></div>`;
+  return `<div class="it">
+    <label class="pick"><input type="checkbox" data-pick="${esc(it.barcode)}"${checked ? ' checked' : ''} aria-label="${esc(it.barcode)} 선택"></label>
+    <div class="ph">${it.photo_url ? `<a href="${esc(it.photo_url)}" target="_blank" rel="noopener" aria-label="사진 크게 보기"><img src="${esc(it.photo_url)}" alt="" loading="lazy"></a>` : '<i class="ph-bold ph-image"></i>'}</div>
+    <div class="body">
+      <div class="bc">${esc(it.barcode)}</div>
+      <div class="l2">${meta || '-'}${it.price != null ? ` · ${won(it.price)}` : ''}</div>
+      <div class="l3">${sent}${from}</div>
+    </div>
+  </div>`;
+}
+
+function render() {
+  const vis = visible();
+  const allOn = vis.length > 0 && vis.every((it) => S.picked.has(it.barcode));
+  root.innerHTML = S.items.length ? `
+    <div class="sum"><span class="t">세탁실에 ${S.items.length}벌</span>
+      <button type="button" class="miu-btn miu-btn-sm miu-btn-secondary" id="all-btn">${allOn ? '선택 해제' : '보이는 것 모두 선택'}</button></div>
+    ${chips()}
+    <div class="list">${vis.map(card).join('')}</div>
+    <div class="hint">돌아온 옷을 체크하고 아래 버튼을 누르면 세탁실에서 보낸 위치로 이동 세션이 만들어져요. 오늘 22:00에 자동 승인된 뒤 위치가 바뀌어요.</div>`
+    : `<div class="miu-state compact"><div class="miu-state-icon"><i class="ph-bold ph-washing-machine"></i></div>
+        <div class="miu-state-title">세탁실이 비어 있어요</div>
+        <div class="miu-state-desc">세탁·수선을 보낼 때 이동앱에서 위치를 ${LAUNDRY}로 옮기면 여기에 나타나요.</div></div>`;
+  $('bar').hidden = !S.items.length;
+  updateBar();
+}
+
+function updateBar() {
+  const n = S.picked.size;
+  const btn = $('done-btn');
+  btn.disabled = n === 0;
+  btn.textContent = n ? `세탁·수선 완료 (${n}벌)` : '세탁·수선 완료';
+}
+
+root.addEventListener('click', (e) => {
+  const f = e.target.closest('[data-filter]');
+  if (f) { S.filter = f.dataset.filter; render(); return; }
+  if (e.target.closest('#all-btn')) {
+    const vis = visible();
+    const allOn = vis.every((it) => S.picked.has(it.barcode));
+    vis.forEach((it) => (allOn ? S.picked.delete(it.barcode) : S.picked.add(it.barcode)));
+    render();
+  }
+});
+root.addEventListener('change', (e) => {
+  const p = e.target.closest('[data-pick]');
+  if (p) { p.checked ? S.picked.add(p.dataset.pick) : S.picked.delete(p.dataset.pick); updateBar(); return; }
+  const s = e.target.closest('[data-fb]');
+  if (s) S.fb[s.dataset.fb] = s.value;
+});
+
+// ── 완료 ────────────────────────────────────────────────────
+function openSheet() {
+  const picked = S.items.filter((it) => S.picked.has(it.barcode));
+  const missing = picked.filter((it) => !destOf(it));
+  if (missing.length) {
+    alert(`보낸 위치를 모르는 ${missing.length}벌은 "돌려보낼 위치"를 먼저 골라 주세요.\n(${missing.map((it) => it.barcode).join(', ')})`);
+    return;
+  }
+  const byDest = new Map();
+  picked.forEach((it) => byDest.set(destOf(it), (byDest.get(destOf(it)) || 0) + 1));
+  const ov = document.createElement('div');
+  ov.className = 'miu-overlay';
+  ov.innerHTML = `<div class="miu-modal" role="dialog" aria-modal="true" aria-labelledby="sh-t">
+    <div class="miu-modal-head"><div class="miu-modal-title" id="sh-t">세탁·수선 완료</div></div>
+    <div class="miu-modal-body">
+      <div class="sheet-sum">${picked.length}벌을 ${LAUNDRY}에서 돌려놓아요.<br>${[...byDest].map(([d, n]) => `${esc(d)} ${n}벌`).join(' · ')}</div>
+      <label class="toggle"><input type="checkbox" id="sh-reprint" checked> 바코드 재출력 필요</label>
+      <div class="hint">세탁으로 택을 뗀 옷은 켜 두세요. 수선만 한 옷(택이 그대로)은 끄세요. 켜면 재출력 화면의 대기열에 올라가요.</div>
+      <div class="miu-alert warn" id="sh-err" hidden></div>
+    </div>
+    <div class="miu-modal-actions">
+      <button class="miu-btn miu-btn-ghost" id="sh-cancel">취소</button>
+      <button class="miu-btn miu-btn-primary" id="sh-ok">완료 처리</button>
+    </div></div>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  ov.querySelector('#sh-cancel').addEventListener('click', close);
+  ov.addEventListener('click', (e) => { if (e.target === ov) close(); });
+  ov.querySelector('#sh-ok').addEventListener('click', async () => {
+    const ok = ov.querySelector('#sh-ok');
+    const errEl = ov.querySelector('#sh-err');
+    ok.disabled = true; errEl.hidden = true;
+    const fallback = {};
+    picked.filter((it) => !known(it)).forEach((it) => { fallback[it.barcode] = S.fb[it.barcode]; });
+    const { data, error } = await window.sb.rpc('laundry_complete', {
+      p_barcodes: picked.map((it) => it.barcode),
+      p_need_reprint: ov.querySelector('#sh-reprint').checked,
+      p_fallback: fallback,
+    });
+    if (error) { errEl.textContent = error.message; errEl.hidden = false; ok.disabled = false; return; }
+    close();
+    S.picked.clear();
+    await load();
+    const msg = `${data.moved}벌을 완료 처리했어요(이동 세션 ${data.sessions}개).` + (data.queued ? ` 재출력 대기열에 ${data.queued}장 올렸어요.` : '');
+    root.insertAdjacentHTML('afterbegin', `<div class="miu-alert ok"><span>${esc(msg)}${data.queued ? ' <a href="/miu-hub/receiving/reprint.html">재출력 화면으로</a>' : ''}</span></div>`);
+  });
+}
+$('done-btn').addEventListener('click', openSheet);
+
+(async function init() {
+  for (let i = 0; i < 50 && window.MIU_PROFILE === undefined; i++) await new Promise((r) => setTimeout(r, 100));
+  if (!window.MIU_PROFILE) { root.innerHTML = '<div class="empty">불러오지 못했어요. 새로고침해 주세요.</div>'; return; }
+  load();
+})();
+</script>
+</body>
+</html>
