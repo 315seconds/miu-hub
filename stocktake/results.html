@@ -6,8 +6,8 @@
 <title>재고조사 결과 — 마켓인유</title>
 <meta name="theme-color" content="#faf9f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611151348">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611151348">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611160146">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611160146">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 <style>
 body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
@@ -84,10 +84,10 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
 .miu-btn-sm { cursor: pointer; border: none; border-radius: var(--miu-r-md); display: inline-flex; align-items: center; gap: 4px; font-family: inherit; }
 .miu-btn-sm:disabled { opacity: .5; cursor: default; }
 </style>
-<script src="/miu-hub/shared/config.js?v=202611151348"></script>
+<script src="/miu-hub/shared/config.js?v=202611160146"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611151348"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611151348"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611160146"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611160146"></script>
 </head>
 <body>
 
@@ -103,7 +103,7 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
 
 <div class="wrap" id="root"><div class="miu-loading"><span class="miu-spinner"></span>불러오는 중…</div></div>
 
-<script src="js/common.js?v=202611151348"></script>
+<script src="js/common.js?v=202611160146"></script>
 <script>
 (function () {
   const { esc, fmt, KIND, RES } = ST;
@@ -718,6 +718,13 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
       await loadExcelJS();
       const ledger = ledgerFile ? await readLostLedger(ledgerFile) : null;
       const [all, extra] = await Promise.all([fetchAllResults(), ST.rpc('stocktake_report_data', { p_session: S.sid })]).then(([a, e]) => [a, e || {}]);
+      // 택갈이 의심 판매: 판매됨으로 기록됐지만 실물이 매장에 있어 재고를 복원한 물건(결과 메모가 "분실 상쇄"로 시작). 실제로 팔린 다른 물건은 미스캔 어딘가에 있으므로 분실 추정 총계에서만 차감한다.
+      const swapRows = all.filter((r) => r.kind === 'sold_scanned' && String(r.note || '').startsWith('분실 상쇄'));
+      let swapAmt = swapRows.reduce((a, r) => a + Number(r.price || 0), 0);
+      if (swapRows.length) {
+        const { data: sdat } = await window.sb.from('sold_items').select('barcode,price').in('barcode', swapRows.map((r) => r.item_barcode || r.barcode));
+        if (sdat && sdat.length) { const sp = new Map(sdat.map((x) => [String(x.barcode).toUpperCase(), Number(x.price || 0)])); swapAmt = swapRows.reduce((a, r) => a + (sp.get(String(r.item_barcode || r.barcode).toUpperCase()) ?? Number(r.price || 0)), 0); }
+      }
       const ids = [...new Set(all.map((r) => r.move_session_id).filter(Boolean))];
       const mv = new Map();
       for (let i = 0; i < ids.length; i += 100) {
@@ -733,8 +740,8 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
       };
       const when = (r) => (r.resolved_at ? ST.kstDateTime(r.resolved_at) : '');
       const lastMoved = extra.last_moved || {};
-      // 신규 미스캔(분실 후보): 이번 조사에서 처음 안 나왔고, 찾음 처리되지 않았고, 위탁 종료로 정리된 물건이 아닌 것
-      const isFreshLoss = (r) => !r.prior_missing && r.resolution !== 'found' && !((r.resolution === 'disposed' || r.resolution === 'moved') && r.move_session_id && mv.get(r.move_session_id)?.to_location === '위탁종료');
+      // 신규 미스캔(분실 후보): 이번 조사에서 처음 안 나왔고, 찾음 처리되지 않았고, 위탁종료로 정리되지 않았고, 처리 메모가 "분실 아님"으로 시작하지 않는 것
+      const isFreshLoss = (r) => !r.prior_missing && r.resolution !== 'found' && !String(r.note || '').startsWith('분실 아님') && !((r.resolution === 'disposed' || r.resolution === 'moved') && r.move_session_id && mv.get(r.move_session_id)?.to_location === '위탁종료');
       const E = window.ExcelJS;
       const wb = new E.Workbook();
       wb.creator = '마켓인유 허브';
@@ -795,6 +802,11 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
       });
       const trow = put(['합계', tot.exp, tot.ok, tot.exp ? tot.ok / tot.exp : null, tot.nm, tot.na, tot.pm, tot.ln, tot.la, tot.nm - tot.ln, tot.na - tot.la], { bold: true });
       trow.getCell(4).numFmt = '0.0%'; [6, 9, 11].forEach((c) => { trow.getCell(c).numFmt = '#,##0'; });
+      if (swapRows.length) {
+        const sw1 = put(['택갈이 의심 판매(차감)', null, null, null, null, null, null, null, null, -swapRows.length, -swapAmt]); sw1.getCell(11).numFmt = '#,##0';
+        const sw2 = put(['최종 분실 추정', null, null, null, null, null, null, null, null, tot.nm - tot.ln - swapRows.length, tot.na - tot.la - swapAmt], { bold: true }); sw2.getCell(11).numFmt = '#,##0';
+        put([`※ 택갈이 의심 판매 = 판매됨으로 기록됐지만 실물이 매장에 있어 재고를 복원한 물건 ${num(swapRows.length)}건. 실제로 팔린 다른 물건은 미스캔 어딘가에 있어 분실이 아니므로 총계에서만 차감해요(금액은 판매가 기준).`]);
+      }
       put(['※ 신규 미스캔 = 이번 조사에서 처음 안 나온 물건(찾음 처리된 건과 위탁종료로 정리된 건은 제외). 연속 미스캔 = 이전 조사에서도 안 나온 물건.']);
       put([ledger ? `※ 택분실 입고 = 첨부한 LOST 관리대장 기준 발견 지점별 건수(입고 완료 ${num(ledger.filter((r) => !r.pending).length)}건 + 입고 대기 ${num(ledger.filter((r) => r.pending).length)}건). 금액은 입고 완료 물건의 DB 가격이고 입고 대기 건은 금액이 없어요.` : '※ 택분실 입고 = 지난 조사 이후 이번 조사 시작 전까지 출처 "택분실"로 입고한 물건(현재 위치 기준, 지난 조사가 없으면 최근 90일).']);
       put(['※ 분실 추정 = 신규 미스캔 − 택분실 입고. 음수는 택분실이 더 많다는 뜻이라 발생 지점이 다르게 기록됐을 수 있어요.']);
@@ -854,6 +866,14 @@ textarea { width: 100%; resize: vertical; min-height: 64px; box-sizing: border-b
           tl.m += rows.length; tl.ma += amt(rows); tl.l += Number(lo.n); tl.la += Number(lo.amount);
         });
         sumRow('총계', tl.m, tl.ma, tl.l, tl.la, true);
+        if (swapRows.length) {
+          const a = wn.addRow(['택갈이 의심 판매(차감)', '', '', '', '', -swapRows.length, -swapAmt]);
+          a.getCell(7).numFmt = '#,##0"원"'; a.alignment = { horizontal: 'right' }; a.getCell(1).alignment = { horizontal: 'left' };
+          const b = wn.addRow(['최종 분실 추정', '', '', '', '', tl.m - tl.l - swapRows.length, tl.ma - tl.la - swapAmt]);
+          b.getCell(7).numFmt = '#,##0"원"'; b.alignment = { horizontal: 'right' }; b.getCell(1).alignment = { horizontal: 'left' }; b.font = { bold: true }; b.fill = SOFT;
+          const note0 = wn.addRow([`※ 택갈이 의심 판매 ${num(swapRows.length)}건 = 판매됨으로 기록됐지만 실물이 매장에 있어 재고를 복원한 물건. 실제로 팔린 다른 물건은 미스캔 어딘가에 있어 분실이 아니므로 지점은 특정하지 않고 총계에서만 차감해요(금액은 판매가 기준).`]);
+          wn.mergeCells(`A${note0.number}:${LC}${note0.number}`); note0.font = { color: { argb: 'FF666666' }, size: 10 };
+        }
         const pendingN = [...lost.values()].reduce((a, x) => a + Number(x.pending || 0), 0);
         const note1 = wn.addRow([`※ 택분실 입고 = ${ledger ? '첨부한 LOST 관리대장 기준 발견 지점별' : 'DB 출처 "택분실" 기준 현재 위치별'} 건수. 금액은 입고 완료 물건의 DB 가격이고${pendingN ? ` 입고 대기 ${num(pendingN)}건은 건수에만 들어가요.` : ' 입고 대기 건은 없어요.'}`]);
         wn.mergeCells(`A${note1.number}:${LC}${note1.number}`); note1.font = { color: { argb: 'FF666666' }, size: 10 };
