@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="마켓인유">
 
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611160643">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611170050">
 <!-- Phosphor Icons (Bold 스타일 — 살짝 두꺼운 라인) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
@@ -422,6 +422,15 @@
       </div>
       <span class="tile-arrow">›</span>
     </a>
+    <a href="lost-tag/" class="tile tile-wide">
+      <div class="tile-icon"><i class="ph-bold ph-tag"></i></div>
+      <div class="tile-body">
+        <div class="tile-title">택분실 처리</div>
+        <div class="tile-desc">매장 등록 건 수령 · 바코드 매칭</div>
+      </div>
+      <span id="lost-tag-count" class="new-badge" hidden></span>
+      <span class="tile-arrow">›</span>
+    </a>
   </div>
 </div>
 
@@ -512,10 +521,10 @@
   </div>
 </div>
 
-<script src="/miu-hub/shared/config.js?v=202611160643"></script>
+<script src="/miu-hub/shared/config.js?v=202611170050"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611160643"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611160643"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611170050"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611170050"></script>
 
 <script>
 const days = ['일','월','화','수','목','금','토'];
@@ -598,6 +607,16 @@ if (window.MIU_USER) {
   }
   if (window.MIU_PROFILE?.role === 'admin') {
     document.getElementById('admin-section').style.display = 'block';
+  }
+  if (window.MIU_PROFILE?.role === 'admin') {
+    // 택분실 처리 대기 건수(7일 넘은 건이 있으면 그 수를 강조). 실패하면 숫자만 안 보인다.
+    const { data } = await window.sb.from('lost_tag_items').select('reported_at').in('status', ['registered', 'received']);
+    if (data && data.length) {
+      const late = data.filter((r) => Date.now() - new Date(r.reported_at).getTime() > 7 * 86400000).length;
+      const el = document.getElementById('lost-tag-count');
+      el.textContent = late ? `7일 초과 ${late} · 대기 ${data.length}` : `대기 ${data.length}`;
+      el.hidden = false;
+    }
   }
 })();
 

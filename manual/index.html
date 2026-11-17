@@ -6,14 +6,14 @@
 <title>매장 업무 — 마켓인유</title>
 <meta name="theme-color" content="#faf9f5">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611160643">
-<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611160643">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611170050">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611170050">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
-<link rel="stylesheet" href="/miu-hub/manual/manual.css?v=202611160643">
-<script src="/miu-hub/shared/config.js?v=202611160643"></script>
+<link rel="stylesheet" href="/miu-hub/manual/manual.css?v=202611170050">
+<script src="/miu-hub/shared/config.js?v=202611170050"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611160643"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611160643"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611170050"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611170050"></script>
 </head>
 <body>
 
@@ -30,7 +30,7 @@
 
 <div class="wrap" id="root"><div class="miu-loading"><span class="miu-spinner"></span> 불러오는 중…</div></div>
 
-<script src="/miu-hub/manual/common.js?v=202611160643"></script>
+<script src="/miu-hub/manual/common.js?v=202611170050"></script>
 <script>
 const root = document.getElementById('root');
 const LS_STORE = 'miu-manual-store';
@@ -41,6 +41,8 @@ let visitors = null;   // 성수 본점 오늘 방문자 수 행(없으면 null)
 let photo = null, photoUrl = '';   // 키오스크 매장: 오늘 올린 정리 완료 사진(행, 서명 URL)
 let story = { fresh: null, allSet: [], date: '', urls: new Map() };   // 성수 본점: 인스타 스토리 이미지
 let uploading = false;
+let lost = [], lostUrls = new Map();   // 이 매장의 최근 택분실 등록(행, 전면 사진 서명 URL)
+let lostForm = null, lostBusy = false;   // 등록 폼 상태(null = 닫힘): { front, label: {blob,url}|null, note }
 let tab = 'check', query = '', cat = '';
 
 // ── 데이터 ─────────────────────────────────────────────
@@ -86,7 +88,7 @@ async function loadArticles() {
 }
 async function refreshDay() {
   today = await serverToday();
-  await Promise.all([loadChecks(), loadNotes(), loadVisitors(), loadMedia()]);
+  await Promise.all([loadChecks(), loadNotes(), loadVisitors(), loadMedia(), loadLost()]);
 }
 
 // ── 화면 ───────────────────────────────────────────────
@@ -174,6 +176,7 @@ function renderCheck() {
     ${checkHtml}
     ${visitorHtml}
     ${mediaHtml}
+    ${lostCardHtml()}
     <section class="notes">
       <div class="group-head"><span class="label">${esc(storeLabel(store))} 특이사항 메모</span><span class="divider"></span></div>
       <textarea id="note-text" maxlength="2000" placeholder="행거 고장, 손님 문의, 인수인계할 내용 등 그날의 특이사항을 적어 주세요"></textarea>
@@ -186,7 +189,8 @@ function renderCheck() {
     if (b.dataset.store === store) return;
     store = b.dataset.store; localStorage.setItem(LS_STORE, store);
     document.getElementById('note-text').value = '';   // 다른 매장에 잘못 남기지 않게 초안 비움
-    try { await Promise.all([loadChecks(), loadNotes(), loadMedia()]); } catch (err) { toast(errMsg(err), true); }
+    if (lostForm && !lostBusy) { ['front', 'label'].forEach((k) => lostForm[k] && URL.revokeObjectURL(lostForm[k].url)); lostForm = null; }
+    try { await Promise.all([loadChecks(), loadNotes(), loadMedia(), loadLost()]); } catch (err) { toast(errMsg(err), true); }
     renderCheck();
   }));
   document.querySelectorAll('.check').forEach((b) => b.addEventListener('click', () => toggle(b.dataset.id)));
@@ -194,6 +198,7 @@ function renderCheck() {
   document.getElementById('note-add').addEventListener('click', addNote);
   document.getElementById('visitor-save')?.addEventListener('click', saveVisitors);
   document.getElementById('photo-input')?.addEventListener('change', (e) => uploadPhoto(e.target.files[0]));
+  bindLost();
   document.querySelectorAll('[data-save]').forEach((b) => b.addEventListener('click', () => saveImage(b.dataset.save, b.dataset.name)));
 }
 
@@ -315,6 +320,109 @@ async function saveImage(path, name) {
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   } catch (e) { if (e?.name !== 'AbortError') toast(errMsg(e), true); }
+}
+
+// ── 택분실 등록 ────────────────────────────────────────
+// 택이 떨어져 바코드를 알 수 없는 옷을 사진으로 등록한다. 처리(수령·바코드 찾기·신규입고)는 사무실(관리자)이 `lost-tag/`에서 한다.
+// 사진은 비공개 버킷 lost-tags 에 올리고 RPC lost_tag_register 가 기록한다(등록은 매장 업무 권한자, 서버가 강제).
+const LOST_BUCKET = 'lost-tags';
+const LOST_DAYS = 14;        // 목록에 보이는 기간
+const LOST_OVERDUE = 7;      // 이 일수를 넘긴 미처리 건은 "7일 초과"
+const LOST_STATUS = { registered: '사무실 전달 대기', received: '사무실 수령', identified: '원래 바코드 찾음', new_entry: '신규 입고 처리', cancelled: '취소' };
+async function loadLost() {
+  const { data, error } = await sb.from('lost_tag_items').select('id,reported_by,reported_at,photo_front,note,status')
+    .eq('store', store).gte('reported_at', new Date(Date.now() - LOST_DAYS * 86400000).toISOString())
+    .order('reported_at', { ascending: false }).limit(30);
+  if (error) throw error;
+  lost = data;
+  const paths = data.map((r) => r.photo_front);
+  lostUrls = new Map();
+  if (paths.length) {
+    const s = await sb.storage.from(LOST_BUCKET).createSignedUrls(paths, 3600);
+    if (s.error) throw s.error;
+    lostUrls = new Map(s.data.map((r) => [r.path, r.signedUrl]));
+  }
+}
+const kstDate = (ts) => new Date(ts).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+const daysAgo = (ts) => Math.round((new Date(today + 'T00:00:00Z') - new Date(kstDate(ts) + 'T00:00:00Z')) / 86400000);
+function lostSlot(key, label, required) {
+  const p = lostForm[key];
+  return `<div class="lost-slot">${label}${required ? ' (필수)' : ' (선택)'}
+    <label class="lost-pick">${p ? `<img src="${esc(p.url)}" alt="${esc(label)}">` : (key === 'front' ? '옷 전체가<br>보이게 찍기' : '라벨·로고가<br>보이게 찍기')}
+      <input type="file" accept="image/*" data-lost-file="${key}" hidden ${lostBusy ? 'disabled' : ''}></label></div>`;
+}
+function lostCardHtml() {
+  const form = lostForm ? `<div class="lost-form">
+      <div class="lost-slots">${lostSlot('front', '칸1 전면', true)}${lostSlot('label', '칸2 라벨·로고', false)}</div>
+      <textarea id="lost-note" maxlength="1000" placeholder="메모 (선택) 예: 검정 후드, 목 뒤 라벨 없음" ${lostBusy ? 'disabled' : ''}>${esc(lostForm.note)}</textarea>
+      <div class="lost-actions"><button class="btn" id="lost-submit" ${lostBusy || !lostForm.front ? 'disabled' : ''}>${lostBusy ? '올리는 중…' : `${esc(storeLabel(store))} 택분실 등록`}</button>
+        <button class="btn sec" id="lost-cancel" ${lostBusy ? 'disabled' : ''}>닫기</button></div>
+    </div>`
+    : '<button class="btn sec" id="lost-open" style="margin-top:8px;width:100%"><i class="ph-bold ph-tag" style="margin-right:6px"></i> 택분실 등록</button>';
+  const rows = lost.map((r) => {
+    const open = r.status === 'registered' || r.status === 'received';
+    const late = open && daysAgo(r.reported_at) > LOST_OVERDUE;
+    return `<div class="lost-row">
+      <img src="${esc(lostUrls.get(r.photo_front) || '')}" alt="등록한 옷 사진" loading="lazy">
+      <div><div class="t"><b>${esc(r.reported_by)}</b><span>${mdw(kstDate(r.reported_at))} ${hhmm(r.reported_at)}</span>
+        <span class="badge ${r.status === 'identified' || r.status === 'new_entry' ? 'ok' : (late ? 'warn' : '')}">${esc(LOST_STATUS[r.status] || r.status)}</span>${late ? '<span class="badge warn">7일 초과</span>' : ''}</div>
+        ${r.note ? `<div class="b">${esc(r.note)}</div>` : ''}</div></div>`;
+  }).join('');
+  return `
+    <section class="group">
+      <div class="group-head"><span class="label">택분실 등록</span><span class="divider"></span></div>
+      <div class="media-meta" style="margin-top:0">택이 떨어져 바코드를 알 수 없는 옷은 여기에 사진으로 등록하고, 옷은 사무실(2층)에 전달해 주세요.</div>
+      ${form}
+      ${rows ? `<div style="margin-top:10px">${rows}</div>` : ''}
+    </section>`;
+}
+function bindLost() {
+  document.getElementById('lost-open')?.addEventListener('click', () => { lostForm = { front: null, label: null, note: '' }; renderCheck(); });
+  document.getElementById('lost-cancel')?.addEventListener('click', closeLostForm);
+  document.getElementById('lost-note')?.addEventListener('input', (e) => { lostForm.note = e.target.value; });
+  document.querySelectorAll('[data-lost-file]').forEach((i) => i.addEventListener('change', (e) => pickLost(i.dataset.lostFile, e.target.files[0])));
+  document.getElementById('lost-submit')?.addEventListener('click', submitLost);
+}
+function closeLostForm() {
+  if (lostForm) ['front', 'label'].forEach((k) => lostForm[k] && URL.revokeObjectURL(lostForm[k].url));
+  lostForm = null;
+  renderCheck();
+}
+async function pickLost(key, file) {
+  if (!file || !lostForm) return;
+  try {
+    const blob = await resizeJpeg(file);
+    if (lostForm[key]) URL.revokeObjectURL(lostForm[key].url);
+    lostForm[key] = { blob, url: URL.createObjectURL(blob) };
+  } catch (e) { toast(errMsg(e), true); }
+  renderCheck();
+}
+async function submitLost() {
+  if (!lostForm?.front || lostBusy) return;
+  lostBusy = true;
+  renderCheck();
+  try {
+    const up = async (b) => {
+      if (b.path) return b.path;   // 등록이 실패해 다시 누르면 이미 올린 파일을 다시 올리지 않는다
+      const path = `photos/${crypto.randomUUID()}.jpg`;
+      const r = await sb.storage.from(LOST_BUCKET).upload(path, b.blob, { contentType: 'image/jpeg' });
+      if (r.error) throw r.error;
+      b.path = path;
+      return path;
+    };
+    const front = await up(lostForm.front);
+    const label = lostForm.label ? await up(lostForm.label) : null;
+    const { error } = await sb.rpc('lost_tag_register', { p_store: store, p_note: lostForm.note.trim(), p_front: front, p_label: label });
+    if (error) throw error;
+    lostBusy = false;
+    lostForm.front && URL.revokeObjectURL(lostForm.front.url);
+    lostForm.label && URL.revokeObjectURL(lostForm.label.url);
+    lostForm = null;
+    await loadLost();
+    toast('택분실을 등록했어요. 옷은 사무실에 전달해 주세요');
+  } catch (e) { toast(errMsg(e), true); }
+  lostBusy = false;
+  renderCheck();
 }
 
 let busy = false;

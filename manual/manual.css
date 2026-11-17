@@ -128,6 +128,19 @@ details.art .art-body a { color: var(--miu-primary-active); word-break: break-al
 .media-tile figcaption { font-size: 13px; font-weight: 600; }
 .media-empty { display: flex; align-items: center; justify-content: center; text-align: center; aspect-ratio: 9 / 16; border: 1px dashed var(--miu-hairline); border-radius: var(--miu-r-md); font-size: 13px; line-height: 1.5; color: var(--miu-muted); }
 
+/* 택분실 등록 */
+.lost-form { margin-top: 8px; padding: 12px; border: 1px solid var(--miu-hairline); background: var(--miu-surface-soft); border-radius: var(--miu-r-lg); }
+.lost-slots { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.lost-slot { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 600; }
+.lost-pick { position: relative; display: flex; align-items: center; justify-content: center; text-align: center; aspect-ratio: 3 / 4; border: 1px dashed var(--miu-muted-soft); border-radius: var(--miu-r-md); background: var(--miu-canvas); color: var(--miu-muted); font-size: 13px; font-weight: 500; line-height: 1.5; cursor: pointer; overflow: hidden; }
+.lost-pick img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.lost-form textarea { width: 100%; margin-top: 10px; min-height: 72px; padding: 8px 10px; font: inherit; font-size: 16px; color: var(--miu-ink); background: var(--miu-canvas); border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); resize: vertical; }
+.lost-actions { margin-top: 10px; display: flex; gap: 12px; }
+.lost-row { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--miu-hairline); }
+.lost-row img { flex: none; width: 56px; height: 56px; object-fit: cover; border-radius: var(--miu-r-md); background: var(--miu-surface-strong); }
+.lost-row .t { font-size: 13px; color: var(--miu-muted); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.lost-row .b { margin-top: 3px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
+
 .note-fold { display: flex; flex-direction: column; }
 .note-fold:not(.open) .note:nth-of-type(n+4) { display: none; }
 .note-fold .fold-toggle { order: 99; margin-top: 10px; align-self: flex-start; }

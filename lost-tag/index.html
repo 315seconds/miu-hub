@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>택분실 처리 — 마켓인유</title>
+<meta name="theme-color" content="#faf9f5">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611170050">
+<link rel="stylesheet" href="/miu-hub/shared/layout.css?v=202611170050">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+<style>
+[hidden] { display: none !important; }
+body { font-family: var(--miu-sans); background: var(--miu-canvas); color: var(--miu-ink); word-break: keep-all; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; margin-top: 12px; }
+.card { background: var(--miu-surface-card); border-radius: var(--miu-r-lg); overflow: hidden; display: flex; flex-direction: column; }
+.pics { display: grid; grid-template-columns: 2fr 1fr; gap: 2px; background: var(--miu-surface-strong); }
+.pics a { display: block; aspect-ratio: 3 / 4; overflow: hidden; background: var(--miu-surface-soft); }
+.pics a.sm { aspect-ratio: auto; }
+.pics img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.pics .none { display: flex; align-items: center; justify-content: center; height: 100%; font-size: 12px; color: var(--miu-muted); text-align: center; padding: 6px; }
+.info { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.l1 { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.l1 .n { font-size: 15.5px; font-weight: 700; }
+.l2 { font-size: 13px; color: var(--miu-body); line-height: 1.55; }
+.note { font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
+.acts { margin-top: auto; padding-top: 8px; display: flex; gap: 16px; flex-wrap: wrap; }
+.panel { margin-top: 8px; padding: 12px; border-radius: var(--miu-r-md); background: var(--miu-canvas); border: 1px solid var(--miu-hairline); }
+.fld { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; }
+.fld:first-child { margin-top: 0; }
+.fld label { font-size: 13px; color: var(--miu-muted); font-weight: 600; }
+.fld input { padding: 0 10px; height: 44px; font: inherit; font-size: 16px; color: var(--miu-ink); background: var(--miu-canvas); border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-md); }
+.look { margin-top: 2px; font-size: 13px; line-height: 1.5; color: var(--miu-body); min-height: 1.5em; }
+.look.bad { color: var(--miu-error-text); }
+.status { margin-top: 8px; font-size: 13.5px; line-height: 1.6; color: var(--miu-body); }
+.status.err { color: var(--miu-error-text); }
+.empty { text-align: center; padding: 40px 16px; color: var(--miu-muted); font-size: 14px; line-height: 1.6; }
+.hint { margin-top: 12px; font-size: 13px; color: var(--miu-muted); line-height: 1.6; }
+</style>
+<script src="/miu-hub/shared/config.js?v=202611170050"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611170050"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611170050"></script>
+</head>
+<body>
+
+<header class="miu-header">
+  <a href="/miu-hub/" class="miu-header-back" aria-label="허브로">
+    <i class="ph-bold ph-caret-left"></i>
+  </a>
+  <div class="miu-header-title">
+    <div class="miu-header-eyebrow">LOST TAG</div>
+    <h1 class="miu-header-h1">택분실 처리</h1>
+  </div>
+</header>
+
+<div class="miu-page wide" id="root"><div class="miu-loading"><span class="miu-spinner"></span>불러오는 중…</div></div>
+
+<script>
+// 택분실 등록(매장 직원, manual/)을 수령 확인하고 원래 바코드를 찾아 매칭하거나, 못 찾으면 새 바코드로 신규입고한다. 처리는 관리자만(화면은 관리자가 아니면 막고, 서버 RPC가 같은 규칙으로 강제한다).
+const BUCKET = 'lost-tags';
+const OVERDUE = 7;   // 이 일수를 넘긴 미처리 건은 "7일 초과"
+const ST = { registered: '전달 대기', received: '수령 확인', identified: '바코드 찾음', new_entry: '신규 입고 처리', cancelled: '취소' };
+const DONE_LIMIT = 50;
+// 카테고리 목록은 receiving/js/hanger.js 의 CATEGORIES 와 같아야 한다(입고 화면과 같은 값으로 들어가게). 한쪽을 바꾸면 다른 쪽도 고친다.
+const CATEGORIES = [
+  '자켓', '바람막이', '플리스', 'PK셔츠', '셔츠', '스웻셔츠', '반팔티', '긴팔티', '나시티', '스웨터',
+  '하와이안셔츠', '타이다이', '원피스', '스커트', '반바지', '긴바지', '트랙팬츠', '블라우스',
+  '신발', '가방', '패션잡화', '넥타이', '벨트', '패브릭', '셋업', '모자', 'C',
+];
+// 신규입고 위치: 바코드 번호 체계(공동물류 = A, 온라인 = U)가 이 두 곳뿐이다(DB next_barcode()가 같은 이름을 쓴다).
+const ENTRY_LOCATIONS = ['공동물류', '온라인'];
+
+const root = document.getElementById('root');
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const won = (n) => (n == null ? '-' : Number(n).toLocaleString('ko-KR') + '원');
+const kstDate = (ts) => new Date(ts).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+const hhmm = (ts) => new Date(ts).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Seoul' });
+const md = (iso) => { const [, m, d] = iso.split('-'); return `${+m}/${+d}`; };
+const normBc = (s) => String(s || '').trim().toUpperCase();
+const ilikeLit = (s) => s.replace(/[\\%_]/g, (c) => '\\' + c);
+
+// rows: 현재 탭의 건. urls: 사진 서명 URL. act: 열려 있는 매칭 패널({id}). warehouses: 최종 보관 위치 후보(활성 창고).
+const S = { tab: 'open', store: 'all', rows: [], urls: new Map(), today: '', act: null, warehouses: [] };
+
+const ageOf = (r) => Math.round((new Date(S.today + 'T00:00:00Z') - new Date(kstDate(r.reported_at) + 'T00:00:00Z')) / 86400000);
+const isOpen = (r) => r.status === 'registered' || r.status === 'received';
+
+async function load() {
+  root.innerHTML = '<div class="miu-loading"><span class="miu-spinner"></span>불러오는 중…</div>';
+  try {
+    const cols = 'id,store,reported_by,reported_at,photo_front,photo_label,note,status,received_by,received_at,matched_barcode,final_location,new_item_barcode,new_session_id,resolved_by,resolved_at';
+    const q = S.tab === 'open'
+      ? window.sb.from('lost_tag_items').select(cols).in('status', ['registered', 'received']).order('reported_at', { ascending: true })
+      : window.sb.from('lost_tag_items').select(cols).in('status', ['identified', 'new_entry', 'cancelled']).order('resolved_at', { ascending: false }).limit(DONE_LIMIT);
+    const [r, t, w] = await Promise.all([
+      q,
+      window.sb.rpc('store_today'),
+      window.sb.from('locations').select('name').eq('is_active', true).eq('kind', 'warehouse').order('name'),
+    ]);
+    const err = r.error || t.error || w.error;
+    if (err) throw err;
+    S.rows = r.data; S.today = t.data;
+    S.warehouses = w.data.map((x) => x.name).filter((n) => n !== '세탁실');   // 세탁실은 세탁·수선 임시 위치라 최종 보관 위치가 아니다(서버도 같은 규칙)
+    const paths = [...new Set(S.rows.flatMap((x) => [x.photo_front, x.photo_label]).filter(Boolean))];
+    S.urls = new Map();
+    for (let i = 0; i < paths.length; i += 100) {   // 서명 URL은 한 번에 많이 받지 않는다
+      const s = await window.sb.storage.from(BUCKET).createSignedUrls(paths.slice(i, i + 100), 3600);
+      if (s.error) throw s.error;
+      s.data.forEach((x) => S.urls.set(x.path, x.signedUrl));
+    }
+    if (S.store !== 'all' && !S.rows.some((x) => x.store === S.store)) S.store = 'all';
+    render();
+  } catch (e) {
+    root.innerHTML = `<div class="miu-alert warn"><span>불러오지 못했어요: ${esc(e.message || e)}</span></div><button class="miu-btn miu-btn-secondary" id="retry" style="margin-top:12px">다시 시도</button>`;
+    $('retry').addEventListener('click', load);
+  }
+}
+
+function sorted(rows) {
+  // 미처리: 7일 초과가 맨 위, 그다음 오래된 순(서버가 이미 오래된 순). 완료: 서버 순서(최근 처리 순)
+  if (S.tab !== 'open') return rows;
+  const late = (r) => ageOf(r) > OVERDUE;
+  return [...rows.filter(late), ...rows.filter((r) => !late(r))];
+}
+
+function render() {
+  const stores = [...new Set(S.rows.map((r) => r.store))];
+  const vis = sorted(S.rows.filter((r) => S.store === 'all' || r.store === S.store));
+  const lateN = S.tab === 'open' ? S.rows.filter((r) => ageOf(r) > OVERDUE).length : 0;
+  const chip = (key, label, n) => `<button type="button" class="miu-chip-btn" data-store="${esc(key)}" aria-pressed="${S.store === key}">${esc(label)} ${n}</button>`;
+  root.innerHTML = `
+    <div class="miu-tabs" style="margin-top:6px">
+      <button class="miu-tab ${S.tab === 'open' ? 'on' : ''}" aria-selected="${S.tab === 'open'}" data-tab="open">처리 대기</button>
+      <button class="miu-tab ${S.tab === 'done' ? 'on' : ''}" aria-selected="${S.tab === 'done'}" data-tab="done">처리 완료</button>
+    </div>
+    <div id="flash"></div>
+    ${lateN ? `<div class="miu-alert warn" style="margin-top:12px"><span>등록 후 ${OVERDUE}일이 넘은 건이 ${lateN}건 있어요. 맨 위에 모았어요.</span></div>` : ''}
+    ${stores.length > 1 ? `<div class="miu-chip-row" style="margin-top:12px">${chip('all', '전체', S.rows.length)}${stores.map((s) => chip(s, s === '성수' ? '성수 본점' : s, S.rows.filter((r) => r.store === s).length)).join('')}</div>` : ''}
+    ${vis.length ? `<div class="grid">${vis.map(card).join('')}</div>`
+      : `<div class="empty">${S.tab === 'open' ? '처리할 택분실이 없어요.' : '처리 완료한 건이 없어요.'}</div>`}
+    ${S.tab === 'open' && vis.length ? '<div class="hint">한 벌씩 사진과 실물을 대조하세요. 수령 확인 → 사진에서 원래 바코드를 찾아 매칭하면, 바코드의 현재 위치에서 최종 보관 위치로 이동이 만들어져요(오늘 22:00 승인 후 반영). 원래 바코드는 통합 물건 조회를 옆 창에 띄워 찾으세요.</div>' : ''}`;
+}
+
+function pic(path, cls, label) {
+  const u = path && S.urls.get(path);
+  return u ? `<a ${cls ? `class="${cls}"` : ''} href="${esc(u)}" target="_blank" rel="noopener" aria-label="${esc(label)} 크게 보기"><img src="${esc(u)}" alt="${esc(label)}" loading="lazy"></a>`
+    : `<a ${cls ? `class="${cls}"` : ''}><div class="none">${path ? '불러오지 못함' : `${esc(label)} 없음`}</div></a>`;
+}
+
+function card(r) {
+  const late = isOpen(r) && ageOf(r) > OVERDUE;
+  const chipCls = r.status === 'identified' || r.status === 'new_entry' ? 'success' : r.status === 'cancelled' ? 'muted' : (late ? 'danger' : 'warn');
+  const open = S.act && S.act.id === r.id;
+  let acts = '';
+  if (r.status === 'registered') {
+    acts = `<button class="miu-btn miu-btn-sm miu-btn-primary" data-act="receive" data-id="${r.id}">수령 확인</button>
+            <button class="miu-btn miu-btn-sm miu-btn-danger" data-act="cancel" data-id="${r.id}">등록 취소</button>`;
+  } else if (r.status === 'received' && !open) {
+    acts = `<button class="miu-btn miu-btn-sm miu-btn-primary" data-act="match" data-id="${r.id}">원래 바코드 찾음</button>
+            <button class="miu-btn miu-btn-sm miu-btn-secondary" data-act="new" data-id="${r.id}">못 찾음 · 신규 입고</button>
+            <button class="miu-btn miu-btn-sm miu-btn-danger" data-act="cancel" data-id="${r.id}">등록 취소</button>`;
+  } else if (r.status === 'identified') {
+    acts = `<a class="miu-btn miu-btn-sm miu-btn-secondary" href="/miu-hub/receiving/labels.html?barcodes=${encodeURIComponent(r.matched_barcode)}" target="_blank" rel="noopener">바코드 재출력</a>`;
+  } else if (r.status === 'new_entry') {
+    acts = `<a class="miu-btn miu-btn-sm miu-btn-secondary" href="/miu-hub/receiving/labels.html?session_id=${encodeURIComponent(r.new_session_id)}" target="_blank" rel="noopener">라벨 출력</a>`;
+  }
+  const result = r.status === 'identified'
+    ? `<div class="l2"><b>${esc(r.matched_barcode)}</b> → ${esc(r.final_location)} · ${esc(r.resolved_by)} ${md(kstDate(r.resolved_at))}</div>`
+    : r.status === 'new_entry' ? `<div class="l2">새 바코드 <b>${esc(r.new_item_barcode)}</b> 신규 입고${r.final_location ? ` · 보관 ${esc(r.final_location)}` : ''} · ${esc(r.resolved_by)} ${md(kstDate(r.resolved_at))}</div>`
+    : r.status === 'cancelled' ? `<div class="l2">${esc(r.resolved_by)} ${md(kstDate(r.resolved_at))} 취소</div>` : '';
+  return `<div class="card" data-card="${r.id}">
+    <div class="pics">${pic(r.photo_front, '', '전면 사진')}${pic(r.photo_label, 'sm', '라벨·로고 사진')}</div>
+    <div class="info">
+      <div class="l1"><span class="n">${esc(r.store === '성수' ? '성수 본점' : r.store)}</span>
+        <span><span class="miu-chip ${chipCls}">${esc(ST[r.status] || r.status)}</span>${late ? ' <span class="miu-chip danger">7일 초과</span>' : ''}</span></div>
+      <div class="l2">${esc(r.reported_by)} · ${md(kstDate(r.reported_at))} ${hhmm(r.reported_at)} 등록${isOpen(r) ? ` · ${ageOf(r)}일 경과` : ''}${r.status === 'received' ? ` · ${esc(r.received_by)} 수령` : ''}</div>
+      ${r.note ? `<div class="note">${esc(r.note)}</div>` : ''}
+      ${result}
+      ${open ? (S.act.kind === 'new' ? newPanel(r) : matchPanel(r)) : ''}
+      ${acts ? `<div class="acts">${acts}</div>` : ''}
+    </div></div>`;
+}
+
+function matchPanel(r) {
+  return `<div class="panel">
+    <div class="fld"><label for="m-bc">원래 바코드</label><input id="m-bc" autocomplete="off" autocapitalize="characters" placeholder="사진에서 찾은 바코드"><div class="look" id="m-look"></div></div>
+    <div class="fld"><label for="m-final">최종 보관 위치</label>
+      <select class="miu-select" id="m-final"><option value="">위치 선택</option>${S.warehouses.map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join('')}</select></div>
+    <div class="status" id="m-status"></div>
+    <div class="acts"><button class="miu-btn miu-btn-primary" id="m-run" data-act="run" data-id="${r.id}">매칭하고 이동 만들기</button>
+      <button class="miu-btn miu-btn-secondary" data-act="close">닫기</button></div></div>`;
+}
+
+function flash(html, cls = 'ok') { const el = $('flash'); if (el) el.innerHTML = `<div class="miu-alert ${cls}" style="margin-top:12px"><span>${html}</span></div>`; }
+const mstatus = (msg, cls = '') => { const el = $('m-status'); if (el) { el.className = 'status ' + cls; el.textContent = msg; } };
+
+root.addEventListener('click', async (e) => {
+  const tb = e.target.closest('[data-tab]');
+  if (tb) { if (S.tab !== tb.dataset.tab) { S.tab = tb.dataset.tab; S.act = null; S.store = 'all'; load(); } return; }
+  const sc = e.target.closest('[data-store]');
+  if (sc) { S.store = sc.dataset.store; render(); return; }
+  const b = e.target.closest('[data-act]');
+  if (!b) return;
+  const id = b.dataset.id;
+  const row = S.rows.find((x) => x.id === id);
+  const kind = b.dataset.act;
+  if (kind === 'close') { S.act = null; render(); return; }
+  if (kind === 'match') {
+    S.act = { id, kind: 'match' }; render();
+    const input = $('m-bc');
+    input.addEventListener('input', debounce(look, 350));
+    input.focus();
+    return;
+  }
+  if (kind === 'new') { S.act = { id, kind: 'new' }; render(); $('n-category').focus(); return; }
+  if (kind === 'runnew') return runNew(row, b);
+  if (kind === 'receive') return act(b, 'lost_tag_receive', { p_id: id }, '수령 확인했어요');
+  if (kind === 'cancel') {
+    if (!confirm(`${row.store === '성수' ? '성수 본점' : row.store}에서 ${md(kstDate(row.reported_at))}에 등록한 건을 취소할까요?\n(되돌릴 수 없어요)`)) return;
+    return act(b, 'lost_tag_cancel', { p_id: id }, '등록을 취소했어요');
+  }
+  if (kind === 'run') return runMatch(row, b);
+});
+
+async function act(btn, fn, args, done) {
+  btn.disabled = true;
+  const { error } = await window.sb.rpc(fn, args);
+  if (error) { btn.disabled = false; flash(esc(error.message), 'warn'); return; }
+  S.act = null;
+  await load();
+  flash(esc(done));
+}
+
+function debounce(fn, ms) { let h; return () => { clearTimeout(h); h = setTimeout(fn, ms); }; }
+
+const STATUS = { in_stock: '보유중', sold: '판매됨', disposed: '폐기' };
+async function look() {
+  const el = $('m-look'); if (!el) return;
+  const bc = normBc($('m-bc').value);
+  if (!bc) { el.className = 'look'; el.textContent = ''; return; }
+  el.className = 'look'; el.textContent = '확인 중…';
+  const { data, error } = await window.sb.from('inventory_items').select('barcode,brand,category,price,status,location').ilike('barcode', ilikeLit(bc)).limit(1);
+  if (normBc($('m-bc')?.value) !== bc) return;   // 그 사이 입력이 바뀜
+  if (error) { el.className = 'look bad'; el.textContent = '확인하지 못했어요'; return; }
+  const it = data[0];
+  if (!it) { el.className = 'look bad'; el.textContent = '재고에 없는 바코드예요'; return; }
+  const bad = it.status !== 'in_stock';
+  el.className = 'look' + (bad ? ' bad' : '');
+  el.textContent = `${[it.brand, it.category].filter(Boolean).join(' · ') || '-'} · ${won(it.price)} · ${STATUS[it.status] || it.status} · 현재 위치 ${it.location || '-'}` + (bad ? ' — 보유중이 아니라 매칭할 수 없어요' : '');
+}
+
+async function runMatch(row, btn) {
+  const bc = normBc($('m-bc').value);
+  const fin = $('m-final').value;
+  if (!bc) return mstatus('원래 바코드를 입력하세요', 'err');
+  if (!fin) return mstatus('최종 보관 위치를 고르세요', 'err');
+  if (!confirm(`${bc} 을(를) 이 택분실 건의 원래 바코드로 매칭하고\n현재 위치에서 "${fin}"(으)로 이동을 만듭니다.\n\n실행할까요? (되돌리는 화면은 없어요)`)) return;
+  btn.disabled = true; mstatus('처리 중…');
+  const { data, error } = await window.sb.rpc('lost_tag_match', { p_id: row.id, p_barcode: bc, p_final: fin });
+  if (error) { btn.disabled = false; return mstatus(error.message, 'err'); }
+  S.act = null;
+  await load();
+  const move = data.session_id ? `${esc(data.from)} → ${esc(data.to)} 이동 세션을 만들었어요(오늘 22:00 승인 후 반영).` : `이미 ${esc(data.to)}에 있어서 이동은 만들지 않았어요.`;
+  flash(`<b>${esc(data.barcode)}</b> 매칭 완료. ${move} <a href="/miu-hub/receiving/labels.html?barcodes=${encodeURIComponent(data.barcode)}" target="_blank" rel="noopener">바코드 재출력</a>`);
+}
+
+// ── 신규 입고(원래 바코드를 못 찾은 건) ─────────────────────
+function newPanel(r) {
+  return `<div class="panel">
+    <div class="hint" style="margin-top:0">전면 사진이 물건 사진으로 쓰여요. 입력한 내용으로 입고 세션이 만들어져 바로 승인되고, 새 바코드가 발급돼요(출처 택분실).</div>
+    <div class="fld"><label for="n-entry">입고 위치</label>
+      <select class="miu-select" id="n-entry">${ENTRY_LOCATIONS.map((n) => `<option value="${esc(n)}">${esc(n)}${n === '공동물류' ? ' (A 바코드)' : ' (U 바코드)'}</option>`).join('')}</select></div>
+    <div class="fld"><label for="n-final">최종 보관 위치</label>
+      <select class="miu-select" id="n-final"><option value="">입고 위치와 같음</option>${S.warehouses.map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join('')}</select></div>
+    <div class="fld"><label for="n-category">카테고리</label>
+      <select class="miu-select" id="n-category"><option value="">카테고리 선택</option>${CATEGORIES.map((c) => `<option value="${esc(c)}">${esc(c === 'C' ? 'C(균일가)' : c)}</option>`).join('')}</select></div>
+    <div class="fld"><label for="n-brand">브랜드 (선택)</label><input id="n-brand" autocomplete="off"></div>
+    <div class="fld"><label for="n-price">가격 (1000 미만은 천 원 단위, 예 38 → 38,000원)</label><input id="n-price" inputmode="numeric" autocomplete="off"></div>
+    <div class="status" id="n-status"></div>
+    <div class="acts"><button class="miu-btn miu-btn-primary" id="n-run" data-act="runnew" data-id="${r.id}">신규 입고하고 바코드 발급</button>
+      <button class="miu-btn miu-btn-secondary" data-act="close">닫기</button></div></div>`;
+}
+const nstatus = (msg, cls = '') => { const el = $('n-status'); if (el) { el.className = 'status ' + cls; el.textContent = msg; } };
+
+async function runNew(row, btn) {
+  const entry = $('n-entry').value;
+  const fin = $('n-final').value;
+  const category = $('n-category').value;
+  const brand = $('n-brand').value.trim();
+  const priceRaw = parseFloat($('n-price').value.trim());
+  if (!category) return nstatus('카테고리를 고르세요', 'err');
+  if (!(priceRaw > 0)) return nstatus('가격을 입력하세요', 'err');
+  const price = Math.round(priceRaw < 1000 ? priceRaw * 1000 : priceRaw);   // 입고 화면(hanger.js)과 같은 규칙
+  if (!confirm(`새 바코드로 신규 입고합니다.\n\n입고 위치: ${entry}${fin && fin !== entry ? `\n최종 보관: ${fin}` : ''}\n카테고리: ${category}${brand ? `\n브랜드: ${brand}` : ''}\n가격: ${won(price)}\n\n실행할까요? (되돌리는 화면은 없어요)`)) return;
+  btn.disabled = true; nstatus('처리 중…');
+  try {
+    if (!S.act.photoUrl) {   // 전면 사진을 공개 버킷으로 복사(서버가 URL만 받는다). 실패해 다시 눌러도 한 번만 올린다.
+      const src = S.urls.get(row.photo_front);
+      if (!src) throw new Error('전면 사진을 불러오지 못했어요. 새로고침해 주세요.');
+      const blob = await (await fetch(src)).blob();
+      const path = `lost-tag-${row.id}/${Date.now()}.jpg`;
+      const up = await window.sb.storage.from('inventory-photos').upload(path, blob, { contentType: 'image/jpeg' });
+      if (up.error) throw up.error;
+      S.act.photoUrl = window.sb.storage.from('inventory-photos').getPublicUrl(path).data.publicUrl;
+    }
+    const { data, error } = await window.sb.rpc('lost_tag_new_entry', {
+      p_id: row.id, p_entry: entry, p_final: fin || null, p_brand: brand, p_category: category, p_price: price, p_photo_url: S.act.photoUrl,
+    });
+    if (error) throw error;
+    S.act = null;
+    await load();
+    const move = data.move_session_id ? ` ${esc(data.location)} → ${esc(data.final)} 이동 세션도 만들었어요(오늘 22:00 승인 후 반영).` : '';
+    flash(`새 바코드 <b>${esc(data.barcode)}</b>로 신규 입고했어요(${esc(data.location)}).${move} <a href="/miu-hub/receiving/labels.html?session_id=${encodeURIComponent(data.session_id)}" target="_blank" rel="noopener">라벨 출력</a>`);
+  } catch (e) { btn.disabled = false; nstatus(e.message || String(e), 'err'); }
+}
+
+(async function init() {
+  for (let i = 0; i < 50 && window.MIU_PROFILE === undefined; i++) await new Promise((r) => setTimeout(r, 100));
+  if (!window.MIU_PROFILE) { root.innerHTML = '<div class="empty">불러오지 못했어요. 새로고침해 주세요.</div>'; return; }
+  if (window.MIU_PROFILE.role !== 'admin') { root.innerHTML = '<div class="empty">택분실 처리는 관리자만 할 수 있어요.</div>'; return; }
+  load();
+})();
+</script>
+</body>
+</html>
