@@ -140,6 +140,15 @@ details.art .art-body a { color: var(--miu-primary-active); word-break: break-al
 .lost-row img { flex: none; width: 56px; height: 56px; object-fit: cover; border-radius: var(--miu-r-md); background: var(--miu-surface-strong); }
 .lost-row .t { font-size: 13px; color: var(--miu-muted); display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .lost-row .b { margin-top: 3px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-break: break-all; }
+.lost-guide { margin-top: 8px; border: 1px solid var(--miu-hairline); border-radius: var(--miu-r-lg); background: var(--miu-surface-soft); padding: 0 12px; }
+.lost-guide summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; font-size: 14px; font-weight: 700; list-style: none; }
+.lost-guide summary::-webkit-details-marker { display: none; }
+.lost-guide summary::after { content: '▾'; margin-left: auto; color: var(--miu-muted); transition: transform .15s; }
+.lost-guide[open] summary::after { transform: rotate(180deg); }
+.lost-guide-body { padding: 2px 0 12px; font-size: 14px; line-height: 1.7; color: var(--miu-body); }
+.lost-guide-body b { display: block; margin-top: 12px; color: var(--miu-ink); }
+.lost-guide-body b:first-child { margin-top: 2px; }
+.lost-guide-body ol, .lost-guide-body ul { margin: 2px 0 0; padding-left: 20px; }
 
 .note-fold { display: flex; flex-direction: column; }
 .note-fold:not(.open) .note:nth-of-type(n+4) { display: none; }
