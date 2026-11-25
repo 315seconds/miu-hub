@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>마켓인유 관리툴</title>
+<title>MIU 허브</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="theme-color" content="#faf9f5">
@@ -12,7 +12,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="마켓인유">
 
-<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611170120">
+<link rel="stylesheet" href="/miu-hub/shared/tokens.css?v=202611250612">
 <!-- Phosphor Icons (Bold 스타일 — 살짝 두꺼운 라인) -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 
@@ -130,7 +130,6 @@
     font-family: var(--miu-serif);
     font-size: 13px;
     color: var(--miu-muted);
-    font-style: italic;
     letter-spacing: -0.1px;
   }
 
@@ -207,7 +206,7 @@
     <span class="brand">MARKET IN U</span>
   </div>
   <div class="title-row">
-    <div class="title">관리툴</div>
+    <div class="title">MIU 허브</div>
     <div class="date-line" id="today-label"></div>
   </div>
 </div>
@@ -507,7 +506,7 @@
 <div class="footer">
   <div class="user" id="user-label"></div>
   <button class="logout" id="logout-btn">로그아웃</button>
-  <div class="brand-tag">— 마켓인유 관리툴 —</div>
+  <div class="brand-tag">— MIU 허브 —</div>
 </div>
 
 <!-- 주간 레터 도착 팝업 -->
@@ -521,10 +520,10 @@
   </div>
 </div>
 
-<script src="/miu-hub/shared/config.js?v=202611170120"></script>
+<script src="/miu-hub/shared/config.js?v=202611250612"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/miu-hub/shared/supabase-client.js?v=202611170120"></script>
-<script src="/miu-hub/shared/auth-guard.js?v=202611170120"></script>
+<script src="/miu-hub/shared/supabase-client.js?v=202611250612"></script>
+<script src="/miu-hub/shared/auth-guard.js?v=202611250612"></script>
 
 <script>
 const days = ['일','월','화','수','목','금','토'];
